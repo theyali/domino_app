@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../localization/app_localizations.dart';
 import '../models/user_account.dart';
 import 'inventory_screen.dart';
 import 'profile_screen.dart';
@@ -45,21 +46,21 @@ class _MainShellScreenState extends State<MainShellScreen> {
             _index = index;
           });
         },
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.restaurant_outlined),
-            selectedIcon: Icon(Icons.restaurant_rounded),
-            label: 'Рестораны',
+            icon: const Icon(Icons.restaurant_outlined),
+            selectedIcon: const Icon(Icons.restaurant_rounded),
+            label: context.tr('restaurants'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.card_giftcard_outlined),
-            selectedIcon: Icon(Icons.card_giftcard_rounded),
-            label: 'Инвентарь',
+            icon: const Icon(Icons.card_giftcard_outlined),
+            selectedIcon: const Icon(Icons.card_giftcard_rounded),
+            label: context.tr('inventory'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'Профиль',
+            icon: const Icon(Icons.person_outline_rounded),
+            selectedIcon: const Icon(Icons.person_rounded),
+            label: context.tr('profile'),
           ),
         ],
       ),

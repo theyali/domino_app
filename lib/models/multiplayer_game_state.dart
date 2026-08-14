@@ -1,6 +1,7 @@
 import '../config/api_config.dart';
 import 'domino.dart';
 import 'gift.dart';
+import 'player.dart';
 
 class ServerDomino {
   final int id;
@@ -68,12 +69,16 @@ class MultiplayerPlayerState {
 
   factory MultiplayerPlayerState.fromJson(Map<String, dynamic> json) {
     final rawActiveGift = json['active_gift'];
+    final id = json['id'] as int;
+    final avatarUrl = ApiConfig.resolveUrl(json['avatar_url'] as String?);
+
+    PlayerAvatarCache.remember(id, avatarUrl);
 
     return MultiplayerPlayerState(
-      id: json['id'] as int,
+      id: id,
       userId: json['user_id'] as int?,
       name: json['name'] as String,
-      avatarUrl: ApiConfig.resolveUrl(json['avatar_url'] as String?),
+      avatarUrl: avatarUrl,
       seatIndex: json['seat_index'] as int,
       isOwner: json['is_owner'] as bool? ?? false,
       isActive: json['is_active'] as bool? ?? true,

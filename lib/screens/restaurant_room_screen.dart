@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../widgets/create_room_bottom_sheet.dart';
 import '../widgets/game_room_card.dart';
 import '../widgets/join_room_bottom_sheet.dart';
+import '../widgets/restaurant_gift_shop_sheet.dart';
 import 'room_lobby_screen.dart';
 
 class RestaurantRoomScreen extends StatefulWidget {
@@ -62,6 +63,14 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
         });
       }
     }
+  }
+
+  Future<void> _showGiftShop() async {
+    await RestaurantGiftShopSheet.show(
+      context,
+      restaurantId: widget.restaurant.id,
+      restaurantName: widget.restaurant.name,
+    );
   }
 
   Future<void> _showCreateRoomSheet() async {
@@ -199,6 +208,11 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
         title: Text(widget.restaurant.name),
         actions: [
           IconButton(
+            onPressed: _showGiftShop,
+            tooltip: 'Подарки ресторана',
+            icon: const Icon(Icons.card_giftcard_rounded),
+          ),
+          IconButton(
             onPressed: _isLoading ? null : _loadRooms,
             tooltip: 'Обновить',
             icon: const Icon(Icons.refresh_rounded),
@@ -231,6 +245,7 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
                     0,
                     (total, room) => total + room.currentPlayers,
                   ),
+                  onOpenGiftShop: _showGiftShop,
                 ),
               ),
             ),
@@ -313,11 +328,13 @@ class _RestaurantRoomHeader extends StatelessWidget {
   final Restaurant restaurant;
   final int roomsCount;
   final int waitingPlayers;
+  final Future<void> Function() onOpenGiftShop;
 
   const _RestaurantRoomHeader({
     required this.restaurant,
     required this.roomsCount,
     required this.waitingPlayers,
+    required this.onOpenGiftShop,
   });
 
   @override
@@ -361,6 +378,18 @@ class _RestaurantRoomHeader extends StatelessWidget {
                 label: '$waitingPlayers игроков',
               ),
             ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.tonalIcon(
+              onPressed: onOpenGiftShop,
+              icon: const Icon(Icons.card_giftcard_rounded),
+              label: const Text(
+                'Подарки ресторана',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
           ),
         ],
       ),

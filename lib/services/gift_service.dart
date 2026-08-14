@@ -12,6 +12,52 @@ class GiftService {
 
   const GiftService();
 
+  Future<List<Gift>> fetchRestaurantGifts(int restaurantId) async {
+    final response = await http.get(
+      ApiConfig.uri('/api/restaurants/$restaurantId/gifts/'),
+      headers: await _authHeaders(),
+    );
+    final data = _decodeResponse(response);
+
+    if (data is! List) {
+      throw const ApiException('Сервер вернул неверный каталог подарков.');
+    }
+
+    return data
+        .map(
+          (item) => Gift.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  Future<int> purchaseGift({
+    required int restaurantId,
+    required int giftId,
+    int quantity = 1,
+  }) async {
+    final response = await http.post(
+      ApiConfig.uri(
+        '/api/restaurants/$restaurantId/gifts/$giftId/purchase/',
+      ),
+      headers: await _authJsonHeaders(),
+      body: jsonEncode({'quantity': quantity}),
+    );
+    final data = _decodeResponse(response);
+
+    if (data is! Map) {
+      throw const ApiException('Сервер не вернул количество подарков.');
+    }
+
+    final rawCount = data['giftable_count'];
+    if (rawCount is! int) {
+      throw const ApiException('Сервер вернул неверное количество подарков.');
+    }
+
+    return rawCount;
+  }
+
   Future<List<InventoryGift>> fetchInventory() async {
     final response = await http.get(
       ApiConfig.uri('/api/inventory/gifts/'),

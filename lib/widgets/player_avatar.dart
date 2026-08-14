@@ -234,8 +234,8 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
           ? null
           : avatarTarget +
               Offset(
-                widget.giftPlacement == PlayerGiftPlacement.right ? 25 : -25,
-                -8,
+                widget.giftPlacement == PlayerGiftPlacement.right ? 29 : -29,
+                4,
               );
 
       if (source == null || target == null) {
@@ -407,22 +407,23 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                       borderColor: Colors.greenAccent,
                     ),
                   ),
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: _DominoCountBadge(count: widget.dominoCount),
-                ),
+                if (!player.isMe)
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: _DominoCountBadge(count: widget.dominoCount),
+                  ),
                 Positioned(
                   left: widget.giftPlacement == PlayerGiftPlacement.left
-                      ? -6
+                      ? -1
                       : null,
                   right: widget.giftPlacement == PlayerGiftPlacement.right
-                      ? -6
+                      ? -1
                       : null,
-                  top: 19,
+                  top: 28,
                   child: SizedBox(
-                    width: 42,
-                    height: 42,
+                    width: 32,
+                    height: 32,
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 360),
                       reverseDuration: const Duration(milliseconds: 240),
@@ -539,8 +540,8 @@ class _ActiveGiftImageState extends State<_ActiveGiftImage>
       child: AnimatedBuilder(
         animation: _controller,
         child: SizedBox(
-          width: 34,
-          height: 34,
+          width: 26,
+          height: 26,
           child: widget.imageUrl?.trim().isNotEmpty == true
               ? Image.network(
                   widget.imageUrl!,
@@ -550,14 +551,14 @@ class _ActiveGiftImageState extends State<_ActiveGiftImage>
                     return const Icon(
                       Icons.card_giftcard_rounded,
                       color: Colors.amberAccent,
-                      size: 28,
+                      size: 22,
                     );
                   },
                 )
               : const Icon(
                   Icons.card_giftcard_rounded,
                   color: Colors.amberAccent,
-                  size: 28,
+                  size: 22,
                 ),
         ),
         builder: (context, child) {

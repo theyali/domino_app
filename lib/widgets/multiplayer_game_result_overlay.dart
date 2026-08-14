@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../localization/app_localizations.dart';
 import '../models/multiplayer_game_state.dart';
+import '../theme/app_colors.dart';
 
 class MultiplayerGameResultOverlay extends StatelessWidget {
   final MultiplayerGameState gameState;
@@ -43,12 +44,14 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: const Color(0xFF102333),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white24),
-                  boxShadow: const [
+                  border: Border.all(
+                    color: AppColors.lime.withValues(alpha: 0.28),
+                  ),
+                  boxShadow: [
                     BoxShadow(
-                      color: Colors.black54,
+                      color: AppColors.lime.withValues(alpha: 0.08),
                       blurRadius: 28,
-                      offset: Offset(0, 12),
+                      offset: const Offset(0, 12),
                     ),
                   ],
                 ),
@@ -109,7 +112,7 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                                     height: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      color: Colors.white,
+                                      color: Colors.black,
                                     ),
                                   )
                                 : const Icon(Icons.refresh_rounded),
@@ -267,7 +270,7 @@ class _PlayerResultRow extends StatelessWidget {
           color: isMatchLoser
               ? Colors.redAccent.withValues(alpha: 0.65)
               : isRoundWinner
-                  ? Colors.greenAccent.withValues(alpha: 0.55)
+                  ? AppColors.lime.withValues(alpha: 0.65)
                   : Colors.white12,
         ),
       ),

@@ -13,6 +13,9 @@ enum SocketConnectionStatus {
 }
 
 class GameSocketService {
+  static const Duration _heartbeatInterval = Duration(seconds: 10);
+  static const Duration _heartbeatTimeout = Duration(seconds: 30);
+
   final StreamController<Map<String, dynamic>> _messageController =
       StreamController<Map<String, dynamic>>.broadcast();
   final StreamController<SocketConnectionStatus> _statusController =
@@ -21,12 +24,14 @@ class GameSocketService {
   WebSocketChannel? _channel;
   StreamSubscription<dynamic>? _channelSubscription;
   Timer? _reconnectTimer;
+  Timer? _heartbeatTimer;
 
   int? _roomId;
   int? _playerId;
   int _connectionGeneration = 0;
   int _reconnectAttempt = 0;
 
+  DateTime? _lastPongAt;
   bool _manualClose = false;
   bool _disposed = false;
   SocketConnectionStatus _status = SocketConnectionStatus.disconnected;
@@ -134,7 +139,10 @@ class GameSocketService {
       }
 
       _reconnectAttempt = 0;
+      _lastPongAt = DateTime.now();
       _setStatus(SocketConnectionStatus.connected);
+      _startHeartbeat(generation);
+      send(const {'type': 'ping'});
     } catch (_) {
       _handleDisconnected(generation);
     }
@@ -147,11 +155,48 @@ class GameSocketService {
     try {
       final decoded = jsonDecode(event);
       if (decoded is Map) {
-        _messageController.add(Map<String, dynamic>.from(decoded));
+        final message = Map<String, dynamic>.from(decoded);
+        _lastPongAt = DateTime.now();
+
+        if (message['type'] == 'pong') {
+          return;
+        }
+
+        _messageController.add(message);
       }
     } catch (_) {
       // Ignore malformed messages. The connection itself can stay alive.
     }
+  }
+
+  void _startHeartbeat(int generation) {
+    _heartbeatTimer?.cancel();
+
+    _heartbeatTimer = Timer.periodic(_heartbeatInterval, (timer) {
+      if (_disposed ||
+          _manualClose ||
+          generation != _connectionGeneration ||
+          _status != SocketConnectionStatus.connected) {
+        timer.cancel();
+        return;
+      }
+
+      final lastPongAt = _lastPongAt;
+      if (lastPongAt != null &&
+          DateTime.now().difference(lastPongAt) > _heartbeatTimeout) {
+        timer.cancel();
+        _heartbeatTimer = null;
+
+        final channel = _channel;
+        if (channel != null) {
+          unawaited(channel.sink.close());
+        }
+        _handleDisconnected(generation);
+        return;
+      }
+
+      send(const {'type': 'ping'});
+    });
   }
 
   void _handleDisconnected(int generation) {
@@ -161,6 +206,8 @@ class GameSocketService {
       return;
     }
 
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
     _setStatus(SocketConnectionStatus.disconnected);
     _scheduleReconnect(generation);
   }
@@ -202,6 +249,9 @@ class GameSocketService {
     final subscription = _channelSubscription;
     final channel = _channel;
 
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+    _lastPongAt = null;
     _channelSubscription = null;
     _channel = null;
 

@@ -85,9 +85,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   Widget _buildBody() {
     if (_isLoading && _items.isEmpty) {
-      return const ListView(
-        physics: AlwaysScrollableScrollPhysics(),
-        children: [
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [
           SizedBox(height: 280),
           Center(child: CircularProgressIndicator()),
         ],

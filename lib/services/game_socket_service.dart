@@ -1,0 +1,225 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:web_socket_channel/web_socket_channel.dart';
+
+import '../config/api_config.dart';
+
+enum SocketConnectionStatus {
+  disconnected,
+  connecting,
+  connected,
+  reconnecting,
+}
+
+class GameSocketService {
+  final StreamController<Map<String, dynamic>> _messageController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<SocketConnectionStatus> _statusController =
+      StreamController<SocketConnectionStatus>.broadcast();
+
+  WebSocketChannel? _channel;
+  StreamSubscription<dynamic>? _channelSubscription;
+  Timer? _reconnectTimer;
+
+  int? _roomId;
+  int? _playerId;
+  int _connectionGeneration = 0;
+  int _reconnectAttempt = 0;
+
+  bool _manualClose = false;
+  bool _disposed = false;
+  SocketConnectionStatus _status = SocketConnectionStatus.disconnected;
+
+  Stream<Map<String, dynamic>> get messages => _messageController.stream;
+
+  Stream<SocketConnectionStatus> get statuses => _statusController.stream;
+
+  SocketConnectionStatus get status => _status;
+
+  Future<void> connectToRoom({
+    required int roomId,
+    required int playerId,
+  }) async {
+    if (_disposed) return;
+
+    _roomId = roomId;
+    _playerId = playerId;
+    _manualClose = false;
+    _reconnectAttempt = 0;
+    _reconnectTimer?.cancel();
+
+    _connectionGeneration += 1;
+    final generation = _connectionGeneration;
+
+    await _closeCurrentConnection();
+
+    if (_disposed || _manualClose || generation != _connectionGeneration) {
+      return;
+    }
+
+    unawaited(_openConnection(generation: generation, reconnecting: false));
+  }
+
+  void send(Map<String, dynamic> message) {
+    if (_status != SocketConnectionStatus.connected) return;
+    _channel?.sink.add(jsonEncode(message));
+  }
+
+  Future<void> disconnect() async {
+    if (_disposed && _manualClose) return;
+
+    _manualClose = true;
+    _connectionGeneration += 1;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+
+    await _closeCurrentConnection();
+    _setStatus(SocketConnectionStatus.disconnected);
+  }
+
+  Future<void> dispose() async {
+    if (_disposed) return;
+    _disposed = true;
+    await disconnect();
+    await _messageController.close();
+    await _statusController.close();
+  }
+
+  Future<void> _openConnection({
+    required int generation,
+    required bool reconnecting,
+  }) async {
+    final roomId = _roomId;
+    final playerId = _playerId;
+
+    if (_disposed ||
+        _manualClose ||
+        roomId == null ||
+        playerId == null ||
+        generation != _connectionGeneration) {
+      return;
+    }
+
+    _setStatus(
+      reconnecting
+          ? SocketConnectionStatus.reconnecting
+          : SocketConnectionStatus.connecting,
+    );
+
+    final uri = ApiConfig.webSocketUri(
+      '/ws/rooms/$roomId/',
+      queryParameters: {'player_id': '$playerId'},
+    );
+
+    final channel = WebSocketChannel.connect(uri);
+    _channel = channel;
+
+    _channelSubscription = channel.stream.listen(
+      (event) => _handleIncomingMessage(event, generation),
+      onError: (_) => _handleDisconnected(generation),
+      onDone: () => _handleDisconnected(generation),
+      cancelOnError: false,
+    );
+
+    try {
+      await channel.ready.timeout(const Duration(seconds: 8));
+
+      if (_disposed ||
+          _manualClose ||
+          generation != _connectionGeneration ||
+          !identical(_channel, channel)) {
+        await channel.sink.close();
+        return;
+      }
+
+      _reconnectAttempt = 0;
+      _setStatus(SocketConnectionStatus.connected);
+    } catch (_) {
+      _handleDisconnected(generation);
+    }
+  }
+
+  void _handleIncomingMessage(dynamic event, int generation) {
+    if (_disposed || generation != _connectionGeneration) return;
+    if (event is! String) return;
+
+    try {
+      final decoded = jsonDecode(event);
+      if (decoded is Map) {
+        _messageController.add(Map<String, dynamic>.from(decoded));
+      }
+    } catch (_) {
+      // Ignore malformed messages. The connection itself can stay alive.
+    }
+  }
+
+  void _handleDisconnected(int generation) {
+    if (_disposed ||
+        _manualClose ||
+        generation != _connectionGeneration) {
+      return;
+    }
+
+    _setStatus(SocketConnectionStatus.disconnected);
+    _scheduleReconnect(generation);
+  }
+
+  void _scheduleReconnect(int generation) {
+    if (_disposed ||
+        _manualClose ||
+        generation != _connectionGeneration ||
+        (_reconnectTimer?.isActive ?? false)) {
+      return;
+    }
+
+    const retryDelays = <int>[1, 2, 3, 5, 5];
+    final index = _reconnectAttempt < retryDelays.length
+        ? _reconnectAttempt
+        : retryDelays.length - 1;
+    final delaySeconds = retryDelays[index];
+    _reconnectAttempt += 1;
+
+    _reconnectTimer = Timer(Duration(seconds: delaySeconds), () {
+      _reconnectTimer = null;
+
+      if (_disposed ||
+          _manualClose ||
+          generation != _connectionGeneration) {
+        return;
+      }
+
+      unawaited(
+        _openConnection(
+          generation: generation,
+          reconnecting: true,
+        ),
+      );
+    });
+  }
+
+  Future<void> _closeCurrentConnection() async {
+    final subscription = _channelSubscription;
+    final channel = _channel;
+
+    _channelSubscription = null;
+    _channel = null;
+
+    await subscription?.cancel();
+
+    try {
+      await channel?.sink.close();
+    } catch (_) {
+      // The socket may already be closed by the server.
+    }
+  }
+
+  void _setStatus(SocketConnectionStatus value) {
+    if (_status == value) return;
+    _status = value;
+
+    if (!_statusController.isClosed) {
+      _statusController.add(value);
+    }
+  }
+}

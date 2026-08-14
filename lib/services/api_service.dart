@@ -7,6 +7,7 @@ import '../models/game_room.dart';
 import '../models/multiplayer_game_state.dart';
 import '../models/restaurant.dart';
 import '../models/room_player.dart';
+import 'active_game_session_store.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -26,6 +27,8 @@ class JoinRoomResult {
 }
 
 class ApiService {
+  static final ActiveGameSessionStore _sessionStore = ActiveGameSessionStore();
+
   const ApiService();
 
   Future<List<Restaurant>> fetchRestaurants() async {
@@ -122,6 +125,10 @@ class ApiService {
     );
 
     _decodeResponse(response);
+    await _sessionStore.clearIfMatches(
+      roomId: roomId,
+      playerId: playerId,
+    );
   }
 
   Future<MultiplayerGameState> startGame({

@@ -53,22 +53,6 @@ class _MultiplayerGameResultOverlayState
   }
 
   @override
-  void didUpdateWidget(covariant MultiplayerGameResultOverlay oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    final oldResult = oldWidget.gameState.roundResult;
-    final newResult = widget.gameState.roundResult;
-    final resultChanged = oldWidget.gameState.roundNumber !=
-            widget.gameState.roundNumber ||
-        oldResult?.reason != newResult?.reason ||
-        oldWidget.gameState.version != widget.gameState.version;
-
-    if (resultChanged && _phase == _ResultPresentationPhase.menu) {
-      _startPresentation();
-    }
-  }
-
-  @override
   void dispose() {
     _phaseTimer?.cancel();
     super.dispose();
@@ -506,14 +490,15 @@ class _RoundOutcomeFlash extends StatelessWidget {
       child: IgnorePointer(
         child: Center(
           child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.68, end: 1),
+            tween: Tween(begin: 0.68, end: 1.0),
             duration: const Duration(milliseconds: 430),
             curve: Curves.easeOutBack,
             builder: (context, value, child) {
+              final safeOpacity = value > 1.0 ? 1.0 : value;
               return Transform.scale(
                 scale: value,
                 child: Opacity(
-                  opacity: value.clamp(0.0, 1.0),
+                  opacity: safeOpacity,
                   child: child,
                 ),
               );
@@ -615,7 +600,7 @@ class _OutcomeBurst extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
+      tween: Tween(begin: 0.0, end: 1.0),
       duration: const Duration(milliseconds: 720),
       curve: Curves.easeOutCubic,
       builder: (context, progress, child) {
@@ -630,7 +615,7 @@ class _OutcomeBurst extends StatelessWidget {
                   math.sin((math.pi * 2 / 12) * index) * 88 * progress,
                 ),
                 child: Opacity(
-                  opacity: (1 - progress * 0.55).clamp(0.0, 1.0),
+                  opacity: 1.0 - progress * 0.55,
                   child: Transform.rotate(
                     angle: progress * (index.isEven ? 1.2 : -1.2),
                     child: Icon(

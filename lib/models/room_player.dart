@@ -13,7 +13,7 @@ class RoomPlayer {
   const RoomPlayer({
     required this.id,
     required this.name,
-    required this.avatarUrl,
+    this.avatarUrl,
     required this.seatIndex,
     required this.isOwner,
     this.isActive = true,

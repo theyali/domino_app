@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../localization/app_localizations.dart';
 import '../models/gift.dart';
 import '../models/player.dart';
 import '../services/active_game_session_store.dart';
@@ -65,6 +66,8 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   bool _isOpeningGiftMenu = false;
 
   bool get _isMultiplayerAvatar => widget.isOnline != null;
+
+  bool get _isAzerbaijani => context.appLanguage.code == 'az';
 
   @override
   void initState() {
@@ -147,7 +150,11 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
 
     final sent = EmotionRealtimeService.instance.sendEmotion(emotionAsset);
     if (!sent) {
-      _showMessage('Эмоцию можно отправить после восстановления realtime.');
+      _showMessage(
+        _isAzerbaijani
+            ? 'Emosiyanı realtime bərpa olunduqdan sonra göndərmək olar.'
+            : 'Эмоцию можно отправить после восстановления realtime.',
+      );
     }
   }
 
@@ -158,7 +165,11 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
     try {
       final savedSession = await _sessionStore.load();
       if (savedSession == null) {
-        _showMessage('Не удалось определить текущий стол.');
+        _showMessage(
+          _isAzerbaijani
+              ? 'Cari masanı müəyyən etmək mümkün olmadı.'
+              : 'Не удалось определить текущий стол.',
+        );
         return;
       }
 
@@ -188,7 +199,13 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
     } on ApiException catch (error) {
       if (mounted) _showMessage(error.message);
     } catch (_) {
-      if (mounted) _showMessage('Не удалось отправить подарок.');
+      if (mounted) {
+        _showMessage(
+          _isAzerbaijani
+              ? 'Hədiyyəni göndərmək mümkün olmadı.'
+              : 'Не удалось отправить подарок.',
+        );
+      }
     } finally {
       _isOpeningGiftMenu = false;
     }
@@ -420,7 +437,9 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
           ),
           const SizedBox(height: 2),
           Text(
-            player.isMe ? '${player.name} (Ты)' : player.name,
+            player.isMe
+                ? '${player.name} (${_isAzerbaijani ? 'Sən' : 'Ты'})'
+                : player.name,
             style: TextStyle(
               color: nameColor,
               fontSize: 14,
@@ -441,8 +460,10 @@ class _ActiveGiftImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fallbackName = context.appLanguage.code == 'az' ? 'Hədiyyə' : 'Подарок';
+
     return Tooltip(
-      message: name?.trim().isNotEmpty == true ? name! : 'Подарок',
+      message: name?.trim().isNotEmpty == true ? name! : fallbackName,
       child: SizedBox(
         width: 44,
         height: 44,

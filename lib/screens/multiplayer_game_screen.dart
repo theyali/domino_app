@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../localization/app_localizations.dart';
+import '../localization/game_action_strings.dart';
 import '../models/multiplayer_game_state.dart';
 import '../models/player.dart';
 import '../models/restaurant.dart';
@@ -15,6 +16,7 @@ import '../widgets/domino_boneyard_pile.dart';
 import '../widgets/domino_hand_rack.dart';
 import '../widgets/domino_placement_target.dart';
 import '../widgets/domino_tile.dart';
+import '../widgets/game_header_actions.dart';
 import '../widgets/game_table_decorations.dart';
 import '../widgets/multiplayer_domino_snake.dart';
 import '../widgets/multiplayer_game_result_overlay.dart';
@@ -67,6 +69,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
 
   bool _isSubmittingMove = false;
   bool _isStartingNextRound = false;
+  bool _isSurrendering = false;
   bool _isLeavingGame = false;
   bool _allowPop = false;
 
@@ -465,6 +468,8 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
 
       if (_gameState.isActive) {
         _isStartingNextRound = false;
+      } else {
+        _isSurrendering = false;
       }
     });
 
@@ -625,6 +630,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
 
   Future<void> _startNextRound() async {
     if (_isStartingNextRound ||
+        _isSurrendering ||
         _isLeavingGame ||
         !_gameState.isRoundFinished ||
         !_gameState.myPlayer.isOwner) {
@@ -658,37 +664,51 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     }
   }
 
-  Future<void> _requestExitGame() async {
-    if (_isLeavingGame || _allowPop) return;
+  Future<void> _requestSurrender() async {
+    if (_isSurrendering || _isLeavingGame || !_gameState.isActive) return;
 
-    final activeMatch = _gameState.isActive;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(context.tr('exit_game_title')),
-          content: Text(
-            context.tr(
-              activeMatch
-                  ? 'exit_active_match_description'
-                  : 'exit_table_description',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(context.tr('stay')),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text(context.tr('exit')),
-            ),
-          ],
-        );
-      },
+    final confirmed = await showGameActionConfirmDialog(
+      context,
+      surrender: true,
+    );
+    if (!confirmed || !mounted) return;
+
+    setState(() {
+      _isSurrendering = true;
+    });
+
+    try {
+      final state = await _apiService.surrenderGame(
+        roomId: _gameState.roomId,
+        playerId: _gameState.myPlayerId,
+      );
+
+      if (!mounted) return;
+      _applyGameState(state);
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isSurrendering = false;
+      });
+      _showMessage(error.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isSurrendering = false;
+      });
+      _showMessage(GameActionStrings.of(context).surrenderFailed);
+    }
+  }
+
+  Future<void> _requestExitGame() async {
+    if (_isLeavingGame || _isSurrendering || _allowPop) return;
+
+    final confirmed = await showGameActionConfirmDialog(
+      context,
+      surrender: false,
     );
 
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     setState(() {
       _isLeavingGame = true;
@@ -759,6 +779,8 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
           foregroundColor: Colors.white,
           elevation: 0,
           toolbarHeight: 54,
+          leadingWidth: 94,
+          leading: const SizedBox.shrink(),
           title: Text(
             widget.restaurant.name,
             style: const TextStyle(
@@ -767,10 +789,17 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
             ),
           ),
           centerTitle: true,
-          leading: IconButton(
-            onPressed: _isLeavingGame ? null : _requestExitGame,
-            icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          ),
+          actions: [
+            GameHeaderActions(
+              surrenderEnabled: _gameState.isActive &&
+                  !_isSurrendering &&
+                  !_isLeavingGame,
+              exitEnabled: !_isSurrendering && !_isLeavingGame,
+              onSurrender: _requestSurrender,
+              onExit: _requestExitGame,
+            ),
+            const SizedBox(width: 8),
+          ],
         ),
         body: SafeArea(
           child: Stack(

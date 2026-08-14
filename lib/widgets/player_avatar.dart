@@ -30,6 +30,8 @@ class PlayerAvatar extends StatefulWidget {
   final String? activeGiftImageUrl;
   final String? activeGiftName;
   final PlayerGiftPlacement giftPlacement;
+  final bool showName;
+  final bool compact;
 
   const PlayerAvatar({
     super.key,
@@ -43,6 +45,8 @@ class PlayerAvatar extends StatefulWidget {
     this.activeGiftImageUrl,
     this.activeGiftName,
     this.giftPlacement = PlayerGiftPlacement.right,
+    this.showName = true,
+    this.compact = false,
   });
 
   @override
@@ -231,11 +235,14 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
 
       final source = _avatarRegistry.globalCenterFor(event.senderPlayerId);
       final avatarTarget = _avatarRegistry.globalCenterFor(widget.player.id);
+      final giftOffset = widget.compact ? 25.0 : 29.0;
       final target = avatarTarget == null
           ? null
           : avatarTarget +
               Offset(
-                widget.giftPlacement == PlayerGiftPlacement.right ? 29 : -29,
+                widget.giftPlacement == PlayerGiftPlacement.right
+                    ? giftOffset
+                    : -giftOffset,
                 4,
               );
 
@@ -296,38 +303,25 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   @override
   Widget build(BuildContext context) {
     final player = widget.player;
-    final emphasized = widget.isActive || player.isMe;
     final avatarLetter = player.name.trim().isEmpty
         ? '?'
         : player.name.trim().substring(0, 1).toUpperCase();
 
-    final avatarFrameGradient = widget.isActive
-        ? const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFF7FAFC),
-              Color(0xFF9AA8B6),
-            ],
-          )
-        : player.isMe
-            ? const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.limeSoft,
-                  AppColors.lime,
-                  AppColors.limeDark,
-                ],
-              )
-            : const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white,
-                  Color(0xFF93A1AE),
-                ],
-              );
+    final canvasWidth = widget.compact ? 84.0 : 92.0;
+    final canvasHeight = widget.compact ? 70.0 : 82.0;
+    final ringSize = widget.compact ? 64.0 : 72.0;
+    final frameSize = widget.compact ? 58.0 : 64.0;
+    final ringLeft = (canvasWidth - ringSize) / 2;
+    final ringTop = widget.compact ? 2.0 : 5.0;
+
+    const avatarFrameGradient = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        Color(0xFFF7F2E8),
+        Color(0xFF9AA8B6),
+      ],
+    );
 
     final realtimeGift = _activeGift;
     final activeGiftImageUrl = realtimeGift?.imageUrl ?? widget.activeGiftImageUrl;
@@ -344,41 +338,41 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: 92,
-            height: 82,
+            width: canvasWidth,
+            height: canvasHeight,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
                 Positioned(
-                  left: 10,
-                  top: 5,
+                  left: ringLeft,
+                  top: ringTop,
                   child: SizedBox(
-                    width: 72,
-                    height: 72,
+                    width: ringSize,
+                    height: ringSize,
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
                         if (widget.isActive)
                           SizedBox(
-                            width: 72,
-                            height: 72,
+                            width: ringSize,
+                            height: ringSize,
                             child: CircularProgressIndicator(
                               value: widget.turnProgress.clamp(0.0, 1.0).toDouble(),
-                              strokeWidth: 4.5,
-                              backgroundColor: Colors.black.withValues(alpha: 0.38),
+                              strokeWidth: widget.compact ? 4.0 : 4.5,
+                              backgroundColor: Colors.black.withValues(alpha: 0.34),
                               valueColor: const AlwaysStoppedAnimation<Color>(
                                 AppColors.lime,
                               ),
                             ),
                           ),
                         Container(
-                          width: 64,
-                          height: 64,
+                          width: frameSize,
+                          height: frameSize,
                           padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: avatarFrameGradient,
-                            boxShadow: const [
+                            boxShadow: [
                               BoxShadow(
                                 color: Colors.black54,
                                 blurRadius: 8,
@@ -399,17 +393,17 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                               ),
                               border: Border.all(
                                 color: AppColors.ink,
-                                width: 1.7,
+                                width: 1.6,
                               ),
                             ),
                             alignment: Alignment.center,
                             child: Text(
                               avatarLetter,
-                              style: const TextStyle(
-                                color: Color(0xFF6242A3),
-                                fontSize: 24,
+                              style: TextStyle(
+                                color: const Color(0xFF6242A3),
+                                fontSize: widget.compact ? 22 : 24,
                                 fontWeight: FontWeight.w900,
-                                shadows: [
+                                shadows: const [
                                   Shadow(
                                     color: Colors.white,
                                     offset: Offset(0, 1),
@@ -428,9 +422,10 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                   right: 0,
                   child: _HudBadge(
                     text: '${player.score}',
-                    minWidth: 29,
+                    minWidth: widget.compact ? 27 : 29,
                     backgroundColor: AppColors.badge,
                     borderColor: AppColors.cream,
+                    compact: widget.compact,
                   ),
                 ),
                 if (widget.isActive && widget.turnSecondsLeft != null)
@@ -439,11 +434,11 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                     top: 0,
                     child: _HudBadge(
                       text: '${widget.turnSecondsLeft}',
-                      minWidth: 34,
+                      minWidth: widget.compact ? 31 : 34,
                       backgroundColor: AppColors.lime,
                       borderColor: AppColors.ink,
                       textColor: Colors.black,
-                      glow: true,
+                      compact: widget.compact,
                     ),
                   ),
                 if (!player.isMe)
@@ -454,15 +449,15 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                   ),
                 Positioned(
                   left: widget.giftPlacement == PlayerGiftPlacement.left
-                      ? -1
+                      ? 0
                       : null,
                   right: widget.giftPlacement == PlayerGiftPlacement.right
-                      ? -1
+                      ? 0
                       : null,
-                  top: 30,
+                  top: widget.compact ? 25 : 30,
                   child: SizedBox(
-                    width: 32,
-                    height: 32,
+                    width: 30,
+                    height: 30,
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 360),
                       reverseDuration: const Duration(milliseconds: 240),
@@ -512,39 +507,39 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
               ],
             ),
           ),
-          const SizedBox(height: 1),
-          Container(
-            constraints: const BoxConstraints(minWidth: 54),
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-            decoration: BoxDecoration(
-              color: AppColors.badge.withValues(alpha: 0.92),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: emphasized
-                    ? AppColors.lime.withValues(alpha: 0.72)
-                    : Colors.white24,
-                width: 1.2,
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black38,
-                  blurRadius: 5,
-                  offset: Offset(0, 2),
+          if (widget.showName) ...[
+            const SizedBox(height: 1),
+            Container(
+              constraints: const BoxConstraints(minWidth: 54),
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.badge.withValues(alpha: 0.92),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.brass.withValues(alpha: 0.38),
+                  width: 1,
                 ),
-              ],
-            ),
-            child: Text(
-              player.isMe
-                  ? '${player.name} (${_isAzerbaijani ? 'Sən' : 'Ты'})'
-                  : player.name,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: emphasized ? AppColors.lime : Colors.white,
-                fontSize: 13.5,
-                fontWeight: FontWeight.w900,
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black38,
+                    blurRadius: 5,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Text(
+                player.isMe
+                    ? '${player.name} (${_isAzerbaijani ? 'Sən' : 'Ты'})'
+                    : player.name,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: widget.isActive ? AppColors.lime : Colors.white,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -601,8 +596,8 @@ class _ActiveGiftImageState extends State<_ActiveGiftImage>
       child: AnimatedBuilder(
         animation: _controller,
         child: SizedBox(
-          width: 26,
-          height: 26,
+          width: 24,
+          height: 24,
           child: widget.imageUrl?.trim().isNotEmpty == true
               ? Image.network(
                   widget.imageUrl!,
@@ -612,14 +607,14 @@ class _ActiveGiftImageState extends State<_ActiveGiftImage>
                     return const Icon(
                       Icons.card_giftcard_rounded,
                       color: Colors.amberAccent,
-                      size: 22,
+                      size: 20,
                     );
                   },
                 )
               : const Icon(
                   Icons.card_giftcard_rounded,
                   color: Colors.amberAccent,
-                  size: 22,
+                  size: 20,
                 ),
         ),
         builder: (context, child) {
@@ -693,7 +688,7 @@ class _HudBadge extends StatelessWidget {
   final Color backgroundColor;
   final Color borderColor;
   final Color textColor;
-  final bool glow;
+  final bool compact;
 
   const _HudBadge({
     required this.text,
@@ -701,31 +696,25 @@ class _HudBadge extends StatelessWidget {
     required this.backgroundColor,
     required this.borderColor,
     this.textColor = Colors.white,
-    this.glow = false,
+    this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 29,
+      height: compact ? 27 : 29,
       constraints: BoxConstraints(minWidth: minWidth),
       padding: const EdgeInsets.symmetric(horizontal: 7),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: borderColor, width: 1.8),
-        boxShadow: [
-          const BoxShadow(
+        border: Border.all(color: borderColor, width: 1.7),
+        boxShadow: const [
+          BoxShadow(
             color: Colors.black45,
-            blurRadius: 6,
+            blurRadius: 5,
             offset: Offset(0, 3),
           ),
-          if (glow)
-            BoxShadow(
-              color: AppColors.lime.withValues(alpha: 0.32),
-              blurRadius: 10,
-              spreadRadius: 1,
-            ),
         ],
       ),
       alignment: Alignment.center,
@@ -733,7 +722,7 @@ class _HudBadge extends StatelessWidget {
         text,
         style: TextStyle(
           color: textColor,
-          fontSize: 11.5,
+          fontSize: compact ? 11 : 11.5,
           fontWeight: FontWeight.w900,
         ),
       ),

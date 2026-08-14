@@ -61,6 +61,36 @@ class AuthService {
     return UserAccount.fromJson(Map<String, dynamic>.from(data as Map));
   }
 
+  Future<UserAccount> updateProfile({
+    required String token,
+    required String username,
+    required String email,
+    required String firstName,
+    String? avatarPath,
+  }) async {
+    final request = http.MultipartRequest(
+      'PATCH',
+      ApiConfig.uri('/api/auth/me/'),
+    );
+    request.headers['Authorization'] = 'Token $token';
+    request.fields.addAll({
+      'username': username.trim(),
+      'email': email.trim(),
+      'first_name': firstName.trim(),
+    });
+
+    if (avatarPath != null && avatarPath.trim().isNotEmpty) {
+      request.files.add(
+        await http.MultipartFile.fromPath('avatar', avatarPath),
+      );
+    }
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    final data = _decodeResponse(response);
+    return UserAccount.fromJson(Map<String, dynamic>.from(data as Map));
+  }
+
   Future<void> logout(String token) async {
     final response = await http.post(
       ApiConfig.uri('/api/auth/logout/'),

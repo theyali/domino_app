@@ -72,9 +72,17 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
   @override
   void initState() {
     super.initState();
-    if (widget.initialRecipientPlayerId != widget.myPlayerId) {
-      _recipientIds.add(widget.initialRecipientPlayerId);
+
+    for (final player in widget.players) {
+      if (player.id == widget.initialRecipientPlayerId &&
+          player.id != widget.myPlayerId &&
+          player.isActive &&
+          player.userId != null) {
+        _recipientIds.add(player.id);
+        break;
+      }
     }
+
     _loadInventory();
   }
 
@@ -88,7 +96,9 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
       final inventory = await _giftService.fetchInventory();
       final available = inventory.where(
         (item) =>
-            item.isAvailable && item.gift.restaurantId == widget.restaurantId,
+            item.isAvailable &&
+            item.isGiftable &&
+            item.gift.restaurantId == widget.restaurantId,
       );
 
       final grouped = <int, List<InventoryGift>>{};
@@ -244,9 +254,7 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
               ],
             ),
             const SizedBox(height: 10),
-            Expanded(
-              child: _buildGiftList(),
-            ),
+            Expanded(child: _buildGiftList()),
             const SizedBox(height: 12),
             SizedBox(
               height: 52,
@@ -294,8 +302,8 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
         child: Padding(
           padding: EdgeInsets.all(20),
           child: Text(
-            'В инвентаре пока нет доступных подарков этого ресторана.\n'
-            'Для теста выдай их пользователю через Django Admin.',
+            'В инвентаре нет подарков этого ресторана, которые можно отправить.\n'
+            'Полученные от других игроков подарки передаривать нельзя.',
             textAlign: TextAlign.center,
           ),
         ),

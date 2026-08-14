@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../localization/app_localizations.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 
@@ -47,14 +48,14 @@ class _AuthScreenState extends State<AuthScreen> {
 
     if (username.isEmpty || password.isEmpty) {
       setState(() {
-        _errorMessage = 'Заполни имя пользователя и пароль.';
+        _errorMessage = context.tr('fill_username_password');
       });
       return;
     }
 
     if (_isRegister && email.isEmpty) {
       setState(() {
-        _errorMessage = 'Укажи email.';
+        _errorMessage = context.tr('enter_email');
       });
       return;
     }
@@ -87,7 +88,7 @@ class _AuthScreenState extends State<AuthScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Не удалось подключиться к серверу.';
+        _errorMessage = context.tr('server_connection_failed');
       });
     } finally {
       if (mounted) {
@@ -118,34 +119,34 @@ class _AuthScreenState extends State<AuthScreen> {
                     color: colorScheme.primary,
                   ),
                   const SizedBox(height: 14),
-                  const Text(
-                    'Domino APP',
+                  Text(
+                    context.tr('app_name'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    _isRegister
-                        ? 'Создай аккаунт, чтобы играть и хранить подарки.'
-                        : 'Войди в аккаунт, чтобы продолжить.',
+                    context.tr(
+                      _isRegister ? 'register_subtitle' : 'login_subtitle',
+                    ),
                     textAlign: TextAlign.center,
                     style: TextStyle(color: colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 28),
                   SegmentedButton<bool>(
-                    segments: const [
+                    segments: [
                       ButtonSegment(
                         value: false,
-                        label: Text('Вход'),
-                        icon: Icon(Icons.login_rounded),
+                        label: Text(context.tr('login')),
+                        icon: const Icon(Icons.login_rounded),
                       ),
                       ButtonSegment(
                         value: true,
-                        label: Text('Регистрация'),
-                        icon: Icon(Icons.person_add_alt_1_rounded),
+                        label: Text(context.tr('register')),
+                        icon: const Icon(Icons.person_add_alt_1_rounded),
                       ),
                     ],
                     selected: {_isRegister},
@@ -163,10 +164,10 @@ class _AuthScreenState extends State<AuthScreen> {
                     controller: _usernameController,
                     enabled: !_isSubmitting,
                     textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      labelText: 'Имя пользователя',
-                      prefixIcon: Icon(Icons.person_outline_rounded),
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: context.tr('username'),
+                      prefixIcon: const Icon(Icons.person_outline_rounded),
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                   if (_isRegister) ...[
@@ -177,10 +178,10 @@ class _AuthScreenState extends State<AuthScreen> {
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       autocorrect: false,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.mail_outline_rounded),
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: context.tr('email'),
+                        prefixIcon: const Icon(Icons.mail_outline_rounded),
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                   ],
@@ -195,7 +196,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       if (!_isRegister) _submit();
                     },
                     decoration: InputDecoration(
-                      labelText: 'Пароль',
+                      labelText: context.tr('password'),
                       prefixIcon: const Icon(Icons.lock_outline_rounded),
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
@@ -220,10 +221,10 @@ class _AuthScreenState extends State<AuthScreen> {
                       obscureText: _obscurePassword,
                       textInputAction: TextInputAction.done,
                       onSubmitted: (_) => _submit(),
-                      decoration: const InputDecoration(
-                        labelText: 'Повтори пароль',
-                        prefixIcon: Icon(Icons.lock_reset_rounded),
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: context.tr('confirm_password'),
+                        prefixIcon: const Icon(Icons.lock_reset_rounded),
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                   ],
@@ -257,7 +258,9 @@ class _AuthScreenState extends State<AuthScreen> {
                               ),
                             )
                           : Text(
-                              _isRegister ? 'Создать аккаунт' : 'Войти',
+                              context.tr(
+                                _isRegister ? 'create_account' : 'login',
+                              ),
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
@@ -268,7 +271,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   if (_isRegister) ...[
                     const SizedBox(height: 10),
                     Text(
-                      'Пароль должен содержать минимум 8 символов.',
+                      context.tr('password_min_8'),
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),

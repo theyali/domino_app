@@ -8,6 +8,7 @@ import '../models/restaurant.dart';
 import '../services/api_service.dart';
 import '../services/game_socket_service.dart';
 import '../widgets/domino_boneyard_pile.dart';
+import '../widgets/domino_placement_target.dart';
 import '../widgets/domino_tile.dart';
 import '../widgets/multiplayer_domino_snake.dart';
 import '../widgets/player_avatar.dart';
@@ -37,8 +38,16 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
   late MultiplayerGameState _gameState;
   SocketConnectionStatus _socketStatus = SocketConnectionStatus.connecting;
 
+  final Map<int, GlobalKey> _playerAvatarKeys = <int, GlobalKey>{};
+  final Map<int, GlobalKey> _handDominoKeys = <int, GlobalKey>{};
+
   bool _isSubmittingMove = false;
   int? _pendingDominoId;
+  int? _selectedDominoId;
+
+  Offset? _pendingMoveSourceGlobalCenter;
+  int? _animatedMoveNumber;
+  Offset? _animationSourceGlobalCenter;
 
   @override
   void initState() {
@@ -70,6 +79,46 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     super.dispose();
   }
 
+  GlobalKey _playerAvatarKeyFor(int playerId) {
+    return _playerAvatarKeys.putIfAbsent(
+      playerId,
+      () => GlobalKey(debugLabel: 'multiplayer-avatar-$playerId'),
+    );
+  }
+
+  GlobalKey _handDominoKeyFor(int dominoId) {
+    return _handDominoKeys.putIfAbsent(
+      dominoId,
+      () => GlobalKey(debugLabel: 'multiplayer-hand-$dominoId'),
+    );
+  }
+
+  Offset? _globalCenterForKey(GlobalKey? key) {
+    if (key == null) return null;
+
+    final renderObject = key.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return null;
+    }
+
+    return renderObject.localToGlobal(
+      renderObject.size.center(Offset.zero),
+    );
+  }
+
+  ServerDomino? get _selectedDomino {
+    final selectedId = _selectedDominoId;
+    if (selectedId == null) return null;
+
+    for (final domino in _gameState.myHand) {
+      if (domino.id == selectedId) {
+        return domino;
+      }
+    }
+
+    return null;
+  }
+
   void _handleSocketMessage(Map<String, dynamic> message) {
     final type = message['type'];
     if (type != 'game_started' && type != 'game_state') {
@@ -86,17 +135,89 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     _applyGameState(state);
   }
 
+  ServerDomino? _findNewMove(
+    MultiplayerGameState previous,
+    MultiplayerGameState next,
+  ) {
+    final previousMoveNumbers = previous.table
+        .map((domino) => domino.moveNumber)
+        .whereType<int>()
+        .toSet();
+
+    ServerDomino? newest;
+
+    for (final domino in next.table) {
+      final moveNumber = domino.moveNumber;
+      if (moveNumber == null || previousMoveNumbers.contains(moveNumber)) {
+        continue;
+      }
+
+      if (newest == null ||
+          moveNumber > (newest.moveNumber ?? -1)) {
+        newest = domino;
+      }
+    }
+
+    return newest;
+  }
+
   void _applyGameState(MultiplayerGameState state) {
     if (!mounted || state.version < _gameState.version) {
       return;
     }
 
+    final previousState = _gameState;
+    final isNewVersion = state.version > previousState.version;
+    final newMove = isNewVersion
+        ? _findNewMove(previousState, state)
+        : null;
+
+    Offset? moveSource;
+
+    if (newMove != null) {
+      final playedBy = newMove.playedByPlayerId;
+
+      if (playedBy == state.myPlayerId) {
+        moveSource = _pendingMoveSourceGlobalCenter ??
+            _globalCenterForKey(_handDominoKeys[newMove.id]) ??
+            _globalCenterForKey(_playerAvatarKeys[state.myPlayerId]);
+      } else if (playedBy != null) {
+        moveSource = _globalCenterForKey(_playerAvatarKeys[playedBy]);
+      }
+    }
+
     setState(() {
       _gameState = state;
-      if (_pendingDominoId != null &&
-          !_gameState.myHand.any((domino) => domino.id == _pendingDominoId)) {
+
+      if (newMove != null &&
+          newMove.moveNumber != null &&
+          moveSource != null) {
+        _animatedMoveNumber = newMove.moveNumber;
+        _animationSourceGlobalCenter = moveSource;
+      }
+
+      if (_selectedDominoId != null &&
+          !_gameState.myHand.any(
+            (domino) => domino.id == _selectedDominoId,
+          )) {
+        _selectedDominoId = null;
+      }
+
+      if (!_gameState.isMyTurn) {
+        _selectedDominoId = null;
+      }
+
+      if (isNewVersion) {
+        _isSubmittingMove = false;
+        _pendingDominoId = null;
+        _pendingMoveSourceGlobalCenter = null;
+      } else if (_pendingDominoId != null &&
+          !_gameState.myHand.any(
+            (domino) => domino.id == _pendingDominoId,
+          )) {
         _pendingDominoId = null;
         _isSubmittingMove = false;
+        _pendingMoveSourceGlobalCenter = null;
       }
     });
   }
@@ -117,70 +238,30 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
       return;
     }
 
-    String? side;
+    setState(() {
+      _selectedDominoId = _selectedDominoId == domino.id
+          ? null
+          : domino.id;
+    });
+  }
 
-    if (sides.length == 1) {
-      side = sides.first;
-    } else {
-      side = await _chooseSide(sides);
-    }
+  Future<void> _playSelectedSide(String side) async {
+    if (_isSubmittingMove) return;
 
-    if (!mounted || side == null) {
+    final domino = _selectedDomino;
+    if (domino == null) {
       return;
     }
 
-    await _submitMove(domino: domino, side: side);
-  }
+    final sides = _gameState.playableSidesFor(domino);
+    if (!sides.contains(side)) {
+      _showMessage('Этот конец цепочки уже недоступен для выбранной костяшки.');
+      return;
+    }
 
-  Future<String?> _chooseSide(Set<String> sides) {
-    return showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: const Color(0xFF15283A),
-      showDragHandle: true,
-      builder: (context) {
-        final leftEnd = _gameState.leftEnd;
-        final rightEnd = _gameState.rightEnd;
-
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Куда положить костяшку?',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (sides.contains('left'))
-                  FilledButton.icon(
-                    onPressed: () => Navigator.of(context).pop('left'),
-                    icon: const Icon(Icons.arrow_back_rounded),
-                    label: Text(
-                      'Слева${leftEnd == null ? '' : ' · край $leftEnd'}',
-                    ),
-                  ),
-                if (sides.contains('left') && sides.contains('right'))
-                  const SizedBox(height: 10),
-                if (sides.contains('right'))
-                  FilledButton.icon(
-                    onPressed: () => Navigator.of(context).pop('right'),
-                    icon: const Icon(Icons.arrow_forward_rounded),
-                    label: Text(
-                      'Справа${rightEnd == null ? '' : ' · край $rightEnd'}',
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
+    await _submitMove(
+      domino: domino,
+      side: side,
     );
   }
 
@@ -190,9 +271,14 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
   }) async {
     if (_isSubmittingMove) return;
 
+    final sourceCenter =
+        _globalCenterForKey(_handDominoKeys[domino.id]) ??
+        _globalCenterForKey(_playerAvatarKeys[_gameState.myPlayerId]);
+
     setState(() {
       _isSubmittingMove = true;
       _pendingDominoId = domino.id;
+      _pendingMoveSourceGlobalCenter = sourceCenter;
     });
 
     try {
@@ -220,6 +306,8 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     setState(() {
       _isSubmittingMove = true;
       _pendingDominoId = null;
+      _selectedDominoId = null;
+      _pendingMoveSourceGlobalCenter = null;
     });
 
     try {
@@ -230,9 +318,6 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
 
       if (!mounted) return;
       _applyGameState(state);
-      setState(() {
-        _isSubmittingMove = false;
-      });
     } on ApiException catch (error) {
       _finishSubmittingWithError(error.message);
     } catch (_) {
@@ -248,6 +333,8 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     setState(() {
       _isSubmittingMove = true;
       _pendingDominoId = null;
+      _selectedDominoId = null;
+      _pendingMoveSourceGlobalCenter = null;
     });
 
     try {
@@ -258,9 +345,6 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
 
       if (!mounted) return;
       _applyGameState(state);
-      setState(() {
-        _isSubmittingMove = false;
-      });
     } on ApiException catch (error) {
       _finishSubmittingWithError(error.message);
     } catch (_) {
@@ -273,6 +357,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     setState(() {
       _isSubmittingMove = false;
       _pendingDominoId = null;
+      _pendingMoveSourceGlobalCenter = null;
     });
     _showMessage(message);
   }
@@ -348,6 +433,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
         border: Border.all(color: Colors.white24),
       ),
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
           ..._buildOpponentAvatars(),
           Positioned.fill(
@@ -411,6 +497,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
       final relativeSeat =
           (opponent.seatIndex - mySeat + playerCount) % playerCount;
       final avatar = PlayerAvatar(
+        key: _playerAvatarKeyFor(opponent.id),
         player: _toPlayer(opponent, isMe: false),
         dominoCount: opponent.dominoCount,
         isActive: opponent.id == _gameState.currentPlayerId,
@@ -462,15 +549,24 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
   }
 
   Widget _buildTableCenter() {
+    final selected = _selectedDomino;
+
     if (_gameState.table.isNotEmpty) {
+      final selectedSides = selected == null
+          ? const <String>{}
+          : _gameState.playableSidesFor(selected);
+
       return Column(
         children: [
           Expanded(
             child: MultiplayerDominoSnake(
-              dominoes: [
-                for (final serverDomino in _gameState.table)
-                  serverDomino.domino,
-              ],
+              dominoes: _gameState.table,
+              selectedDomino: selected,
+              playableSides: selectedSides,
+              onTargetTap: _playSelectedSide,
+              animatedMoveNumber: _animatedMoveNumber,
+              animationSourceGlobalCenter: _animationSourceGlobalCenter,
+              soundEnabled: true,
             ),
           ),
           const SizedBox(height: 6),
@@ -481,6 +577,46 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
 
     final isMyTurn = _gameState.isMyTurn;
     final openingDomino = _gameState.requiredOpeningDomino;
+    final selectedSides = selected == null
+        ? const <String>{}
+        : _gameState.playableSidesFor(selected);
+    final canPlaceOpening = selected != null &&
+        selectedSides.contains('center');
+
+    if (canPlaceOpening) {
+      final isDouble = selected.domino.left == selected.domino.right;
+
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Первый ход',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            DominoPlacementTarget(
+              width: isDouble ? 34 : 68,
+              height: isDouble ? 68 : 34,
+              onTap: () => _playSelectedSide('center'),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Нажми на пунктир, чтобы отправить ход серверу',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white54,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Center(
       child: Column(
@@ -507,7 +643,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
           Text(
             openingDomino == null
                 ? 'Сервер раздал костяшки и определил очередь.'
-                : 'Нажми подсвеченную костяшку — сервер проверит ход.',
+                : 'Сначала выбери зелёную костяшку в своей руке.',
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white54,
@@ -530,6 +666,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           PlayerAvatar(
+            key: _playerAvatarKeyFor(me.id),
             player: _toPlayer(me, isMe: true),
             dominoCount: _gameState.myHand.length,
             isActive: _gameState.isMyTurn,
@@ -548,6 +685,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
                 final playableSides = _gameState.playableSidesFor(serverDomino);
                 final isPlayable = playableSides.isNotEmpty;
                 final isPending = _pendingDominoId == serverDomino.id;
+                final isSelected = _selectedDominoId == serverDomino.id;
                 final isRequiredOpening =
                     _gameState.table.isEmpty &&
                     _gameState.isMyTurn &&
@@ -557,21 +695,33 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
                   duration: const Duration(milliseconds: 160),
                   opacity: _gameState.isMyTurn && !isPlayable ? 0.55 : 1,
                   child: AnimatedContainer(
+                    key: _handDominoKeyFor(serverDomino.id),
                     duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOut,
+                    transform: Matrix4.translationValues(
+                      0,
+                      isSelected ? -8 : 0,
+                      0,
+                    ),
                     padding: const EdgeInsets.all(3),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(11),
+                      color: isSelected
+                          ? Colors.greenAccent.withValues(alpha: 0.08)
+                          : Colors.transparent,
                       border: Border.all(
                         color: isPlayable || isRequiredOpening
                             ? Colors.greenAccent
                             : Colors.transparent,
-                        width: 3,
+                        width: isSelected ? 3.4 : 3,
                       ),
                       boxShadow: isPlayable
                           ? [
                               BoxShadow(
-                                color: Colors.greenAccent.withValues(alpha: 0.24),
-                                blurRadius: 12,
+                                color: Colors.greenAccent.withValues(
+                                  alpha: isSelected ? 0.38 : 0.24,
+                                ),
+                                blurRadius: isSelected ? 18 : 12,
                               ),
                             ]
                           : null,
@@ -637,12 +787,19 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
       return 'Ход: ${_gameState.currentPlayer.name}';
     }
 
+    if (_selectedDomino != null) {
+      if (_gameState.table.isEmpty) {
+        return 'Костяшка выбрана — нажми пунктир в центре стола.';
+      }
+      return 'Костяшка выбрана — нажми доступный пунктир на конце цепочки.';
+    }
+
     if (_gameState.table.isEmpty) {
       return 'Нажми зелёную стартовую костяшку.';
     }
 
     if (_gameState.hasPlayableDomino) {
-      return 'Зелёные костяшки можно сыграть. Нажми на одну из них.';
+      return 'Выбери зелёную костяшку — появятся доступные концы цепочки.';
     }
 
     if (_gameState.boneyardCount > 0) {

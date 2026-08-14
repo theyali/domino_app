@@ -11,6 +11,7 @@ import '../services/emotion_realtime_service.dart';
 import '../services/gift_realtime_service.dart';
 import '../services/gift_service.dart';
 import '../services/player_avatar_registry.dart';
+import '../theme/app_colors.dart';
 import 'emotion_picker_sheet.dart';
 import 'gift_flight_animation.dart';
 import 'multiplayer_gift_sheet.dart';
@@ -295,16 +296,12 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   @override
   Widget build(BuildContext context) {
     final player = widget.player;
-    final avatarBorderColor = widget.isActive
-        ? Colors.greenAccent
-        : player.isMe
-            ? Colors.green
-            : Colors.white;
-    final nameColor = widget.isActive
-        ? Colors.greenAccent
-        : player.isMe
-            ? Colors.greenAccent
-            : Colors.white;
+    final avatarBorderColor = widget.isActive || player.isMe
+        ? AppColors.lime
+        : Colors.white;
+    final nameColor = widget.isActive || player.isMe
+        ? AppColors.lime
+        : Colors.white;
     final avatarLetter = player.name.trim().isEmpty
         ? '?'
         : player.name.trim().substring(0, 1).toUpperCase();
@@ -347,7 +344,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                               strokeWidth: 4,
                               backgroundColor: Colors.black.withValues(alpha: 0.30),
                               valueColor: const AlwaysStoppedAnimation<Color>(
-                                Colors.greenAccent,
+                                AppColors.lime,
                               ),
                             ),
                           ),
@@ -363,9 +360,9 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                             boxShadow: widget.isActive
                                 ? [
                                     BoxShadow(
-                                      color: Colors.greenAccent.withValues(alpha: 0.28),
-                                      blurRadius: 12,
-                                      spreadRadius: 1,
+                                      color: AppColors.lime.withValues(alpha: 0.34),
+                                      blurRadius: 14,
+                                      spreadRadius: 2,
                                     ),
                                   ]
                                 : null,
@@ -403,8 +400,9 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                     child: _RoundBadge(
                       text: '${widget.turnSecondsLeft}',
                       minWidth: 31,
-                      backgroundColor: const Color(0xFF123C2B),
-                      borderColor: Colors.greenAccent,
+                      backgroundColor: AppColors.lime,
+                      borderColor: AppColors.lime,
+                      textColor: Colors.black,
                     ),
                   ),
                 if (!player.isMe)
@@ -481,7 +479,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
             style: TextStyle(
               color: nameColor,
               fontSize: 14,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],
@@ -624,12 +622,14 @@ class _RoundBadge extends StatelessWidget {
   final double minWidth;
   final Color backgroundColor;
   final Color borderColor;
+  final Color textColor;
 
   const _RoundBadge({
     required this.text,
     required this.minWidth,
     required this.backgroundColor,
     required this.borderColor,
+    this.textColor = Colors.white,
   });
 
   @override
@@ -653,10 +653,10 @@ class _RoundBadge extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         text,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: textColor,
           fontSize: 11,
-          fontWeight: FontWeight.w800,
+          fontWeight: FontWeight.w900,
         ),
       ),
     );

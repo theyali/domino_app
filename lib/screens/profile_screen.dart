@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../localization/app_language.dart';
@@ -39,7 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final TextEditingController _usernameController;
   late final TextEditingController _emailController;
 
-  XFile? _pickedAvatar;
+  String? _pickedAvatarPath;
   bool _isSaving = false;
 
   @override
@@ -79,15 +80,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final picked = await _imagePicker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 88,
-      maxWidth: 1200,
-      maxHeight: 1200,
+      imageQuality: 96,
+      maxWidth: 2200,
+      maxHeight: 2200,
     );
     if (picked == null || !mounted) return;
 
-    setState(() {
-      _pickedAvatar = picked;
-    });
+    final strings = ProfileStrings.of(context);
+
+    try {
+      final cropped = await ImageCropper().cropImage(
+        sourcePath: picked.path,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 92,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: strings.cropAvatar,
+            toolbarColor: AppColors.background,
+            toolbarWidgetColor: Colors.white,
+            backgroundColor: AppColors.background,
+            activeControlsWidgetColor: AppColors.lime,
+            dimmedLayerColor: Colors.black.withValues(alpha: 0.76),
+            cropFrameColor: AppColors.lime,
+            cropGridColor: Colors.white38,
+            showCropGrid: false,
+            lockAspectRatio: true,
+            initAspectRatio: CropAspectRatioPreset.square,
+            cropStyle: CropStyle.circle,
+            aspectRatioPresets: const [
+              CropAspectRatioPreset.square,
+            ],
+          ),
+          IOSUiSettings(
+            title: strings.cropAvatar,
+            doneButtonTitle: strings.useAvatar,
+            cancelButtonTitle: strings.cancel,
+            cropStyle: CropStyle.circle,
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+            aspectRatioPickerButtonHidden: true,
+            showCancelConfirmationDialog: false,
+            aspectRatioPresets: const [
+              CropAspectRatioPreset.square,
+            ],
+          ),
+        ],
+      );
+
+      if (cropped == null || !mounted) return;
+
+      setState(() {
+        _pickedAvatarPath = cropped.path;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage(strings.avatarCropFailed);
+    }
   }
 
   Future<void> _saveProfile() async {
@@ -120,13 +171,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         username: username,
         email: email,
         firstName: firstName,
-        avatarPath: _pickedAvatar?.path,
+        avatarPath: _pickedAvatarPath,
       );
 
       if (!mounted) return;
       setState(() {
         _user = updated;
-        _pickedAvatar = null;
+        _pickedAvatarPath = null;
         _isSaving = false;
       });
       _setUser(updated);
@@ -328,19 +379,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileHeader(ProfileStrings strings) {
-    final avatar = _pickedAvatar;
+    final avatarPath = _pickedAvatarPath;
     final avatarUrl = _user.avatarUrl;
     final letter = _user.displayName.trim().isEmpty
         ? '?'
         : _user.displayName.trim().substring(0, 1).toUpperCase();
 
     Widget avatarContent;
-    if (avatar != null) {
+    if (avatarPath != null) {
       avatarContent = Image.file(
-        File(avatar.path),
+        File(avatarPath),
         fit: BoxFit.cover,
         width: 104,
         height: 104,
+        filterQuality: FilterQuality.high,
       );
     } else if (avatarUrl != null && avatarUrl.isNotEmpty) {
       avatarContent = Image.network(
@@ -348,7 +400,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         fit: BoxFit.cover,
         width: 104,
         height: 104,
-        errorBuilder: (context, error, stackTrace) => _AvatarLetter(letter: letter),
+        filterQuality: FilterQuality.high,
+        errorBuilder: (context, error, stackTrace) =>
+            _AvatarLetter(letter: letter),
       );
     } else {
       avatarContent = _AvatarLetter(letter: letter);
@@ -411,6 +465,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         Text(
           strings.avatarHint,
+          textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white38,
             fontSize: 11,

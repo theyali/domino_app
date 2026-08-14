@@ -72,6 +72,15 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
     super.dispose();
   }
 
+  RoomPlayer get _currentLocalPlayer {
+    for (final player in _room.players) {
+      if (player.id == widget.localPlayer.id && player.isActive) {
+        return player;
+      }
+    }
+    return widget.localPlayer;
+  }
+
   void _handleSocketStatus(SocketConnectionStatus status) {
     if (!mounted) return;
 
@@ -177,7 +186,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
 
     setState(() {
       _allowPop = true;
-      _errorMessage = 'Создатель комнаты закрыл этот стол.';
+      _errorMessage = 'Стол закрыт: в комнате больше не осталось игроков.';
     });
 
     await Future<void>.delayed(const Duration(milliseconds: 900));
@@ -273,10 +282,12 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localPlayer = _currentLocalPlayer;
+    final isLocalOwner = localPlayer.isOwner;
     final allPlayersReady = _room.currentPlayers >= _room.maxPlayers;
     final canStart =
         allPlayersReady &&
-        widget.localPlayer.isOwner &&
+        isLocalOwner &&
         _room.status == 'waiting' &&
         !_isStartingGame &&
         !_isOpeningGame;
@@ -338,7 +349,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                   ),
                 ],
                 const SizedBox(height: 16),
-                if (widget.localPlayer.isOwner && allPlayersReady) ...[
+                if (isLocalOwner && allPlayersReady) ...[
                   SizedBox(
                     height: 52,
                     child: FilledButton.icon(
@@ -368,7 +379,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                 ],
                 Text(
                   allPlayersReady
-                      ? widget.localPlayer.isOwner
+                      ? isLocalOwner
                           ? 'Все игроки в сборе. Можно запускать серверную раздачу.'
                           : 'Все игроки в сборе. Ожидаем запуск от создателя комнаты.'
                       : 'Ожидаем ещё ${_room.maxPlayers - _room.currentPlayers} игрока(ов).',
@@ -397,7 +408,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
 
   RoomPlayer? _playerAtSeat(int seatIndex) {
     for (final player in _room.players) {
-      if (player.seatIndex == seatIndex) {
+      if (player.isActive && player.seatIndex == seatIndex) {
         return player;
       }
     }

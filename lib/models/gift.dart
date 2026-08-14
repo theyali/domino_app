@@ -49,6 +49,7 @@ class InventoryGift {
   final Gift gift;
   final String qrCode;
   final String status;
+  final bool isGiftable;
   final DateTime? acquiredAt;
   final DateTime? redeemedAt;
 
@@ -57,6 +58,7 @@ class InventoryGift {
     required this.gift,
     required this.qrCode,
     required this.status,
+    required this.isGiftable,
     required this.acquiredAt,
     required this.redeemedAt,
   });
@@ -69,6 +71,7 @@ class InventoryGift {
       ),
       qrCode: json['qr_code'] as String? ?? '',
       status: json['status'] as String? ?? 'available',
+      isGiftable: json['is_giftable'] as bool? ?? true,
       acquiredAt: DateTime.tryParse(json['acquired_at'] as String? ?? ''),
       redeemedAt: DateTime.tryParse(json['redeemed_at'] as String? ?? ''),
     );

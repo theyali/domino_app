@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/multiplayer_game_state.dart';
+import '../models/restaurant.dart';
 import '../services/active_game_session_store.dart';
 import '../services/api_service.dart';
 import 'multiplayer_game_screen.dart';
@@ -19,6 +20,7 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
 
   SavedActiveGameSession? _savedSession;
   MultiplayerGameState? _gameState;
+  Restaurant? _restaurant;
 
   bool _isLoading = true;
   bool _isLeaving = false;
@@ -46,6 +48,7 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
       setState(() {
         _savedSession = null;
         _gameState = null;
+        _restaurant = null;
         _isLoading = false;
       });
       return;
@@ -57,22 +60,41 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
         playerId: savedSession.playerId,
       );
 
-      if (!mounted) return;
-
       if (!gameState.myPlayer.isActive) {
         await _sessionStore.clear();
         if (!mounted) return;
         setState(() {
           _savedSession = null;
           _gameState = null;
+          _restaurant = null;
           _isLoading = false;
         });
         return;
       }
 
+      final room = await _apiService.fetchRoom(savedSession.roomId);
+      final restaurants = await _apiService.fetchRestaurants();
+
+      Restaurant? restaurant;
+      for (final candidate in restaurants) {
+        if (candidate.id == room.restaurantId) {
+          restaurant = candidate;
+          break;
+        }
+      }
+
+      restaurant ??= Restaurant(
+        id: room.restaurantId,
+        name: 'Ресторан #${room.restaurantId}',
+        players: 0,
+        active: true,
+      );
+
+      if (!mounted) return;
       setState(() {
         _savedSession = savedSession;
         _gameState = gameState;
+        _restaurant = restaurant;
         _isLoading = false;
       });
     } on ApiException catch (error) {
@@ -82,6 +104,7 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
         setState(() {
           _savedSession = null;
           _gameState = null;
+          _restaurant = null;
           _isLoading = false;
         });
         return;
@@ -91,6 +114,7 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
       setState(() {
         _savedSession = savedSession;
         _gameState = null;
+        _restaurant = null;
         _errorMessage = error.message;
         _isLoading = false;
       });
@@ -99,6 +123,7 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
       setState(() {
         _savedSession = savedSession;
         _gameState = null;
+        _restaurant = null;
         _errorMessage = 'Не удалось проверить сохранённую игру.';
         _isLoading = false;
       });
@@ -106,14 +131,14 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
   }
 
   void _resumeGame() {
-    final savedSession = _savedSession;
     final gameState = _gameState;
-    if (savedSession == null || gameState == null) return;
+    final restaurant = _restaurant;
+    if (gameState == null || restaurant == null) return;
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => MultiplayerGameScreen(
-          restaurant: savedSession.restaurant,
+          restaurant: restaurant,
           initialGameState: gameState,
         ),
       ),
@@ -140,6 +165,7 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
       setState(() {
         _savedSession = null;
         _gameState = null;
+        _restaurant = null;
         _isLeaving = false;
       });
     } on ApiException catch (error) {
@@ -203,7 +229,7 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _savedSession!.restaurantName,
+                      _restaurant?.name ?? 'Сохранённый стол',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.white70,
@@ -253,7 +279,7 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
                       ),
                     ],
                     const SizedBox(height: 20),
-                    if (_gameState != null)
+                    if (_gameState != null && _restaurant != null)
                       SizedBox(
                         height: 52,
                         child: FilledButton.icon(

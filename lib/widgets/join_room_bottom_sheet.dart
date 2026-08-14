@@ -3,23 +3,17 @@ import 'package:flutter/material.dart';
 import '../models/game_room.dart';
 
 class JoinRoomRequest {
-  final String playerName;
   final String password;
 
-  const JoinRoomRequest({
-    required this.playerName,
-    required this.password,
-  });
+  const JoinRoomRequest({required this.password});
 }
 
 class JoinRoomBottomSheet extends StatefulWidget {
   final GameRoom room;
-  final String initialPlayerName;
 
   const JoinRoomBottomSheet({
     super.key,
     required this.room,
-    this.initialPlayerName = '',
   });
 
   @override
@@ -27,38 +21,18 @@ class JoinRoomBottomSheet extends StatefulWidget {
 }
 
 class _JoinRoomBottomSheetState extends State<JoinRoomBottomSheet> {
-  late final TextEditingController _playerNameController;
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
-  void initState() {
-    super.initState();
-    _playerNameController = TextEditingController(text: widget.initialPlayerName);
-  }
-
-  @override
   void dispose() {
-    _playerNameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   void _submit() {
-    final playerName = _playerNameController.text.trim();
-
-    if (playerName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Введите имя игрока.')),
-      );
-      return;
-    }
-
     Navigator.of(context).pop(
-      JoinRoomRequest(
-        playerName: playerName,
-        password: _passwordController.text,
-      ),
+      JoinRoomRequest(password: _passwordController.text),
     );
   }
 
@@ -95,23 +69,15 @@ class _JoinRoomBottomSheetState extends State<JoinRoomBottomSheet> {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 22),
-            TextField(
-              controller: _playerNameController,
-              maxLength: 40,
-              textInputAction: widget.room.isLocked
-                  ? TextInputAction.next
-                  : TextInputAction.done,
-              onSubmitted: widget.room.isLocked ? null : (_) => _submit(),
-              decoration: const InputDecoration(
-                labelText: 'Твоё имя',
-                prefixIcon: Icon(Icons.person_outline_rounded),
-                border: OutlineInputBorder(),
-                counterText: '',
+            const SizedBox(height: 8),
+            Text(
+              'Ты войдёшь под именем своего аккаунта.',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             if (widget.room.isLocked) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: 22),
               TextField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,

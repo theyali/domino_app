@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'localization/app_language.dart';
 import 'screens/auth_gate_screen.dart';
@@ -30,6 +31,7 @@ class DominoApp extends StatelessWidget {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             locale: Locale(languageController.language.code),
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
             supportedLocales: const [
               Locale('az'),
               Locale('ru'),

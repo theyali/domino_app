@@ -64,6 +64,7 @@ class GameSocketService with WidgetsBindingObserver {
       connectToRoom(
         roomId: roomId,
         playerId: playerId,
+        reconnecting: true,
       ),
     );
   }
@@ -71,6 +72,7 @@ class GameSocketService with WidgetsBindingObserver {
   Future<void> connectToRoom({
     required int roomId,
     required int playerId,
+    bool reconnecting = false,
   }) async {
     if (_disposed) return;
 
@@ -89,7 +91,12 @@ class GameSocketService with WidgetsBindingObserver {
       return;
     }
 
-    unawaited(_openConnection(generation: generation, reconnecting: false));
+    unawaited(
+      _openConnection(
+        generation: generation,
+        reconnecting: reconnecting,
+      ),
+    );
   }
 
   void send(Map<String, dynamic> message) {
@@ -165,11 +172,13 @@ class GameSocketService with WidgetsBindingObserver {
         return;
       }
 
-      _reconnectAttempt = 0;
       _lastPongAt = DateTime.now();
-      _setStatus(SocketConnectionStatus.connected);
-      _startHeartbeat(generation);
-      send(const {'type': 'ping'});
+
+      // Do not announce `connected` yet. Django sends room/game state right
+      // after accepting the socket. We switch to connected only after that
+      // authoritative state reaches Flutter, so the UI does not hide the
+      // reconnect indicator too early.
+      channel.sink.add(jsonEncode(const {'type': 'ping'}));
     } catch (_) {
       _handleDisconnected(generation);
     }
@@ -185,13 +194,23 @@ class GameSocketService with WidgetsBindingObserver {
         final message = Map<String, dynamic>.from(decoded);
         _lastPongAt = DateTime.now();
 
-        if (message['type'] == 'pong') {
+        final type = message['type'];
+        final isAuthoritativeState =
+            type == 'room_state' || type == 'game_started' || type == 'game_state';
+
+        if (isAuthoritativeState &&
+            _status != SocketConnectionStatus.connected) {
+          _reconnectAttempt = 0;
+          _setStatus(SocketConnectionStatus.connected);
+          _startHeartbeat(generation);
+        }
+
+        if (type == 'pong') {
           return;
         }
 
         final roomId = _roomId;
         final playerId = _playerId;
-        final type = message['type'];
 
         if ((type == 'game_started' || type == 'game_state') &&
             roomId != null &&

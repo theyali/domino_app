@@ -24,7 +24,6 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
   bool _isLoading = true;
   bool _isSubmitting = false;
   String? _errorMessage;
-  String _lastPlayerName = '';
   List<GameRoom> _rooms = const [];
 
   @override
@@ -73,22 +72,18 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: false,
-      builder: (context) => CreateRoomBottomSheet(
-        initialPlayerName: _lastPlayerName,
-      ),
+      builder: (context) => const CreateRoomBottomSheet(),
     );
 
     if (request == null || !mounted) return;
 
     setState(() {
       _isSubmitting = true;
-      _lastPlayerName = request.playerName;
     });
 
     try {
       final room = await _apiService.createRoom(
         restaurantId: widget.restaurant.id,
-        ownerName: request.playerName,
         maxPlayers: request.maxPlayers,
         password: request.password,
         name: request.roomName,
@@ -134,23 +129,18 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: false,
-      builder: (context) => JoinRoomBottomSheet(
-        room: room,
-        initialPlayerName: _lastPlayerName,
-      ),
+      builder: (context) => JoinRoomBottomSheet(room: room),
     );
 
     if (request == null || !mounted) return;
 
     setState(() {
       _isSubmitting = true;
-      _lastPlayerName = request.playerName;
     });
 
     try {
       final result = await _apiService.joinRoom(
         roomId: room.id,
-        playerName: request.playerName,
         password: request.password,
       );
 

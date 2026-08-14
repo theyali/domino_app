@@ -168,6 +168,32 @@ class ApiService {
     return _decodeGameStateResponse(response);
   }
 
+  Future<MultiplayerGameState> drawDomino({
+    required int roomId,
+    required int playerId,
+  }) async {
+    final response = await http.post(
+      ApiConfig.uri('/api/rooms/$roomId/game/draw/'),
+      headers: const {'Content-Type': 'application/json'},
+      body: jsonEncode({'player_id': playerId}),
+    );
+
+    return _decodeGameStateResponse(response);
+  }
+
+  Future<MultiplayerGameState> passTurn({
+    required int roomId,
+    required int playerId,
+  }) async {
+    final response = await http.post(
+      ApiConfig.uri('/api/rooms/$roomId/game/pass/'),
+      headers: const {'Content-Type': 'application/json'},
+      body: jsonEncode({'player_id': playerId}),
+    );
+
+    return _decodeGameStateResponse(response);
+  }
+
   MultiplayerGameState _decodeGameStateResponse(http.Response response) {
     final data = _decodeResponse(response) as Map<String, dynamic>;
     final rawGame = data['game'];

@@ -3,30 +3,58 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../models/domino.dart';
+import '../models/multiplayer_game_state.dart';
+import 'domino_placement_target.dart';
+import 'domino_play_animation.dart';
 import 'domino_tile.dart';
 
 enum _ChainDirection { right, left, up, down }
 
+enum _BranchSide { center, left, right }
+
 class _ChainPlacement {
   final int tableIndex;
-  final Domino domino;
+  final ServerDomino serverDomino;
   final Offset center;
   final _ChainDirection direction;
+  final _BranchSide branchSide;
 
   const _ChainPlacement({
     required this.tableIndex,
-    required this.domino,
+    required this.serverDomino,
     required this.center,
     required this.direction,
+    required this.branchSide,
   });
 
+  Domino get domino => serverDomino.domino;
+
+  bool get isDouble => domino.left == domino.right;
+
   Domino get displayDomino {
-    if (direction == _ChainDirection.left ||
-        direction == _ChainDirection.up) {
-      return Domino(left: domino.right, right: domino.left);
+    if (branchSide == _BranchSide.center) {
+      return domino;
     }
 
-    return domino;
+    // Backend хранит всю цепочку слева направо.
+    // При построении левой ветки мы идём от центра наружу, то есть
+    // логическое направление костяшки сначала нужно развернуть.
+    var outwardDomino = branchSide == _BranchSide.left
+        ? Domino(left: domino.right, right: domino.left)
+        : domino;
+
+    // Если сама геометрическая ветка идёт влево или вверх, экранное
+    // направление снова разворачивается, чтобы соединяющиеся значения
+    // оставались рядом друг с другом.
+    if (direction == _ChainDirection.left ||
+        direction == _ChainDirection.up) {
+      outwardDomino = Domino(
+        left: outwardDomino.right,
+        right: outwardDomino.left,
+      );
+    }
+
+    return outwardDomino;
   }
 }
 
@@ -40,14 +68,49 @@ class _TrackStepGeometry {
   });
 }
 
-class _TrackLayoutDraft {
-  final List<_ChainPlacement> placements;
-  final Offset leftEnd;
-  final Offset rightEnd;
+class _BranchTrackState {
+  final Offset connectionPoint;
   final _ChainDirection previousDirection;
   final _ChainDirection rowDirection;
   final bool needsTurn;
   final int rowUsedSquares;
+  final bool initialRow;
+
+  const _BranchTrackState({
+    required this.connectionPoint,
+    required this.previousDirection,
+    required this.rowDirection,
+    required this.needsTurn,
+    required this.rowUsedSquares,
+    required this.initialRow,
+  });
+
+  _BranchTrackState shifted(Offset offset) {
+    return _BranchTrackState(
+      connectionPoint: connectionPoint + offset,
+      previousDirection: previousDirection,
+      rowDirection: rowDirection,
+      needsTurn: needsTurn,
+      rowUsedSquares: rowUsedSquares,
+      initialRow: initialRow,
+    );
+  }
+}
+
+class _BranchBuildResult {
+  final List<_ChainPlacement> placements;
+  final _BranchTrackState state;
+
+  const _BranchBuildResult({
+    required this.placements,
+    required this.state,
+  });
+}
+
+class _TrackLayoutDraft {
+  final List<_ChainPlacement> placements;
+  final _BranchTrackState leftState;
+  final _BranchTrackState rightState;
   final double minX;
   final double maxX;
   final double minY;
@@ -55,12 +118,8 @@ class _TrackLayoutDraft {
 
   const _TrackLayoutDraft({
     required this.placements,
-    required this.leftEnd,
-    required this.rightEnd,
-    required this.previousDirection,
-    required this.rowDirection,
-    required this.needsTurn,
-    required this.rowUsedSquares,
+    required this.leftState,
+    required this.rightState,
     required this.minX,
     required this.maxX,
     required this.minY,
@@ -73,40 +132,59 @@ class _TrackLayoutDraft {
 
 class _SnakeLayout {
   final List<_ChainPlacement> placements;
+  final _BranchTrackState leftState;
+  final _BranchTrackState rightState;
   final double dominoShortSide;
   final double width;
   final double height;
 
   const _SnakeLayout({
     required this.placements,
+    required this.leftState,
+    required this.rightState,
     required this.dominoShortSide,
     required this.width,
     required this.height,
   });
 }
 
-/// Визуальная змейка для сетевой игры.
+/// Сетевая версия фиксированной змейки.
 ///
-/// Источник истины о порядке и ориентации костей — backend. Этот Widget
-/// отвечает только за геометрию отображения на столе.
+/// Backend остаётся источником истины по порядку и ориентации костей.
+/// Widget отвечает только за визуальную трассу, пунктиры и анимацию.
 ///
-/// Трасса перенесена из GameScreen:
-/// - максимум 11 квадратов на горизонтальном ряду;
-/// - обычная кость занимает 2 квадрата;
-/// - дубль занимает 1 квадрат вдоль направления цепочки и лежит поперёк;
-/// - при нехватке места цепочка уходит вниз и меняет направление ряда;
-/// - при длинной цепочке размер костей автоматически уменьшается, чтобы
-///   змейка не выходила за границы игрового поля.
+/// В отличие от старого временного layout, здесь первая сыгранная кость
+/// остаётся визуальным центром. Ходы влево достраивают левую ветку, а ходы
+/// вправо — правую, поэтому существующая цепочка не прыгает при insert(0).
 class MultiplayerDominoSnake extends StatelessWidget {
   static const double _trackGap = 0;
   static const int _horizontalTrackSquares = 11;
+
+  // Первая горизонталь расходится от центра в две стороны. По 5 квадратов
+  // на ветку + центральная зона дают тот же бюджет примерно в 11 квадратов.
+  static const int _initialBranchSquares = 5;
   static const double _safeMargin = 18;
 
-  final List<Domino> dominoes;
+  final List<ServerDomino> dominoes;
+  final ServerDomino? selectedDomino;
+  final Set<String> playableSides;
+  final ValueChanged<String>? onTargetTap;
+
+  final int? animatedMoveNumber;
+  final Offset? animationSourceGlobalCenter;
+  final bool soundEnabled;
+  final VoidCallback? onDoubleImpact;
 
   const MultiplayerDominoSnake({
     super.key,
     required this.dominoes,
+    this.selectedDomino,
+    this.playableSides = const <String>{},
+    this.onTargetTap,
+    this.animatedMoveNumber,
+    this.animationSourceGlobalCenter,
+    this.soundEnabled = true,
+    this.onDoubleImpact,
   });
 
   @override
@@ -134,11 +212,51 @@ class MultiplayerDominoSnake extends StatelessWidget {
                   placement,
                   shortSide: layout.dominoShortSide,
                 ),
+              if (selectedDomino != null &&
+                  playableSides.contains('left') &&
+                  onTargetTap != null)
+                _buildPlacementTarget(
+                  state: layout.leftState,
+                  side: _BranchSide.left,
+                  domino: selectedDomino!.domino,
+                  shortSide: layout.dominoShortSide,
+                  boardSize: boardSize,
+                  onTap: () => onTargetTap!('left'),
+                ),
+              if (selectedDomino != null &&
+                  playableSides.contains('right') &&
+                  onTargetTap != null)
+                _buildPlacementTarget(
+                  state: layout.rightState,
+                  side: _BranchSide.right,
+                  domino: selectedDomino!.domino,
+                  shortSide: layout.dominoShortSide,
+                  boardSize: boardSize,
+                  onTap: () => onTargetTap!('right'),
+                ),
             ],
           ),
         );
       },
     );
+  }
+
+  int _openingIndex() {
+    final byMoveNumber = dominoes.indexWhere(
+      (domino) => domino.moveNumber == 1,
+    );
+    if (byMoveNumber >= 0) {
+      return byMoveNumber;
+    }
+
+    final bySide = dominoes.indexWhere(
+      (domino) => domino.side == 'center',
+    );
+    if (bySide >= 0) {
+      return bySide;
+    }
+
+    return 0;
   }
 
   double _preferredShortSideForBoard(Size boardSize) {
@@ -190,6 +308,15 @@ class MultiplayerDominoSnake extends StatelessWidget {
   bool _directionIsHorizontal(_ChainDirection direction) {
     return direction == _ChainDirection.right ||
         direction == _ChainDirection.left;
+  }
+
+  _ChainDirection _oppositeDirection(_ChainDirection direction) {
+    return switch (direction) {
+      _ChainDirection.right => _ChainDirection.left,
+      _ChainDirection.left => _ChainDirection.right,
+      _ChainDirection.up => _ChainDirection.down,
+      _ChainDirection.down => _ChainDirection.up,
+    };
   }
 
   bool _displayHorizontalFor({
@@ -246,8 +373,8 @@ class MultiplayerDominoSnake extends StatelessWidget {
 
     final connectingSquareCenter =
         connectionPoint + vector * (shortSide + _trackGap);
-    final center = connectingSquareCenter +
-        vector * _halfCenterOffsetFor(shortSide);
+    final center =
+        connectingSquareCenter + vector * _halfCenterOffsetFor(shortSide);
     final nextConnection =
         center + vector * _halfCenterOffsetFor(shortSide);
 
@@ -257,49 +384,71 @@ class MultiplayerDominoSnake extends StatelessWidget {
     );
   }
 
-  _TrackLayoutDraft _buildLayoutDraft({required double shortSide}) {
-    final rawPlacements = <_ChainPlacement>[];
-    final firstDomino = dominoes.first;
-    final firstIsDouble = firstDomino.left == firstDomino.right;
+  int _rowLimit(_BranchTrackState state) {
+    return state.initialRow
+        ? _initialBranchSquares
+        : _horizontalTrackSquares;
+  }
 
-    rawPlacements.add(
-      _ChainPlacement(
-        tableIndex: 0,
-        domino: firstDomino,
-        center: Offset.zero,
-        direction: _ChainDirection.right,
-      ),
-    );
+  _ChainDirection _verticalDirectionFor(_BranchSide side) {
+    return side == _BranchSide.left
+        ? _ChainDirection.up
+        : _ChainDirection.down;
+  }
 
-    final halfCenterOffset = _halfCenterOffsetFor(shortSide);
-    final rawLeftEnd =
-        firstIsDouble ? Offset.zero : Offset(-halfCenterOffset, 0);
+  _ChainDirection _nextDirectionFor({
+    required _BranchTrackState state,
+    required _BranchSide side,
+    required Domino domino,
+  }) {
+    final requiredSquares = domino.left == domino.right ? 1 : 2;
+    final wouldOverflow =
+        state.rowUsedSquares + requiredSquares > _rowLimit(state);
 
-    var connectionPoint =
-        firstIsDouble ? Offset.zero : Offset(halfCenterOffset, 0);
-    var previousDirection = _ChainDirection.right;
-    var rowDirection = _ChainDirection.right;
-    var rowUsedSquares = firstIsDouble ? 1 : 2;
-    var needsTurn = rowUsedSquares >= _horizontalTrackSquares;
+    if (state.needsTurn || wouldOverflow) {
+      return _verticalDirectionFor(side);
+    }
 
-    for (var tableIndex = 1; tableIndex < dominoes.length; tableIndex++) {
-      final domino = dominoes[tableIndex];
+    return state.rowDirection;
+  }
+
+  _BranchBuildResult _buildBranch({
+    required List<MapEntry<int, ServerDomino>> items,
+    required Offset startConnectionPoint,
+    required _BranchSide side,
+    required double shortSide,
+  }) {
+    var connectionPoint = startConnectionPoint;
+    var rowDirection = side == _BranchSide.left
+        ? _ChainDirection.left
+        : _ChainDirection.right;
+    var previousDirection = rowDirection;
+    var rowUsedSquares = 0;
+    var needsTurn = false;
+    var initialRow = true;
+
+    final placements = <_ChainPlacement>[];
+
+    for (final item in items) {
+      final domino = item.value.domino;
       final isDouble = domino.left == domino.right;
       final requiredSquares = isDouble ? 1 : 2;
+      final rowLimit = initialRow
+          ? _initialBranchSquares
+          : _horizontalTrackSquares;
       final wouldOverflow =
-          rowUsedSquares + requiredSquares > _horizontalTrackSquares;
+          rowUsedSquares + requiredSquares > rowLimit;
       final shouldTurnBeforeDomino = needsTurn || wouldOverflow;
 
       late final _ChainDirection direction;
 
       if (shouldTurnBeforeDomino) {
-        direction = _ChainDirection.down;
-        rowDirection = rowDirection == _ChainDirection.right
-            ? _ChainDirection.left
-            : _ChainDirection.right;
+        direction = _verticalDirectionFor(side);
+        rowDirection = _oppositeDirection(rowDirection);
+        initialRow = false;
 
-        // На вертикальном переходе обычная кость занимает ширину одного
-        // квадрата нового ряда, а поперечный дубль — двух.
+        // После вертикального перехода физическая ширина занятого начала
+        // нового ряда равна одному квадрату у обычной кости и двум у дубля.
         rowUsedSquares = isDouble ? 2 : 1;
         needsTurn = rowUsedSquares >= _horizontalTrackSquares;
       } else {
@@ -313,12 +462,13 @@ class MultiplayerDominoSnake extends StatelessWidget {
         shortSide: shortSide,
       );
 
-      rawPlacements.add(
+      placements.add(
         _ChainPlacement(
-          tableIndex: tableIndex,
-          domino: domino,
+          tableIndex: item.key,
+          serverDomino: item.value,
           center: geometry.center,
           direction: direction,
+          branchSide: side,
         ),
       );
 
@@ -326,18 +476,83 @@ class MultiplayerDominoSnake extends StatelessWidget {
 
       if (_directionIsHorizontal(direction)) {
         rowUsedSquares += requiredSquares;
-        needsTurn = rowUsedSquares >= _horizontalTrackSquares;
+        final activeLimit = initialRow
+            ? _initialBranchSquares
+            : _horizontalTrackSquares;
+        needsTurn = rowUsedSquares >= activeLimit;
       }
 
       previousDirection = direction;
     }
+
+    return _BranchBuildResult(
+      placements: placements,
+      state: _BranchTrackState(
+        connectionPoint: connectionPoint,
+        previousDirection: previousDirection,
+        rowDirection: rowDirection,
+        needsTurn: needsTurn,
+        rowUsedSquares: rowUsedSquares,
+        initialRow: initialRow,
+      ),
+    );
+  }
+
+  _TrackLayoutDraft _buildLayoutDraft({required double shortSide}) {
+    final openingIndex = _openingIndex();
+    final opening = dominoes[openingIndex];
+    final openingDomino = opening.domino;
+    final openingIsDouble = openingDomino.left == openingDomino.right;
+
+    final halfCenterOffset = _halfCenterOffsetFor(shortSide);
+    final leftStartConnection = openingIsDouble
+        ? Offset.zero
+        : Offset(-halfCenterOffset, 0);
+    final rightStartConnection = openingIsDouble
+        ? Offset.zero
+        : Offset(halfCenterOffset, 0);
+
+    final leftItems = <MapEntry<int, ServerDomino>>[];
+    for (var index = openingIndex - 1; index >= 0; index--) {
+      leftItems.add(MapEntry(index, dominoes[index]));
+    }
+
+    final rightItems = <MapEntry<int, ServerDomino>>[];
+    for (var index = openingIndex + 1; index < dominoes.length; index++) {
+      rightItems.add(MapEntry(index, dominoes[index]));
+    }
+
+    final leftBranch = _buildBranch(
+      items: leftItems,
+      startConnectionPoint: leftStartConnection,
+      side: _BranchSide.left,
+      shortSide: shortSide,
+    );
+    final rightBranch = _buildBranch(
+      items: rightItems,
+      startConnectionPoint: rightStartConnection,
+      side: _BranchSide.right,
+      shortSide: shortSide,
+    );
+
+    final placements = <_ChainPlacement>[
+      _ChainPlacement(
+        tableIndex: openingIndex,
+        serverDomino: opening,
+        center: Offset.zero,
+        direction: _ChainDirection.right,
+        branchSide: _BranchSide.center,
+      ),
+      ...leftBranch.placements,
+      ...rightBranch.placements,
+    ];
 
     var minX = double.infinity;
     var maxX = double.negativeInfinity;
     var minY = double.infinity;
     var maxY = double.negativeInfinity;
 
-    for (final placement in rawPlacements) {
+    for (final placement in placements) {
       final size = _displaySizeFor(
         domino: placement.domino,
         direction: placement.direction,
@@ -351,13 +566,9 @@ class MultiplayerDominoSnake extends StatelessWidget {
     }
 
     return _TrackLayoutDraft(
-      placements: rawPlacements,
-      leftEnd: rawLeftEnd,
-      rightEnd: connectionPoint,
-      previousDirection: previousDirection,
-      rowDirection: rowDirection,
-      needsTurn: needsTurn,
-      rowUsedSquares: rowUsedSquares,
+      placements: placements,
+      leftState: leftBranch.state,
+      rightState: rightBranch.state,
       minX: minX,
       maxX: maxX,
       minY: minY,
@@ -379,7 +590,7 @@ class MultiplayerDominoSnake extends StatelessWidget {
     var shortSide = preferredShortSide;
     var draft = _buildLayoutDraft(shortSide: shortSide);
 
-    for (var attempt = 0; attempt < 3; attempt++) {
+    for (var attempt = 0; attempt < 4; attempt++) {
       final widthScale = draft.contentWidth <= 0
           ? 1.0
           : availableWidth / draft.contentWidth;
@@ -422,18 +633,72 @@ class MultiplayerDominoSnake extends StatelessWidget {
         .map(
           (placement) => _ChainPlacement(
             tableIndex: placement.tableIndex,
-            domino: placement.domino,
+            serverDomino: placement.serverDomino,
             center: placement.center + shift,
             direction: placement.direction,
+            branchSide: placement.branchSide,
           ),
         )
         .toList(growable: false);
 
     return _SnakeLayout(
       placements: placements,
+      leftState: draft.leftState.shifted(shift),
+      rightState: draft.rightState.shifted(shift),
       dominoShortSide: shortSide,
       width: boardSize.width,
       height: boardSize.height,
+    );
+  }
+
+  Widget _buildPlacementTarget({
+    required _BranchTrackState state,
+    required _BranchSide side,
+    required Domino domino,
+    required double shortSide,
+    required Size boardSize,
+    required VoidCallback onTap,
+  }) {
+    final direction = _nextDirectionFor(
+      state: state,
+      side: side,
+      domino: domino,
+    );
+    final geometry = _placeTrackStep(
+      connectionPoint: state.connectionPoint,
+      direction: direction,
+      domino: domino,
+      shortSide: shortSide,
+    );
+    final size = _displaySizeFor(
+      domino: domino,
+      direction: direction,
+      shortSide: shortSide,
+    );
+
+    const targetMargin = 4.0;
+    final rawLeft = geometry.center.dx - size.width / 2;
+    final rawTop = geometry.center.dy - size.height / 2;
+    final maxLeft = math.max(
+      targetMargin,
+      boardSize.width - targetMargin - size.width,
+    );
+    final maxTop = math.max(
+      targetMargin,
+      boardSize.height - targetMargin - size.height,
+    );
+
+    final safeLeft = rawLeft.clamp(targetMargin, maxLeft).toDouble();
+    final safeTop = rawTop.clamp(targetMargin, maxTop).toDouble();
+
+    return Positioned(
+      left: safeLeft,
+      top: safeTop,
+      child: DominoPlacementTarget(
+        width: size.width,
+        height: size.height,
+        onTap: onTap,
+      ),
     );
   }
 
@@ -451,19 +716,37 @@ class MultiplayerDominoSnake extends StatelessWidget {
       shortSide: shortSide,
     );
 
+    final tile = DominoTile(
+      domino: placement.displayDomino,
+      width: size.width,
+      height: size.height,
+      dotSize: _dotSizeFor(shortSide),
+      horizontal: horizontal,
+    );
+
+    final shouldAnimate = animationSourceGlobalCenter != null &&
+        animatedMoveNumber != null &&
+        placement.serverDomino.moveNumber == animatedMoveNumber;
+
+    final child = shouldAnimate
+        ? DominoPlayAnimation(
+            key: ValueKey('multiplayer-play-$animatedMoveNumber'),
+            sourceGlobalCenter: animationSourceGlobalCenter!,
+            isDouble: placement.isDouble,
+            horizontal: horizontal,
+            soundEnabled: soundEnabled,
+            onDoubleImpact: onDoubleImpact,
+            child: tile,
+          )
+        : tile;
+
     return Positioned(
       key: ValueKey(
-        'snake-${placement.tableIndex}-${placement.domino.left}-${placement.domino.right}',
+        'snake-${placement.serverDomino.id}-${placement.serverDomino.moveNumber}',
       ),
       left: placement.center.dx - size.width / 2,
       top: placement.center.dy - size.height / 2,
-      child: DominoTile(
-        domino: placement.displayDomino,
-        width: size.width,
-        height: size.height,
-        dotSize: _dotSizeFor(shortSide),
-        horizontal: horizontal,
-      ),
+      child: child,
     );
   }
 }

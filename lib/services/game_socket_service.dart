@@ -6,6 +6,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../config/api_config.dart';
 import 'active_game_session_store.dart';
+import 'emotion_realtime_service.dart';
 
 enum SocketConnectionStatus {
   disconnected,
@@ -24,6 +25,7 @@ class GameSocketService with WidgetsBindingObserver {
   final StreamController<SocketConnectionStatus> _statusController =
       StreamController<SocketConnectionStatus>.broadcast();
   final ActiveGameSessionStore _sessionStore;
+  final EmotionRealtimeService _emotionService = EmotionRealtimeService.instance;
 
   WebSocketChannel? _channel;
   StreamSubscription<dynamic>? _channelSubscription;
@@ -123,6 +125,7 @@ class GameSocketService with WidgetsBindingObserver {
     if (_disposed) return;
     _disposed = true;
     WidgetsBinding.instance.removeObserver(this);
+    _emotionService.detachSender(this);
     await disconnect();
     await _messageController.close();
     await _statusController.close();
@@ -251,10 +254,18 @@ class GameSocketService with WidgetsBindingObserver {
         _stateSyncTimer = null;
         _reconnectAttempt = 0;
         _setStatus(SocketConnectionStatus.connected);
+        _attachEmotionSender(
+          generation: generation,
+          channel: channel,
+        );
         _startHeartbeat(
           generation: generation,
           channel: channel,
         );
+      }
+
+      if (type == 'player_emotion') {
+        _emotionService.handleSocketMessage(message);
       }
 
       if (type == 'pong') {
@@ -288,6 +299,36 @@ class GameSocketService with WidgetsBindingObserver {
     } catch (_) {
       // Ignore malformed messages. The connection itself can stay alive.
     }
+  }
+
+  void _attachEmotionSender({
+    required int generation,
+    required WebSocketChannel channel,
+  }) {
+    _emotionService.attachSender(
+      owner: this,
+      sender: (assetPath) {
+        if (!_isCurrentConnection(
+              generation: generation,
+              channel: channel,
+            ) ||
+            _status != SocketConnectionStatus.connected) {
+          return false;
+        }
+
+        try {
+          channel.sink.add(
+            jsonEncode({
+              'type': 'emotion',
+              'emotion': assetPath,
+            }),
+          );
+          return true;
+        } catch (_) {
+          return false;
+        }
+      },
+    );
   }
 
   void _startHeartbeat({
@@ -342,6 +383,7 @@ class GameSocketService with WidgetsBindingObserver {
     _channelSubscription = null;
     _channel = null;
 
+    _emotionService.detachSender(this);
     _stateSyncTimer?.cancel();
     _stateSyncTimer = null;
     _heartbeatTimer?.cancel();
@@ -401,6 +443,7 @@ class GameSocketService with WidgetsBindingObserver {
     final subscription = _channelSubscription;
     final channel = _channel;
 
+    _emotionService.detachSender(this);
     _stateSyncTimer?.cancel();
     _stateSyncTimer = null;
     _heartbeatTimer?.cancel();

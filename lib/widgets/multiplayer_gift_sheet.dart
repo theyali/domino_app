@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/gift.dart';
 import '../models/multiplayer_game_state.dart';
+import '../services/api_service.dart';
 import '../services/gift_service.dart';
 
 class GiftSendRequest {
@@ -53,19 +54,13 @@ class MultiplayerGiftSheet extends StatefulWidget {
   State<MultiplayerGiftSheet> createState() => _MultiplayerGiftSheetState();
 }
 
-class _GiftInventoryGroup {
-  final Gift gift;
-  final int count;
-
-  const _GiftInventoryGroup({required this.gift, required this.count});
-}
-
 class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
   static const GiftService _giftService = GiftService();
 
   bool _isLoading = true;
+  bool _isPreparingGift = false;
   String? _errorMessage;
-  List<_GiftInventoryGroup> _groups = const [];
+  List<Gift> _gifts = const [];
   int? _selectedGiftId;
   final Set<int> _recipientIds = <int>{};
 
@@ -83,49 +78,34 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
       }
     }
 
-    _loadInventory();
+    _loadCatalog();
   }
 
-  Future<void> _loadInventory() async {
+  Future<void> _loadCatalog() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final inventory = await _giftService.fetchInventory();
-      final available = inventory.where(
-        (item) =>
-            item.isAvailable &&
-            item.isGiftable &&
-            item.gift.restaurantId == widget.restaurantId,
-      );
-
-      final grouped = <int, List<InventoryGift>>{};
-      for (final item in available) {
-        grouped.putIfAbsent(item.gift.id, () => <InventoryGift>[]).add(item);
-      }
-
-      final groups = grouped.values
-          .map(
-            (items) => _GiftInventoryGroup(
-              gift: items.first.gift,
-              count: items.length,
-            ),
-          )
-          .toList()
-        ..sort((a, b) => a.gift.name.compareTo(b.gift.name));
-
+      final gifts = await _giftService.fetchRestaurantGifts(widget.restaurantId);
       if (!mounted) return;
+
       setState(() {
-        _groups = groups;
-        _selectedGiftId = groups.isEmpty ? null : groups.first.gift.id;
+        _gifts = gifts;
+        _selectedGiftId = gifts.isEmpty ? null : gifts.first.id;
         _isLoading = false;
       });
-    } catch (error) {
+    } on ApiException catch (error) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = error.toString();
+        _errorMessage = error.message;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Не удалось загрузить подарки ресторана.';
         _isLoading = false;
       });
     }
@@ -140,16 +120,21 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
       )
       .toList(growable: false);
 
-  _GiftInventoryGroup? get _selectedGroup {
+  Gift? get _selectedGift {
     final selectedId = _selectedGiftId;
     if (selectedId == null) return null;
 
-    for (final group in _groups) {
-      if (group.gift.id == selectedId) {
-        return group;
-      }
+    for (final gift in _gifts) {
+      if (gift.id == selectedId) return gift;
     }
     return null;
+  }
+
+  int get _missingCount {
+    final gift = _selectedGift;
+    if (gift == null || _recipientIds.isEmpty) return 0;
+    final missing = _recipientIds.length - gift.giftableCount;
+    return missing > 0 ? missing : 0;
   }
 
   void _toggleRecipient(int playerId) {
@@ -162,40 +147,73 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
     });
   }
 
-  void _submit() {
-    final group = _selectedGroup;
-    if (group == null || _recipientIds.isEmpty) return;
+  Future<void> _submit() async {
+    final gift = _selectedGift;
+    if (gift == null || _recipientIds.isEmpty || _isPreparingGift) return;
 
-    if (group.count < _recipientIds.length) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Нужно ${_recipientIds.length} шт. «${group.gift.name}», '
-            'а в инвентаре ${group.count}.',
-          ),
-        ),
-      );
-      return;
+    final missing = _missingCount;
+
+    if (missing > 0) {
+      setState(() {
+        _isPreparingGift = true;
+      });
+
+      try {
+        final newCount = await _giftService.purchaseGift(
+          restaurantId: widget.restaurantId,
+          giftId: gift.id,
+          quantity: missing,
+        );
+
+        if (!mounted) return;
+        setState(() {
+          _gifts = _gifts
+              .map(
+                (item) => item.id == gift.id
+                    ? item.copyWith(giftableCount: newCount)
+                    : item,
+              )
+              .toList(growable: false);
+        });
+      } on ApiException catch (error) {
+        if (mounted) _showMessage(error.message);
+        return;
+      } catch (_) {
+        if (mounted) _showMessage('Не удалось подготовить подарок.');
+        return;
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isPreparingGift = false;
+          });
+        }
+      }
     }
 
+    if (!mounted) return;
     Navigator.of(context).pop(
       GiftSendRequest(
-        giftId: group.gift.id,
+        giftId: gift.id,
         recipientPlayerIds: _recipientIds.toList(growable: false),
       ),
     );
   }
 
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final recipients = _availableRecipients;
-    final selectedGroup = _selectedGroup;
-    final canSubmit = selectedGroup != null &&
-        _recipientIds.isNotEmpty &&
-        selectedGroup.count >= _recipientIds.length;
+    final selectedGift = _selectedGift;
+    final canContinue = selectedGift != null && _recipientIds.isNotEmpty;
+    final missing = _missingCount;
 
     return FractionallySizedBox(
-      heightFactor: 0.72,
+      heightFactor: 0.78,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: Column(
@@ -208,7 +226,7 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
             ),
             const SizedBox(height: 5),
             Text(
-              'Можно выбрать нескольких игроков. Самого себя выбрать нельзя.',
+              'Выбери одного или нескольких игроков. Самому себе дарить нельзя.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall,
             ),
@@ -237,34 +255,56 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
                   ),
               ],
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             Row(
               children: [
                 const Expanded(
                   child: Text(
-                    'Мои подарки этого ресторана',
+                    'Подарки ресторана',
                     style: TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ),
-                if (!_isLoading)
-                  Text(
-                    '${_groups.fold<int>(0, (sum, item) => sum + item.count)} шт.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                Text(
+                  'без оплаты · тест',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ],
             ),
             const SizedBox(height: 10),
             Expanded(child: _buildGiftList()),
-            const SizedBox(height: 12),
+            if (selectedGift != null && _recipientIds.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                missing == 0
+                    ? 'Готово к отправке: ${selectedGift.giftableCount} шт.'
+                    : 'Нужно ещё $missing шт. «${selectedGift.name}». '
+                        'Они будут добавлены автоматически.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+            const SizedBox(height: 10),
             SizedBox(
               height: 52,
               child: FilledButton.icon(
-                onPressed: canSubmit ? _submit : null,
-                icon: const Icon(Icons.card_giftcard_rounded),
+                onPressed: canContinue && !_isPreparingGift ? _submit : null,
+                icon: _isPreparingGift
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        missing > 0
+                            ? Icons.add_shopping_cart_rounded
+                            : Icons.card_giftcard_rounded,
+                      ),
                 label: Text(
-                  _recipientIds.length <= 1
-                      ? 'Отправить подарок'
-                      : 'Отправить ${_recipientIds.length} подарка',
+                  missing > 0
+                      ? 'Добавить $missing и отправить'
+                      : _recipientIds.length <= 1
+                          ? 'Отправить подарок'
+                          : 'Отправить ${_recipientIds.length} подарка',
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
               ),
@@ -288,7 +328,7 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
             Text(_errorMessage!, textAlign: TextAlign.center),
             const SizedBox(height: 10),
             OutlinedButton.icon(
-              onPressed: _loadInventory,
+              onPressed: _loadCatalog,
               icon: const Icon(Icons.refresh_rounded),
               label: const Text('Повторить'),
             ),
@@ -297,13 +337,12 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
       );
     }
 
-    if (_groups.isEmpty) {
+    if (_gifts.isEmpty) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(20),
           child: Text(
-            'В инвентаре нет подарков этого ресторана, которые можно отправить.\n'
-            'Полученные от других игроков подарки передаривать нельзя.',
+            'У этого ресторана пока нет активных подарков.',
             textAlign: TextAlign.center,
           ),
         ),
@@ -315,23 +354,23 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
         crossAxisCount: 3,
         mainAxisSpacing: 10,
         crossAxisSpacing: 10,
-        childAspectRatio: 0.82,
+        childAspectRatio: 0.78,
       ),
-      itemCount: _groups.length,
+      itemCount: _gifts.length,
       itemBuilder: (context, index) {
-        final group = _groups[index];
-        final selected = _selectedGiftId == group.gift.id;
+        final gift = _gifts[index];
+        final selected = _selectedGiftId == gift.id;
 
         return InkWell(
           borderRadius: BorderRadius.circular(18),
           onTap: () {
             setState(() {
-              _selectedGiftId = group.gift.id;
+              _selectedGiftId = gift.id;
             });
           },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 170),
-            padding: const EdgeInsets.all(9),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: selected
                   ? Theme.of(context).colorScheme.primaryContainer
@@ -348,9 +387,9 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
               children: [
                 Expanded(
                   child: Center(
-                    child: group.gift.imageUrl?.trim().isNotEmpty == true
+                    child: gift.imageUrl?.trim().isNotEmpty == true
                         ? Image.network(
-                            group.gift.imageUrl!,
+                            gift.imageUrl!,
                             fit: BoxFit.contain,
                             errorBuilder: (context, error, stackTrace) =>
                                 const Icon(Icons.card_giftcard_rounded, size: 44),
@@ -358,17 +397,23 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
                         : const Icon(Icons.card_giftcard_rounded, size: 44),
                   ),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 4),
                 Text(
-                  group.gift.name,
+                  gift.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${group.count} шт. · ${group.gift.price}',
+                  gift.price,
                   style: Theme.of(context).textTheme.bodySmall,
+                ),
+                Text(
+                  'есть ${gift.giftableCount}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
               ],
             ),

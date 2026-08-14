@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screens/app_startup_screen.dart';
+import 'screens/auth_gate_screen.dart';
 
 void main() {
   runApp(const DominoApp());
@@ -13,7 +13,7 @@ class DominoApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: AppStartupScreen(),
+      home: AuthGateScreen(),
     );
   }
 }

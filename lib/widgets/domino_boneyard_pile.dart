@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../localization/app_localizations.dart';
+import '../theme/app_colors.dart';
 
 class DominoBoneyardPile extends StatefulWidget {
   final int count;
@@ -34,7 +35,7 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
 
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 760),
+      duration: const Duration(milliseconds: 820),
     )..repeat(reverse: true);
 
     _drawController = AnimationController(
@@ -43,7 +44,7 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
     );
 
     _scale = Tween<double>(
-      begin: 0.98,
+      begin: 0.985,
       end: 1.035,
     ).animate(
       CurvedAnimation(
@@ -53,8 +54,8 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
     );
 
     _glow = Tween<double>(
-      begin: 0.18,
-      end: 0.42,
+      begin: 0.16,
+      end: 0.34,
     ).animate(
       CurvedAnimation(
         parent: _pulseController,
@@ -93,18 +94,18 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
         ]),
         builder: (context, child) {
           final pulseScale = widget.enabled ? _scale.value : 1.0;
-          final glow = widget.enabled ? _glow.value : 0.10;
+          final glow = widget.enabled ? _glow.value : 0.08;
 
           final drawProgress = _drawController.value;
           final drawDecay = 1 - drawProgress;
           final shakeX = math.sin(drawProgress * math.pi * 5) *
               drawDecay *
-              4.5;
+              4.2;
           final shakeRotation = math.sin(drawProgress * math.pi * 4) *
               drawDecay *
-              0.045;
-          final drawScale = 1 -
-              math.sin(drawProgress * math.pi) * 0.055;
+              0.042;
+          final drawScale =
+              1 - math.sin(drawProgress * math.pi) * 0.05;
 
           return Transform.translate(
             offset: Offset(shakeX, 0),
@@ -113,81 +114,125 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
               child: Transform.scale(
                 scale: pulseScale * drawScale,
                 child: Container(
-                  width: 72,
-                  padding: const EdgeInsets.fromLTRB(
-                    8,
-                    8,
-                    8,
-                    7,
-                  ),
+                  width: 82,
+                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.28),
-                    borderRadius: BorderRadius.circular(16),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.panelTop,
+                        AppColors.panelBottom,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(22),
                     border: Border.all(
                       color: widget.enabled
-                          ? Colors.greenAccent.withValues(alpha: 0.92)
-                          : Colors.white24,
-                      width: widget.enabled ? 1.7 : 1,
+                          ? AppColors.lime
+                          : Colors.white.withValues(alpha: 0.24),
+                      width: widget.enabled ? 2.2 : 1.2,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: widget.enabled
-                            ? Colors.greenAccent.withValues(alpha: glow)
-                            : Colors.black26,
-                        blurRadius: widget.enabled ? 14 : 5,
-                        spreadRadius: widget.enabled ? 1 : 0,
+                        color: Colors.black.withValues(alpha: 0.42),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
                       ),
+                      if (widget.enabled)
+                        BoxShadow(
+                          color: AppColors.lime.withValues(alpha: glow),
+                          blurRadius: 18,
+                          spreadRadius: 1,
+                        ),
                     ],
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       SizedBox(
-                        width: 42,
-                        height: 46,
+                        width: 54,
+                        height: 50,
                         child: Stack(
                           clipBehavior: Clip.none,
-                          children: const [
-                            Positioned(
+                          children: [
+                            const Positioned(
                               left: 4,
-                              top: 0,
-                              child: _DominoBack(angle: -0.10),
+                              top: 5,
+                              child: _DominoBack(angle: -0.13),
+                            ),
+                            const Positioned(
+                              left: 13,
+                              top: 3,
+                              child: _DominoBack(angle: 0.02),
+                            ),
+                            const Positioned(
+                              left: 22,
+                              top: 5,
+                              child: _DominoBack(angle: 0.13),
                             ),
                             Positioned(
-                              left: 11,
-                              top: 2,
-                              child: _DominoBack(angle: 0.05),
-                            ),
-                            Positioned(
-                              left: 18,
-                              top: 4,
-                              child: _DominoBack(angle: 0.12),
+                              right: -3,
+                              top: -5,
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 180),
+                                transitionBuilder: (child, animation) {
+                                  return ScaleTransition(
+                                    scale: animation,
+                                    child: FadeTransition(
+                                      opacity: animation,
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  key: ValueKey(widget.count),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 25,
+                                    minHeight: 25,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 5,
+                                  ),
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.lime,
+                                    borderRadius: BorderRadius.circular(13),
+                                    border: Border.all(
+                                      color: Colors.black87,
+                                      width: 1.5,
+                                    ),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Colors.black38,
+                                        blurRadius: 5,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    '${widget.count}',
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 180),
-                        transitionBuilder: (child, animation) {
-                          return ScaleTransition(
-                            scale: animation,
-                            child: FadeTransition(
-                              opacity: animation,
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: Text(
-                          '$boneyardLabel ${widget.count}',
-                          key: ValueKey('${context.appLanguage.code}-${widget.count}'),
-                          style: TextStyle(
-                            color: widget.enabled
-                                ? Colors.greenAccent
-                                : Colors.white70,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                          ),
+                      const SizedBox(height: 3),
+                      Text(
+                        boneyardLabel,
+                        style: TextStyle(
+                          color: widget.enabled
+                              ? AppColors.lime
+                              : Colors.white70,
+                          fontSize: 11.5,
+                          letterSpacing: 0.2,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                     ],
@@ -214,20 +259,27 @@ class _DominoBack extends StatelessWidget {
     return Transform.rotate(
       angle: angle,
       child: Container(
-        width: 22,
-        height: 38,
+        width: 24,
+        height: 40,
         decoration: BoxDecoration(
-          color: const Color(0xFF66717D),
-          borderRadius: BorderRadius.circular(5),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF9AA8B6),
+              Color(0xFF566574),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(7),
           border: Border.all(
-            color: Colors.white70,
-            width: 1.4,
+            color: AppColors.cream,
+            width: 1.8,
           ),
           boxShadow: const [
             BoxShadow(
-              color: Colors.black38,
-              blurRadius: 3,
-              offset: Offset(1, 2),
+              color: Colors.black45,
+              blurRadius: 4,
+              offset: Offset(1, 3),
             ),
           ],
         ),
@@ -236,10 +288,10 @@ class _DominoBack extends StatelessWidget {
             width: 7,
             height: 7,
             decoration: BoxDecoration(
-              color: const Color(0xFF33404D),
+              color: AppColors.badge,
               shape: BoxShape.circle,
               border: Border.all(
-                color: Colors.white24,
+                color: Colors.white38,
               ),
             ),
           ),

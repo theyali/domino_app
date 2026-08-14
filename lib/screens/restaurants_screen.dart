@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/api_config.dart';
+import '../localization/app_localizations.dart';
 import '../models/restaurant.dart';
 import '../services/api_service.dart';
 import '../widgets/restaurant_tile.dart';
@@ -48,7 +49,7 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Не удалось подключиться к Django backend.';
+        _errorMessage = context.tr('django_connection_failed');
       });
     } finally {
       if (mounted) {
@@ -67,11 +68,11 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Рестораны'),
+        title: Text(context.tr('restaurants')),
         actions: [
           IconButton(
             onPressed: _isLoading ? null : _loadRestaurants,
-            tooltip: 'Обновить',
+            tooltip: context.tr('refresh'),
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
@@ -86,8 +87,8 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
                 child: SwitchListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                  title: const Text('Только активные рестораны'),
-                  subtitle: const Text('Показывать только доступные комнаты'),
+                  title: Text(context.tr('only_active_restaurants')),
+                  subtitle: Text(context.tr('only_available_rooms')),
                   value: showOnlyActive,
                   onChanged: (value) {
                     setState(() {
@@ -111,13 +112,13 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
                 ),
               )
             else if (visibleRestaurants.isEmpty)
-              const SliverFillRemaining(
+              SliverFillRemaining(
                 hasScrollBody: false,
                 child: Center(
                   child: Padding(
-                    padding: EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(24),
                     child: Text(
-                      'Подходящих ресторанов пока нет.',
+                      context.tr('restaurants_empty'),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -190,9 +191,9 @@ class _RestaurantsError extends StatelessWidget {
             color: Theme.of(context).colorScheme.error,
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Backend недоступен',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+          Text(
+            context.tr('backend_unavailable'),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 8),
           Text(message, textAlign: TextAlign.center),
@@ -206,7 +207,7 @@ class _RestaurantsError extends StatelessWidget {
           FilledButton.icon(
             onPressed: onRetry,
             icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Повторить'),
+            label: Text(context.tr('retry')),
           ),
         ],
       ),

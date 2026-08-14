@@ -143,12 +143,12 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
     }
   }
 
-  void _resumeGame() {
+  Future<void> _resumeGame() async {
     final gameState = _gameState;
     final restaurant = _restaurant;
     if (gameState == null || restaurant == null) return;
 
-    Navigator.of(context).pushReplacement(
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => MultiplayerGameScreen(
           restaurant: restaurant,
@@ -156,6 +156,9 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
         ),
       ),
     );
+
+    if (!mounted) return;
+    await _loadSavedGame();
   }
 
   Future<void> _leaveSavedGame() async {

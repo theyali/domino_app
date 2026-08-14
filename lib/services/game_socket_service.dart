@@ -17,6 +17,7 @@ enum SocketConnectionStatus {
 class GameSocketService with WidgetsBindingObserver {
   static const Duration _heartbeatInterval = Duration(seconds: 10);
   static const Duration _heartbeatTimeout = Duration(seconds: 30);
+  static const Duration _stateSyncTimeout = Duration(seconds: 8);
 
   final StreamController<Map<String, dynamic>> _messageController =
       StreamController<Map<String, dynamic>>.broadcast();
@@ -28,6 +29,7 @@ class GameSocketService with WidgetsBindingObserver {
   StreamSubscription<dynamic>? _channelSubscription;
   Timer? _reconnectTimer;
   Timer? _heartbeatTimer;
+  Timer? _stateSyncTimer;
 
   int? _roomId;
   int? _playerId;
@@ -178,6 +180,23 @@ class GameSocketService with WidgetsBindingObserver {
       // after accepting the socket. We switch to connected only after that
       // authoritative state reaches Flutter, so the UI does not hide the
       // reconnect indicator too early.
+      if (_status != SocketConnectionStatus.connected) {
+        _stateSyncTimer?.cancel();
+        _stateSyncTimer = Timer(_stateSyncTimeout, () {
+          _stateSyncTimer = null;
+
+          if (_disposed ||
+              _manualClose ||
+              generation != _connectionGeneration ||
+              _status == SocketConnectionStatus.connected) {
+            return;
+          }
+
+          unawaited(channel.sink.close());
+          _handleDisconnected(generation);
+        });
+      }
+
       channel.sink.add(jsonEncode(const {'type': 'ping'}));
     } catch (_) {
       _handleDisconnected(generation);
@@ -200,6 +219,8 @@ class GameSocketService with WidgetsBindingObserver {
 
         if (isAuthoritativeState &&
             _status != SocketConnectionStatus.connected) {
+          _stateSyncTimer?.cancel();
+          _stateSyncTimer = null;
           _reconnectAttempt = 0;
           _setStatus(SocketConnectionStatus.connected);
           _startHeartbeat(generation);
@@ -276,6 +297,8 @@ class GameSocketService with WidgetsBindingObserver {
       return;
     }
 
+    _stateSyncTimer?.cancel();
+    _stateSyncTimer = null;
     _heartbeatTimer?.cancel();
     _heartbeatTimer = null;
     _setStatus(SocketConnectionStatus.disconnected);
@@ -319,6 +342,8 @@ class GameSocketService with WidgetsBindingObserver {
     final subscription = _channelSubscription;
     final channel = _channel;
 
+    _stateSyncTimer?.cancel();
+    _stateSyncTimer = null;
     _heartbeatTimer?.cancel();
     _heartbeatTimer = null;
     _lastPongAt = null;

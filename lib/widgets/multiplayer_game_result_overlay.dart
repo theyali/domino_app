@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../localization/app_localizations.dart';
 import '../models/multiplayer_game_state.dart';
 
 class MultiplayerGameResultOverlay extends StatelessWidget {
@@ -26,8 +27,8 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
     }
 
     final isMatchFinished = gameState.isMatchFinished;
-    final reasonTitle = _reasonTitle(result.reason, isMatchFinished);
-    final reasonSubtitle = _reasonSubtitle(result);
+    final reasonTitle = _reasonTitle(context, result.reason, isMatchFinished);
+    final reasonSubtitle = _reasonSubtitle(context, result);
 
     return Material(
       color: Colors.black.withValues(alpha: 0.78),
@@ -113,9 +114,11 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                                   )
                                 : const Icon(Icons.refresh_rounded),
                             label: Text(
-                              isStartingNextRound
-                                  ? 'Готовим новый раунд...'
-                                  : 'Следующий раунд',
+                              context.tr(
+                                isStartingNextRound
+                                    ? 'next_round_loading'
+                                    : 'next_round',
+                              ),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                               ),
@@ -129,10 +132,10 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                             color: Colors.white.withValues(alpha: 0.07),
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Text(
-                            'Ожидаем, пока создатель стола запустит следующий раунд.',
+                          child: Text(
+                            context.tr('wait_owner_next_round'),
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white70),
+                            style: const TextStyle(color: Colors.white70),
                           ),
                         ),
                       const SizedBox(height: 10),
@@ -149,7 +152,7 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                               )
                             : const Icon(Icons.logout_rounded),
                         label: Text(
-                          isLeaving ? 'Выходим...' : 'Выйти из игры',
+                          context.tr(isLeaving ? 'leaving' : 'exit_game'),
                           style: const TextStyle(fontWeight: FontWeight.w800),
                         ),
                       ),
@@ -164,25 +167,32 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
     );
   }
 
-  String _reasonTitle(String reason, bool isMatchFinished) {
+  String _reasonTitle(
+    BuildContext context,
+    String reason,
+    bool isMatchFinished,
+  ) {
     if (reason == 'player_left') {
-      return 'Матч завершён';
+      return context.tr('match_finished_title');
     }
     if (isMatchFinished) {
-      return 'Игра до 101 завершена';
+      return context.tr('game_101_finished');
     }
     if (reason == 'fish') {
-      return 'Рыба';
+      return context.tr('fish');
     }
-    return 'Раунд завершён';
+    return context.tr('round_finished_title');
   }
 
-  String _reasonSubtitle(MultiplayerRoundResult result) {
+  String _reasonSubtitle(BuildContext context, MultiplayerRoundResult result) {
     if (result.reason == 'player_left') {
       final player = _playerById(result.leftPlayerId);
       return player == null
-          ? 'Один из игроков вышел из матча.'
-          : '${player.name} вышел из матча. Игра завершена для оставшихся игроков.';
+          ? context.tr('one_player_left')
+          : context.tr(
+              'player_left_match',
+              arguments: {'player': player.name},
+            );
     }
 
     if (gameState.isMatchFinished) {
@@ -192,8 +202,11 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
           .map((player) => player.name)
           .join(', ');
       return loserNames.isEmpty
-          ? 'Матч завершён.'
-          : '101 очко набрал: $loserNames.';
+          ? context.tr('match_finished')
+          : context.tr(
+              'score_101',
+              arguments: {'players': loserNames},
+            );
     }
 
     final winners = result.winnerPlayerIds
@@ -204,13 +217,19 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
 
     if (result.reason == 'fish') {
       return winners.isEmpty
-          ? 'Все игроки заблокированы.'
-          : 'Минимум очков на руках: $winners.';
+          ? context.tr('all_players_blocked')
+          : context.tr(
+              'minimum_hand_points',
+              arguments: {'players': winners},
+            );
     }
 
     return winners.isEmpty
-        ? 'Последняя костяшка сыграна.'
-        : 'Раунд выиграл: $winners.';
+        ? context.tr('last_domino_played')
+        : context.tr(
+            'round_winner',
+            arguments: {'players': winners},
+          );
   }
 
   MultiplayerPlayerState? _playerById(int? playerId) {
@@ -284,9 +303,9 @@ class _PlayerResultRow extends StatelessWidget {
                     ),
                     if (!player.isActive) ...[
                       const SizedBox(width: 6),
-                      const Text(
-                        'вышел',
-                        style: TextStyle(
+                      Text(
+                        context.tr('left_game'),
+                        style: const TextStyle(
                           color: Colors.white38,
                           fontSize: 10,
                         ),
@@ -296,7 +315,13 @@ class _PlayerResultRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'На руках: $handPoints  ·  Штраф: +$added',
+                  context.tr(
+                    'hand_points_penalty',
+                    arguments: {
+                      'hand': handPoints,
+                      'penalty': added,
+                    },
+                  ),
                   style: const TextStyle(
                     color: Colors.white54,
                     fontSize: 11,

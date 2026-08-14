@@ -1,11 +1,21 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../localization/app_localizations.dart';
 import '../localization/game_action_strings.dart';
 import '../models/multiplayer_game_state.dart';
 import '../theme/app_colors.dart';
 
-class MultiplayerGameResultOverlay extends StatelessWidget {
+enum _ResultPresentationPhase {
+  waitingForLastDomino,
+  outcome,
+  menu,
+}
+
+class MultiplayerGameResultOverlay extends StatefulWidget {
   final MultiplayerGameState gameState;
   final bool isStartingNextRound;
   final bool isLeaving;
@@ -22,12 +32,121 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
   });
 
   @override
+  State<MultiplayerGameResultOverlay> createState() =>
+      _MultiplayerGameResultOverlayState();
+}
+
+class _MultiplayerGameResultOverlayState
+    extends State<MultiplayerGameResultOverlay> {
+  static const Duration _lastDominoWait = Duration(milliseconds: 920);
+  static const Duration _outcomeDuration = Duration(milliseconds: 820);
+
+  Timer? _phaseTimer;
+  late _ResultPresentationPhase _phase;
+
+  MultiplayerGameState get gameState => widget.gameState;
+
+  @override
+  void initState() {
+    super.initState();
+    _startPresentation();
+  }
+
+  @override
+  void didUpdateWidget(covariant MultiplayerGameResultOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final oldResult = oldWidget.gameState.roundResult;
+    final newResult = widget.gameState.roundResult;
+    final resultChanged = oldWidget.gameState.roundNumber !=
+            widget.gameState.roundNumber ||
+        oldResult?.reason != newResult?.reason ||
+        oldWidget.gameState.version != widget.gameState.version;
+
+    if (resultChanged && _phase == _ResultPresentationPhase.menu) {
+      _startPresentation();
+    }
+  }
+
+  @override
+  void dispose() {
+    _phaseTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startPresentation() {
+    _phaseTimer?.cancel();
+
+    final result = gameState.roundResult;
+    if (result == null || result.reason != 'domino') {
+      _phase = _ResultPresentationPhase.menu;
+      return;
+    }
+
+    _phase = _ResultPresentationPhase.waitingForLastDomino;
+    _phaseTimer = Timer(_lastDominoWait, _showOutcome);
+  }
+
+  void _showOutcome() {
+    if (!mounted) return;
+
+    final result = gameState.roundResult;
+    if (result == null) {
+      setState(() {
+        _phase = _ResultPresentationPhase.menu;
+      });
+      return;
+    }
+
+    final isWinner = result.winnerPlayerIds.contains(gameState.myPlayerId);
+    if (isWinner) {
+      unawaited(HapticFeedback.mediumImpact());
+    } else {
+      unawaited(HapticFeedback.lightImpact());
+    }
+
+    setState(() {
+      _phase = _ResultPresentationPhase.outcome;
+    });
+
+    _phaseTimer = Timer(_outcomeDuration, () {
+      if (!mounted) return;
+      setState(() {
+        _phase = _ResultPresentationPhase.menu;
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final result = gameState.roundResult;
     if (result == null) {
       return const SizedBox.shrink();
     }
 
+    if (_phase == _ResultPresentationPhase.waitingForLastDomino) {
+      return const IgnorePointer(
+        child: SizedBox.expand(),
+      );
+    }
+
+    if (_phase == _ResultPresentationPhase.outcome) {
+      final isWinner = result.winnerPlayerIds.contains(gameState.myPlayerId);
+      final winner = _firstRoundWinner(result);
+
+      return _RoundOutcomeFlash(
+        isWinner: isWinner,
+        winnerName: winner?.name,
+      );
+    }
+
+    return _buildResultMenu(context, result);
+  }
+
+  Widget _buildResultMenu(
+    BuildContext context,
+    MultiplayerRoundResult result,
+  ) {
     final isMatchFinished = gameState.isMatchFinished;
     final reasonTitle = _reasonTitle(context, result.reason, isMatchFinished);
     final reasonSubtitle = _reasonSubtitle(context, result);
@@ -157,9 +276,10 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                         SizedBox(
                           height: 52,
                           child: FilledButton.icon(
-                            onPressed: isStartingNextRound || isLeaving
+                            onPressed: widget.isStartingNextRound ||
+                                    widget.isLeaving
                                 ? null
-                                : onNextRound,
+                                : widget.onNextRound,
                             style: FilledButton.styleFrom(
                               backgroundColor: AppColors.lime,
                               foregroundColor: Colors.black,
@@ -173,7 +293,7 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(18),
                               ),
                             ),
-                            icon: isStartingNextRound
+                            icon: widget.isStartingNextRound
                                 ? const SizedBox(
                                     width: 20,
                                     height: 20,
@@ -185,7 +305,7 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                                 : const Icon(Icons.refresh_rounded),
                             label: Text(
                               context.tr(
-                                isStartingNextRound
+                                widget.isStartingNextRound
                                     ? 'next_round_loading'
                                     : 'next_round',
                               ),
@@ -219,7 +339,7 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                     SizedBox(
                       height: 48,
                       child: OutlinedButton.icon(
-                        onPressed: isLeaving ? null : onExit,
+                        onPressed: widget.isLeaving ? null : widget.onExit,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white,
                           side: BorderSide(
@@ -229,7 +349,7 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                             borderRadius: BorderRadius.circular(17),
                           ),
                         ),
-                        icon: isLeaving
+                        icon: widget.isLeaving
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
@@ -240,7 +360,9 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                               )
                             : const Icon(Icons.logout_rounded),
                         label: Text(
-                          context.tr(isLeaving ? 'leaving' : 'exit_game'),
+                          context.tr(
+                            widget.isLeaving ? 'leaving' : 'exit_game',
+                          ),
                           style: const TextStyle(fontWeight: FontWeight.w800),
                         ),
                       ),
@@ -334,12 +456,197 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
           );
   }
 
+  MultiplayerPlayerState? _firstRoundWinner(MultiplayerRoundResult result) {
+    if (result.winnerPlayerIds.isEmpty) return null;
+    return _playerById(result.winnerPlayerIds.first);
+  }
+
   MultiplayerPlayerState? _playerById(int? playerId) {
     if (playerId == null) return null;
     for (final player in gameState.players) {
       if (player.id == playerId) return player;
     }
     return null;
+  }
+}
+
+class _RoundOutcomeFlash extends StatelessWidget {
+  final bool isWinner;
+  final String? winnerName;
+
+  const _RoundOutcomeFlash({
+    required this.isWinner,
+    required this.winnerName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isAzerbaijani = context.appLanguage.code == 'az';
+    final title = isWinner
+        ? (isAzerbaijani ? 'Əla! Raund sənindir!' : 'Отлично! Раунд твой!')
+        : (isAzerbaijani ? 'Raund uduzuldu' : 'Раунд проигран');
+    final subtitle = isWinner
+        ? (isAzerbaijani
+            ? 'Son daşı birinci siz qoydunuz.'
+            : 'Ты первым выложил последнюю костяшку.')
+        : winnerName == null
+            ? (isAzerbaijani
+                ? 'Rəqib raundu birinci bitirdi.'
+                : 'Соперник первым закончил раунд.')
+            : (isAzerbaijani
+                ? '$winnerName raundu birinci bitirdi.'
+                : '$winnerName первым закончил раунд.');
+    final accent = isWinner ? AppColors.lime : const Color(0xFFFF655B);
+    final icon = isWinner
+        ? Icons.emoji_events_rounded
+        : Icons.sentiment_dissatisfied_rounded;
+
+    return Material(
+      color: Colors.black.withValues(alpha: 0.28),
+      child: IgnorePointer(
+        child: Center(
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.68, end: 1),
+            duration: const Duration(milliseconds: 430),
+            curve: Curves.easeOutBack,
+            builder: (context, value, child) {
+              return Transform.scale(
+                scale: value,
+                child: Opacity(
+                  opacity: value.clamp(0.0, 1.0),
+                  child: child,
+                ),
+              );
+            },
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                if (isWinner)
+                  const Positioned.fill(
+                    child: _OutcomeBurst(),
+                  ),
+                Container(
+                  constraints: const BoxConstraints(maxWidth: 330),
+                  margin: const EdgeInsets.symmetric(horizontal: 28),
+                  padding: const EdgeInsets.fromLTRB(24, 22, 24, 20),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        AppColors.panelTop,
+                        AppColors.panelBottom,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: accent.withValues(alpha: 0.85),
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: accent.withValues(alpha: 0.16),
+                        blurRadius: 26,
+                        spreadRadius: 2,
+                      ),
+                      const BoxShadow(
+                        color: Colors.black54,
+                        blurRadius: 18,
+                        offset: Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 62,
+                        height: 62,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: accent,
+                          border: Border.all(
+                            color: AppColors.ink,
+                            width: 2.2,
+                          ),
+                        ),
+                        child: Icon(
+                          icon,
+                          color: Colors.black,
+                          size: 34,
+                        ),
+                      ),
+                      const SizedBox(height: 13),
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 23,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        subtitle,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OutcomeBurst extends StatelessWidget {
+  const _OutcomeBurst();
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 720),
+      curve: Curves.easeOutCubic,
+      builder: (context, progress, child) {
+        return Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            for (var index = 0; index < 12; index++)
+              Transform.translate(
+                offset: Offset(
+                  math.cos((math.pi * 2 / 12) * index) * 116 * progress,
+                  math.sin((math.pi * 2 / 12) * index) * 88 * progress,
+                ),
+                child: Opacity(
+                  opacity: (1 - progress * 0.55).clamp(0.0, 1.0),
+                  child: Transform.rotate(
+                    angle: progress * (index.isEven ? 1.2 : -1.2),
+                    child: Icon(
+                      index.isEven ? Icons.star_rounded : Icons.circle,
+                      size: index.isEven ? 17 : 10,
+                      color: index % 3 == 0
+                          ? AppColors.brass
+                          : AppColors.lime,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
   }
 }
 
@@ -392,41 +699,9 @@ class _PlayerResultRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              gradient: isRoundWinner
-                  ? const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        AppColors.limeSoft,
-                        AppColors.lime,
-                      ],
-                    )
-                  : const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFFEDF1F5),
-                        Color(0xFFAAB5C0),
-                      ],
-                    ),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.ink,
-                width: 1.5,
-              ),
-            ),
-            child: Text(
-              player.name.isEmpty ? '?' : player.name[0].toUpperCase(),
-              style: const TextStyle(
-                color: AppColors.ink,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
+          _ResultAvatar(
+            player: player,
+            highlighted: isRoundWinner,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -497,6 +772,69 @@ class _PlayerResultRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ResultAvatar extends StatelessWidget {
+  final MultiplayerPlayerState player;
+  final bool highlighted;
+
+  const _ResultAvatar({
+    required this.player,
+    required this.highlighted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final avatarUrl = player.avatarUrl;
+    final letter = player.name.isEmpty ? '?' : player.name[0].toUpperCase();
+
+    return Container(
+      width: 42,
+      height: 42,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: highlighted ? AppColors.lime : AppColors.cream,
+        border: Border.all(
+          color: AppColors.ink,
+          width: 1.5,
+        ),
+      ),
+      child: ClipOval(
+        child: avatarUrl != null && avatarUrl.isNotEmpty
+            ? Image.network(
+                avatarUrl,
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.high,
+                errorBuilder: (context, error, stackTrace) => _ResultAvatarLetter(
+                  letter: letter,
+                ),
+              )
+            : _ResultAvatarLetter(letter: letter),
+      ),
+    );
+  }
+}
+
+class _ResultAvatarLetter extends StatelessWidget {
+  final String letter;
+
+  const _ResultAvatarLetter({required this.letter});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color(0xFFE7ECF0),
+      alignment: Alignment.center,
+      child: Text(
+        letter,
+        style: const TextStyle(
+          color: AppColors.ink,
+          fontWeight: FontWeight.w900,
+        ),
       ),
     );
   }

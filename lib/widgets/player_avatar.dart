@@ -14,6 +14,8 @@ class PlayerAvatar extends StatelessWidget {
   final double turnProgress;
   final int dominoCount;
   final bool? isOnline;
+  final String? activeGiftImageUrl;
+  final String? activeGiftName;
 
   const PlayerAvatar({
     super.key,
@@ -24,6 +26,8 @@ class PlayerAvatar extends StatelessWidget {
     this.turnSecondsLeft,
     this.turnProgress = 0,
     this.isOnline,
+    this.activeGiftImageUrl,
+    this.activeGiftName,
   });
 
   Future<void> _handleTap(BuildContext context) async {
@@ -34,23 +38,29 @@ class PlayerAvatar extends StatelessWidget {
       return;
     }
 
-    await EmotionPickerSheet.show(
-      context,
-      onSelected: (emotionAsset) {
-        final sent = EmotionRealtimeService.instance.sendEmotion(emotionAsset);
-        if (!sent && context.mounted) {
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Эмоцию можно отправить после восстановления realtime.',
-                ),
-              ),
-            );
-        }
-      },
-    );
+    final emotionAsset = await EmotionPickerSheet.show(context);
+    if (emotionAsset == null || !context.mounted) {
+      return;
+    }
+
+    // Give the modal sheet enough time to leave the screen. The realtime event
+    // is intentionally sent only afterwards so the local player can actually
+    // see the same avatar animation as everyone else.
+    await Future<void>.delayed(const Duration(milliseconds: 170));
+    if (!context.mounted) return;
+
+    final sent = EmotionRealtimeService.instance.sendEmotion(emotionAsset);
+    if (!sent && context.mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Эмоцию можно отправить после восстановления realtime.',
+            ),
+          ),
+        );
+    }
   }
 
   @override
@@ -72,6 +82,10 @@ class PlayerAvatar extends StatelessWidget {
     final avatarLetter = player.name.trim().isEmpty
         ? '?'
         : player.name.trim().substring(0, 1).toUpperCase();
+
+    final hasActiveGift =
+        (activeGiftImageUrl?.trim().isNotEmpty ?? false) ||
+        (activeGiftName?.trim().isNotEmpty ?? false);
 
     return GestureDetector(
       onTap: () => _handleTap(context),
@@ -230,6 +244,16 @@ class PlayerAvatar extends StatelessWidget {
                   ),
                 ),
 
+                if (hasActiveGift)
+                  Positioned(
+                    right: -17,
+                    top: 31,
+                    child: _ActiveGiftBadge(
+                      imageUrl: activeGiftImageUrl,
+                      name: activeGiftName,
+                    ),
+                  ),
+
                 if (isOnline != null)
                   Positioned.fill(
                     child: PlayerEmotionOverlay(playerId: player.id),
@@ -251,6 +275,59 @@ class PlayerAvatar extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ActiveGiftBadge extends StatelessWidget {
+  final String? imageUrl;
+  final String? name;
+
+  const _ActiveGiftBadge({
+    required this.imageUrl,
+    required this.name,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: name?.trim().isNotEmpty == true ? name! : 'Подарок',
+      child: Container(
+        width: 34,
+        height: 34,
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.amberAccent, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.34),
+              blurRadius: 7,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: ClipOval(
+          child: imageUrl?.trim().isNotEmpty == true
+              ? Image.network(
+                  imageUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(
+                      Icons.card_giftcard_rounded,
+                      color: Color(0xFF5B3A9E),
+                      size: 20,
+                    );
+                  },
+                )
+              : const Icon(
+                  Icons.card_giftcard_rounded,
+                  color: Color(0xFF5B3A9E),
+                  size: 20,
+                ),
+        ),
       ),
     );
   }

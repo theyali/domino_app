@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../localization/app_localizations.dart';
+
 class DominoBoneyardPile extends StatefulWidget {
   final int count;
   final bool enabled;
@@ -79,6 +81,8 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
 
   @override
   Widget build(BuildContext context) {
+    final boneyardLabel = context.appLanguage.code == 'az' ? 'Bazar' : 'Базар';
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: widget.enabled ? widget.onTap : null,
@@ -175,8 +179,8 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
                           );
                         },
                         child: Text(
-                          'Базар ${widget.count}',
-                          key: ValueKey(widget.count),
+                          '$boneyardLabel ${widget.count}',
+                          key: ValueKey('${context.appLanguage.code}-${widget.count}'),
                           style: TextStyle(
                             color: widget.enabled
                                 ? Colors.greenAccent

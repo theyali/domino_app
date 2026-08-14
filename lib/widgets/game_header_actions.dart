@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../localization/game_action_strings.dart';
 import '../theme/app_colors.dart';
 
+const _surrenderIconAsset = 'assets/icons/white-flag.png';
+const _exitIconAsset = 'assets/icons/remove.png';
+
 class GameHeaderActions extends StatelessWidget {
   final bool surrenderEnabled;
   final bool exitEnabled;
@@ -22,24 +25,20 @@ class GameHeaderActions extends StatelessWidget {
     final strings = GameActionStrings.of(context);
 
     return SizedBox(
-      width: 94,
+      width: 88,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          _CartoonHeaderButton(
+          _HeaderAssetButton(
             tooltip: strings.surrender,
-            icon: Icons.outlined_flag_rounded,
-            iconColor: AppColors.cream,
-            borderColor: AppColors.brass.withValues(alpha: 0.72),
+            assetPath: _surrenderIconAsset,
             enabled: surrenderEnabled,
             onTap: onSurrender,
           ),
-          const SizedBox(width: 7),
-          _CartoonHeaderButton(
+          const SizedBox(width: 8),
+          _HeaderAssetButton(
             tooltip: strings.exitGame,
-            icon: Icons.logout_rounded,
-            iconColor: const Color(0xFFFF5B5B),
-            borderColor: const Color(0xFFFF5B5B),
+            assetPath: _exitIconAsset,
             enabled: exitEnabled,
             onTap: onExit,
           ),
@@ -49,84 +48,45 @@ class GameHeaderActions extends StatelessWidget {
   }
 }
 
-class _CartoonHeaderButton extends StatelessWidget {
+class _HeaderAssetButton extends StatelessWidget {
   final String tooltip;
-  final IconData icon;
-  final Color iconColor;
-  final Color borderColor;
+  final String assetPath;
   final bool enabled;
   final VoidCallback onTap;
 
-  const _CartoonHeaderButton({
+  const _HeaderAssetButton({
     required this.tooltip,
-    required this.icon,
-    required this.iconColor,
-    required this.borderColor,
+    required this.assetPath,
     required this.enabled,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final effectiveIconColor = enabled ? iconColor : Colors.white24;
-    final effectiveBorderColor = enabled
-        ? borderColor
-        : Colors.white.withValues(alpha: 0.10);
-
     return Tooltip(
       message: tooltip,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
+      child: Semantics(
+        button: true,
+        enabled: enabled,
+        label: tooltip,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: enabled ? onTap : null,
-          borderRadius: BorderRadius.circular(13),
-          child: Ink(
-            width: 39,
-            height: 39,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF1D3042),
-                  Color(0xFF0A1622),
-                ],
+          child: SizedBox(
+            width: 38,
+            height: 42,
+            child: Center(
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 160),
+                opacity: enabled ? 1 : 0.28,
+                child: Image.asset(
+                  assetPath,
+                  width: 30,
+                  height: 30,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                ),
               ),
-              borderRadius: BorderRadius.circular(13),
-              border: Border.all(
-                color: effectiveBorderColor,
-                width: 1.5,
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black54,
-                  blurRadius: 6,
-                  offset: Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  left: 7,
-                  right: 7,
-                  top: 4,
-                  child: Container(
-                    height: 1.5,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                  ),
-                ),
-                Center(
-                  child: Icon(
-                    icon,
-                    color: effectiveIconColor,
-                    size: 22,
-                  ),
-                ),
-              ],
             ),
           ),
         ),
@@ -140,12 +100,11 @@ Future<bool> showGameActionConfirmDialog(
   required bool surrender,
 }) async {
   final strings = GameActionStrings.of(context);
-  final accent = surrender ? AppColors.cream : const Color(0xFFFF5B5B);
-  final icon = surrender ? Icons.outlined_flag_rounded : Icons.logout_rounded;
   final title = surrender ? strings.surrenderTitle : strings.exitTitle;
   final description =
       surrender ? strings.surrenderDescription : strings.exitDescription;
   final confirmText = surrender ? strings.surrender : strings.exitConfirm;
+  final iconAsset = surrender ? _surrenderIconAsset : _exitIconAsset;
 
   final result = await showDialog<bool>(
     context: context,
@@ -182,32 +141,12 @@ Future<bool> showGameActionConfirmDialog(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF263E52),
-                      Color(0xFF0C1824),
-                    ],
-                  ),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: accent.withValues(alpha: 0.88),
-                    width: 2,
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black54,
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Icon(icon, color: accent, size: 30),
+              Image.asset(
+                iconAsset,
+                width: 48,
+                height: 48,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
               ),
               const SizedBox(height: 13),
               Text(

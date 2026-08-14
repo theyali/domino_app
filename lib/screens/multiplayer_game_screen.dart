@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../localization/app_localizations.dart';
 import '../models/multiplayer_game_state.dart';
 import '../models/player.dart';
 import '../models/restaurant.dart';
@@ -319,7 +320,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
       _allowPop = true;
     });
 
-    _showMessage('Стол закрыт: все игроки вышли.');
+    _showMessage(context.tr('room_closed_all_left'));
     Navigator.of(context).pop();
   }
 
@@ -476,13 +477,18 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     }
 
     if (!_gameState.isMyTurn) {
-      _showMessage('Сейчас ход ${_gameState.currentPlayer.name}.');
+      _showMessage(
+        context.tr(
+          'current_turn_message',
+          arguments: {'player': _gameState.currentPlayer.name},
+        ),
+      );
       return;
     }
 
     final sides = _gameState.playableSidesFor(domino);
     if (sides.isEmpty) {
-      _showMessage('Эта костяшка сейчас не подходит.');
+      _showMessage(context.tr('domino_not_playable'));
       return;
     }
 
@@ -501,7 +507,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
 
     final sides = _gameState.playableSidesFor(domino);
     if (!sides.contains(side)) {
-      _showMessage('Этот конец цепочки уже недоступен для выбранной костяшки.');
+      _showMessage(context.tr('chain_end_unavailable'));
       return;
     }
 
@@ -540,7 +546,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     } on ApiException catch (error) {
       _finishSubmittingWithError(error.message);
     } catch (_) {
-      _finishSubmittingWithError('Не удалось отправить ход на сервер.');
+      _finishSubmittingWithError(context.tr('move_send_failed'));
     }
   }
 
@@ -573,7 +579,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     } on ApiException catch (error) {
       _finishSubmittingWithError(error.message);
     } catch (_) {
-      _finishSubmittingWithError('Не удалось взять костяшку из базара.');
+      _finishSubmittingWithError(context.tr('draw_failed'));
     }
   }
 
@@ -609,7 +615,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     } on ApiException catch (error) {
       _finishSubmittingWithError(error.message);
     } catch (_) {
-      _finishSubmittingWithError('Не удалось передать ход.');
+      _finishSubmittingWithError(context.tr('pass_failed'));
     }
   }
 
@@ -644,7 +650,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
       setState(() {
         _isStartingNextRound = false;
       });
-      _showMessage('Не удалось запустить следующий раунд.');
+      _showMessage(context.tr('next_round_failed'));
     }
   }
 
@@ -656,20 +662,22 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Выйти из игры?'),
+          title: Text(context.tr('exit_game_title')),
           content: Text(
-            activeMatch
-                ? 'Если выйти сейчас, текущий матч завершится для остальных игроков.'
-                : 'Ты покинешь этот стол. Когда выйдет последний игрок, стол удалится автоматически.',
+            context.tr(
+              activeMatch
+                  ? 'exit_active_match_description'
+                  : 'exit_table_description',
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Остаться'),
+              child: Text(context.tr('stay')),
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Выйти'),
+              child: Text(context.tr('exit')),
             ),
           ],
         );
@@ -707,7 +715,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
       setState(() {
         _isLeavingGame = false;
       });
-      _showMessage('Не удалось выйти из игры.');
+      _showMessage(context.tr('exit_game_failed'));
     }
   }
 
@@ -862,9 +870,9 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
                   ),
                 ),
                 icon: const Icon(Icons.skip_next_rounded, size: 20),
-                label: const Text(
-                  'Пас',
-                  style: TextStyle(fontWeight: FontWeight.w800),
+                label: Text(
+                  context.tr('pass'),
+                  style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
             ),
@@ -995,9 +1003,9 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Первый ход',
-              style: TextStyle(
+            Text(
+              context.tr('first_move'),
+              style: const TextStyle(
                 color: Colors.white70,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
@@ -1010,10 +1018,10 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
               onTap: () => _playSelectedSide('center'),
             ),
             const SizedBox(height: 10),
-            const Text(
-              'Нажми на пунктир, чтобы отправить ход серверу',
+            Text(
+              context.tr('tap_dotted_submit'),
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white54,
                 fontSize: 11,
               ),
@@ -1035,8 +1043,11 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
           const SizedBox(height: 10),
           Text(
             isMyTurn
-                ? 'Твой первый ход'
-                : 'Первый ход: ${_gameState.currentPlayer.name}',
+                ? context.tr('your_first_move')
+                : context.tr(
+                    'first_move_player',
+                    arguments: {'player': _gameState.currentPlayer.name},
+                  ),
             textAlign: TextAlign.center,
             style: TextStyle(
               color: isMyTurn ? Colors.greenAccent : Colors.white70,
@@ -1046,9 +1057,11 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
           ),
           const SizedBox(height: 7),
           Text(
-            openingDomino == null
-                ? 'Сервер раздал костяшки и определил очередь.'
-                : 'Сначала выбери зелёную костяшку в своей руке.',
+            context.tr(
+              openingDomino == null
+                  ? 'server_dealt_dominoes'
+                  : 'select_green_start',
+            ),
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white54,
@@ -1202,41 +1215,44 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
 
   String _handHintText() {
     if (_gameState.isRoundFinished) {
-      return 'Раунд завершён.';
+      return context.tr('round_finished');
     }
 
     if (_gameState.isMatchFinished) {
-      return 'Матч завершён.';
+      return context.tr('match_finished');
     }
 
     if (_isSubmittingMove) {
-      return 'Сервер проверяет действие...';
+      return context.tr('server_checking_action');
     }
 
     if (!_gameState.isMyTurn) {
-      return 'Ход: ${_gameState.currentPlayer.name}';
+      return context.tr(
+        'turn_player',
+        arguments: {'player': _gameState.currentPlayer.name},
+      );
     }
 
     if (_selectedDomino != null) {
       if (_gameState.table.isEmpty) {
-        return 'Костяшка выбрана — нажми пунктир в центре стола.';
+        return context.tr('selected_center_hint');
       }
-      return 'Костяшка выбрана — нажми доступный пунктир на конце цепочки.';
+      return context.tr('selected_chain_hint');
     }
 
     if (_gameState.table.isEmpty) {
-      return 'Нажми зелёную стартовую костяшку.';
+      return context.tr('tap_green_start');
     }
 
     if (_gameState.hasPlayableDomino) {
-      return 'Выбери зелёную костяшку — появятся доступные концы цепочки.';
+      return context.tr('choose_green_domino');
     }
 
     if (_gameState.boneyardCount > 0) {
-      return 'Нет подходящей костяшки — возьми одну из базара.';
+      return context.tr('take_from_boneyard');
     }
 
-    return 'Ходов нет и базар пуст — нажми «Пас».';
+    return context.tr('no_moves_pass');
   }
 
   Player _toPlayer(MultiplayerPlayerState player, {required bool isMe}) {
@@ -1261,6 +1277,12 @@ class _TableStatus extends StatelessWidget {
     }
 
     final isMyTurn = gameState.isMyTurn;
+    final turnText = isMyTurn
+        ? context.tr('your_turn')
+        : context.tr(
+            'turn_player',
+            arguments: {'player': gameState.currentPlayer.name},
+          );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1270,8 +1292,7 @@ class _TableStatus extends StatelessWidget {
         border: Border.all(color: Colors.white12),
       ),
       child: Text(
-        '${isMyTurn ? 'Твой ход' : 'Ход: ${gameState.currentPlayer.name}'}'
-        '  ·  ${gameState.leftEnd} ← цепочка → ${gameState.rightEnd}',
+        '$turnText  ·  ${gameState.leftEnd} ← ${context.tr('chain')} → ${gameState.rightEnd}',
         textAlign: TextAlign.center,
         style: TextStyle(
           color: isMyTurn ? Colors.greenAccent : Colors.white70,
@@ -1293,19 +1314,19 @@ class _SocketDot extends StatelessWidget {
     final (color, message) = switch (status) {
       SocketConnectionStatus.connected => (
           Colors.greenAccent,
-          'Realtime подключён',
+          context.tr('realtime_connected'),
         ),
       SocketConnectionStatus.connecting => (
           Colors.orangeAccent,
-          'Подключаем realtime',
+          context.tr('realtime_connecting'),
         ),
       SocketConnectionStatus.reconnecting => (
           Colors.orangeAccent,
-          'Переподключаемся',
+          context.tr('realtime_reconnecting'),
         ),
       SocketConnectionStatus.disconnected => (
           Colors.blueGrey,
-          'Realtime временно недоступен',
+          context.tr('realtime_disconnected'),
         ),
     };
 
@@ -1339,19 +1360,19 @@ class _ReconnectBanner extends StatelessWidget {
     final (icon, text) = switch (status) {
       SocketConnectionStatus.connecting => (
           Icons.sync_rounded,
-          'Подключаемся к игре…',
+          context.tr('connecting_game'),
         ),
       SocketConnectionStatus.reconnecting => (
           Icons.sync_rounded,
-          'Переподключаемся и восстанавливаем игру…',
+          context.tr('reconnecting_game'),
         ),
       SocketConnectionStatus.disconnected => (
           Icons.cloud_off_rounded,
-          'Связь потеряна. Повторяем подключение автоматически…',
+          context.tr('connection_lost'),
         ),
       SocketConnectionStatus.connected => (
           Icons.check_circle_rounded,
-          'Соединение восстановлено',
+          context.tr('connection_restored'),
         ),
     };
 
@@ -1418,7 +1439,10 @@ class _RoundBadge extends StatelessWidget {
         border: Border.all(color: Colors.white24),
       ),
       child: Text(
-        'Раунд $roundNumber',
+        context.tr(
+          'round_number',
+          arguments: {'number': roundNumber},
+        ),
         style: const TextStyle(
           color: Colors.white70,
           fontSize: 11,

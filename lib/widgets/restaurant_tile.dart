@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../localization/app_localizations.dart';
 import '../models/restaurant.dart';
 
 class RestaurantTile extends StatelessWidget {
@@ -17,7 +18,12 @@ class RestaurantTile extends StatelessWidget {
     return ListTile(
       leading: const Icon(Icons.restaurant),
       title: Text(restaurant.name),
-      subtitle: Text('Игроков онлайн: ${restaurant.players}'),
+      subtitle: Text(
+        context.tr(
+          'players_online',
+          arguments: {'count': restaurant.players},
+        ),
+      ),
       trailing: const Icon(Icons.chevron_right),
       onTap: onTap,
     );

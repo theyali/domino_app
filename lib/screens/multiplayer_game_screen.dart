@@ -9,6 +9,7 @@ import '../services/api_service.dart';
 import '../services/game_socket_service.dart';
 import '../widgets/domino_boneyard_pile.dart';
 import '../widgets/domino_tile.dart';
+import '../widgets/multiplayer_domino_snake.dart';
 import '../widgets/player_avatar.dart';
 
 class MultiplayerGameScreen extends StatefulWidget {
@@ -351,8 +352,8 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
           ..._buildOpponentAvatars(),
           Positioned.fill(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 110, 18, 105),
-              child: Center(child: _buildTableCenter()),
+              padding: const EdgeInsets.fromLTRB(10, 110, 10, 105),
+              child: _buildTableCenter(),
             ),
           ),
           if (_gameState.boneyardCount > 0)
@@ -463,24 +464,16 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
   Widget _buildTableCenter() {
     if (_gameState.table.isNotEmpty) {
       return Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 2,
-            runSpacing: 2,
-            children: [
-              for (final domino in _gameState.table)
-                DominoTile(
-                  domino: domino.domino,
-                  width: 62,
-                  height: 31,
-                  dotSize: 4.8,
-                  horizontal: true,
-                ),
-            ],
+          Expanded(
+            child: MultiplayerDominoSnake(
+              dominoes: [
+                for (final serverDomino in _gameState.table)
+                  serverDomino.domino,
+              ],
+            ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 6),
           _TableStatus(gameState: _gameState),
         ],
       );
@@ -489,38 +482,40 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     final isMyTurn = _gameState.isMyTurn;
     final openingDomino = _gameState.requiredOpeningDomino;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          isMyTurn ? Icons.touch_app_rounded : Icons.hourglass_top_rounded,
-          color: isMyTurn ? Colors.greenAccent : Colors.white54,
-          size: 30,
-        ),
-        const SizedBox(height: 10),
-        Text(
-          isMyTurn
-              ? 'Твой первый ход'
-              : 'Первый ход: ${_gameState.currentPlayer.name}',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: isMyTurn ? Colors.greenAccent : Colors.white70,
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isMyTurn ? Icons.touch_app_rounded : Icons.hourglass_top_rounded,
+            color: isMyTurn ? Colors.greenAccent : Colors.white54,
+            size: 30,
           ),
-        ),
-        const SizedBox(height: 7),
-        Text(
-          openingDomino == null
-              ? 'Сервер раздал костяшки и определил очередь.'
-              : 'Нажми подсвеченную костяшку — сервер проверит ход.',
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white54,
-            fontSize: 12,
+          const SizedBox(height: 10),
+          Text(
+            isMyTurn
+                ? 'Твой первый ход'
+                : 'Первый ход: ${_gameState.currentPlayer.name}',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isMyTurn ? Colors.greenAccent : Colors.white70,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 7),
+          Text(
+            openingDomino == null
+                ? 'Сервер раздал костяшки и определил очередь.'
+                : 'Нажми подсвеченную костяшку — сервер проверит ход.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white54,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

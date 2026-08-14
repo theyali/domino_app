@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../localization/app_localizations.dart';
 import '../models/gift.dart';
 import '../services/api_service.dart';
 import '../services/gift_service.dart';
@@ -72,7 +73,7 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Не удалось загрузить подарки ресторана.';
+        _errorMessage = context.tr('gift_shop_load_failed');
         _isLoading = false;
       });
     }
@@ -107,7 +108,13 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
         ..showSnackBar(
           SnackBar(
             content: Text(
-              '«${gift.name}» добавлен для дарения. Доступно: $count.',
+              context.tr(
+                'gift_added',
+                arguments: {
+                  'gift': gift.name,
+                  'count': count,
+                },
+              ),
             ),
           ),
         );
@@ -117,7 +124,7 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
       }
     } catch (_) {
       if (mounted) {
-        _showMessage('Не удалось добавить подарок.');
+        _showMessage(context.tr('gift_add_failed'));
       }
     } finally {
       if (mounted) {
@@ -146,21 +153,22 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Подарки · ${widget.restaurantName}',
+              context.tr(
+                'gift_shop_title',
+                arguments: {'restaurant': widget.restaurantName},
+              ),
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 7),
             Text(
-              'Подготовь подарки заранее или добавь их прямо во время игры. '
-              'В Инвентаре они не показываются — там хранятся только подарки, '
-              'которые подарили тебе.',
+              context.tr('gift_shop_description'),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 7),
             Text(
-              'Тестовый режим: оплата пока не списывается.',
+              context.tr('gift_shop_test_mode'),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.primary,
@@ -174,7 +182,7 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
               height: 50,
               child: FilledButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Готово'),
+                child: Text(context.tr('done')),
               ),
             ),
           ],
@@ -198,7 +206,7 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
             OutlinedButton.icon(
               onPressed: _load,
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Повторить'),
+              label: Text(context.tr('retry')),
             ),
           ],
         ),
@@ -206,9 +214,9 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
     }
 
     if (_gifts.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'У этого ресторана пока нет активных подарков.',
+          context.tr('gift_shop_empty'),
           textAlign: TextAlign.center,
         ),
       );
@@ -280,7 +288,13 @@ class _GiftShopCard extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           Text(
-            '${gift.price} · для дарения: ${gift.giftableCount}',
+            context.tr(
+              'gift_price_count',
+              arguments: {
+                'price': gift.price,
+                'count': gift.giftableCount,
+              },
+            ),
             textAlign: TextAlign.center,
             style: theme.textTheme.bodySmall,
           ),
@@ -297,7 +311,7 @@ class _GiftShopCard extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.add_shopping_cart_rounded, size: 18),
-              label: const Text('Добавить'),
+              label: Text(context.tr('add')),
             ),
           ),
         ],

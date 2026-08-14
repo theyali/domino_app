@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../localization/app_localizations.dart';
 import '../models/gift.dart';
 import '../models/multiplayer_game_state.dart';
 import '../services/api_service.dart';
@@ -64,13 +65,14 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
   int? _selectedGiftId;
   final Set<int> _recipientIds = <int>{};
 
+  bool get _isAzerbaijani => context.appLanguage.code == 'az';
+
   @override
   void initState() {
     super.initState();
 
     for (final player in widget.players) {
       if (player.id == widget.initialRecipientPlayerId &&
-          player.id != widget.myPlayerId &&
           player.isActive &&
           player.userId != null) {
         _recipientIds.add(player.id);
@@ -105,7 +107,7 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Не удалось загрузить подарки ресторана.';
+        _errorMessage = context.tr('gift_shop_load_failed');
         _isLoading = false;
       });
     }
@@ -113,10 +115,7 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
 
   List<MultiplayerPlayerState> get _availableRecipients => widget.players
       .where(
-        (player) =>
-            player.id != widget.myPlayerId &&
-            player.isActive &&
-            player.userId != null,
+        (player) => player.isActive && player.userId != null,
       )
       .toList(growable: false);
 
@@ -179,7 +178,13 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
         if (mounted) _showMessage(error.message);
         return;
       } catch (_) {
-        if (mounted) _showMessage('Не удалось подготовить подарок.');
+        if (mounted) {
+          _showMessage(
+            _isAzerbaijani
+                ? 'Hədiyyəni hazırlamaq mümkün olmadı.'
+                : 'Не удалось подготовить подарок.',
+          );
+        }
         return;
       } finally {
         if (mounted) {
@@ -219,21 +224,23 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Отправить подарок',
+            Text(
+              _isAzerbaijani ? 'Hədiyyə göndər' : 'Отправить подарок',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
+              style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 5),
             Text(
-              'Выбери одного или нескольких игроков. Самому себе дарить нельзя.',
+              _isAzerbaijani
+                  ? 'Bir və ya bir neçə oyunçu seçin. Özünüzü də seçə bilərsiniz.'
+                  : 'Выбери одного или нескольких игроков. Можно выбрать и самого себя.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Получатели',
-              style: TextStyle(fontWeight: FontWeight.w800),
+            Text(
+              _isAzerbaijani ? 'Qəbul edənlər' : 'Получатели',
+              style: const TextStyle(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -251,21 +258,25 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
                             : player.name.trim()[0].toUpperCase(),
                       ),
                     ),
-                    label: Text(player.name),
+                    label: Text(
+                      player.id == widget.myPlayerId
+                          ? '${player.name} (${_isAzerbaijani ? 'Sən' : 'Ты'})'
+                          : player.name,
+                    ),
                   ),
               ],
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Подарки ресторана',
-                    style: TextStyle(fontWeight: FontWeight.w800),
+                    context.tr('restaurant_gifts'),
+                    style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ),
                 Text(
-                  'без оплаты · тест',
+                  _isAzerbaijani ? 'ödənişsiz · test' : 'без оплаты · тест',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -276,9 +287,12 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
               const SizedBox(height: 8),
               Text(
                 missing == 0
-                    ? 'Готово к отправке: ${selectedGift.giftableCount} шт.'
-                    : 'Нужно ещё $missing шт. «${selectedGift.name}». '
-                        'Они будут добавлены автоматически.',
+                    ? (_isAzerbaijani
+                        ? 'Göndərməyə hazırdır: ${selectedGift.giftableCount} əd.'
+                        : 'Готово к отправке: ${selectedGift.giftableCount} шт.')
+                    : (_isAzerbaijani
+                        ? 'Daha $missing əd. «${selectedGift.name}» lazımdır. Onlar avtomatik əlavə ediləcək.'
+                        : 'Нужно ещё $missing шт. «${selectedGift.name}». Они будут добавлены автоматически.'),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
@@ -301,10 +315,16 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
                       ),
                 label: Text(
                   missing > 0
-                      ? 'Добавить $missing и отправить'
+                      ? (_isAzerbaijani
+                          ? '$missing əlavə et və göndər'
+                          : 'Добавить $missing и отправить')
                       : _recipientIds.length <= 1
-                          ? 'Отправить подарок'
-                          : 'Отправить ${_recipientIds.length} подарка',
+                          ? (_isAzerbaijani
+                              ? 'Hədiyyəni göndər'
+                              : 'Отправить подарок')
+                          : (_isAzerbaijani
+                              ? '${_recipientIds.length} hədiyyə göndər'
+                              : 'Отправить ${_recipientIds.length} подарка'),
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
               ),
@@ -330,7 +350,7 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
             OutlinedButton.icon(
               onPressed: _loadCatalog,
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Повторить'),
+              label: Text(context.tr('retry')),
             ),
           ],
         ),
@@ -338,11 +358,11 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
     }
 
     if (_gifts.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
           child: Text(
-            'У этого ресторана пока нет активных подарков.',
+            context.tr('gift_shop_empty'),
             textAlign: TextAlign.center,
           ),
         ),
@@ -410,7 +430,9 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 Text(
-                  'есть ${gift.giftableCount}',
+                  _isAzerbaijani
+                      ? 'var ${gift.giftableCount}'
+                      : 'есть ${gift.giftableCount}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),

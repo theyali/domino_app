@@ -746,6 +746,13 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
                   _buildMyPanel(),
                 ],
               ),
+              if (_socketStatus != SocketConnectionStatus.connected)
+                Positioned(
+                  top: 10,
+                  left: 24,
+                  right: 24,
+                  child: _ReconnectBanner(status: _socketStatus),
+                ),
               if (_boneyardDrawFlight != null)
                 Positioned.fill(
                   child: IgnorePointer(
@@ -871,6 +878,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
         isActive: isCurrentTurn,
         turnSecondsLeft: isCurrentTurn ? _turnSecondsLeft : null,
         turnProgress: isCurrentTurn ? _turnProgress : 0,
+        isOnline: opponent.isOnline,
         onTap: () {},
       );
 
@@ -1042,6 +1050,8 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
             isActive: isMyCurrentTurn,
             turnSecondsLeft: isMyCurrentTurn ? _turnSecondsLeft : null,
             turnProgress: isMyCurrentTurn ? _turnProgress : 0,
+            isOnline:
+                _socketStatus == SocketConnectionStatus.connected && me.isOnline,
             onTap: () {},
           ),
           const SizedBox(height: 5),
@@ -1248,21 +1258,111 @@ class _SocketDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final connected = status == SocketConnectionStatus.connected;
+    final (color, message) = switch (status) {
+      SocketConnectionStatus.connected => (
+          Colors.greenAccent,
+          'Realtime подключён',
+        ),
+      SocketConnectionStatus.connecting => (
+          Colors.orangeAccent,
+          'Подключаем realtime',
+        ),
+      SocketConnectionStatus.reconnecting => (
+          Colors.orangeAccent,
+          'Переподключаемся',
+        ),
+      SocketConnectionStatus.disconnected => (
+          Colors.blueGrey,
+          'Realtime временно недоступен',
+        ),
+    };
 
     return Tooltip(
-      message: connected ? 'Realtime подключён' : 'Realtime переподключается',
+      message: message,
       child: Container(
         width: 12,
         height: 12,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: connected ? Colors.greenAccent : Colors.orangeAccent,
+          color: color,
           boxShadow: [
             BoxShadow(
-              color: (connected ? Colors.greenAccent : Colors.orangeAccent)
-                  .withValues(alpha: 0.35),
+              color: color.withValues(alpha: 0.35),
               blurRadius: 7,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReconnectBanner extends StatelessWidget {
+  final SocketConnectionStatus status;
+
+  const _ReconnectBanner({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, text) = switch (status) {
+      SocketConnectionStatus.connecting => (
+          Icons.sync_rounded,
+          'Подключаемся к игре…',
+        ),
+      SocketConnectionStatus.reconnecting => (
+          Icons.sync_rounded,
+          'Переподключаемся и восстанавливаем игру…',
+        ),
+      SocketConnectionStatus.disconnected => (
+          Icons.cloud_off_rounded,
+          'Связь потеряна. Повторяем подключение автоматически…',
+        ),
+      SocketConnectionStatus.connected => (
+          Icons.check_circle_rounded,
+          'Соединение восстановлено',
+        ),
+    };
+
+    return IgnorePointer(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+        decoration: BoxDecoration(
+          color: const Color(0xEE102537),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.7)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.28),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.orangeAccent, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                text,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.orangeAccent,
+              ),
             ),
           ],
         ),

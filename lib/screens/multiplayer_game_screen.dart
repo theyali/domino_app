@@ -161,7 +161,9 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
                   FilledButton.icon(
                     onPressed: () => Navigator.of(context).pop('left'),
                     icon: const Icon(Icons.arrow_back_rounded),
-                    label: Text('Слева${leftEnd == null ? '' : ' · край $leftEnd'}'),
+                    label: Text(
+                      'Слева${leftEnd == null ? '' : ' · край $leftEnd'}',
+                    ),
                   ),
                 if (sides.contains('left') && sides.contains('right'))
                   const SizedBox(height: 10),
@@ -169,7 +171,9 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
                   FilledButton.icon(
                     onPressed: () => Navigator.of(context).pop('right'),
                     icon: const Icon(Icons.arrow_forward_rounded),
-                    label: Text('Справа${rightEnd == null ? '' : ' · край $rightEnd'}'),
+                    label: Text(
+                      'Справа${rightEnd == null ? '' : ' · край $rightEnd'}',
+                    ),
                   ),
               ],
             ),
@@ -201,20 +205,75 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
       if (!mounted) return;
       _applyGameState(state);
     } on ApiException catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _isSubmittingMove = false;
-        _pendingDominoId = null;
-      });
-      _showMessage(error.message);
+      _finishSubmittingWithError(error.message);
     } catch (_) {
+      _finishSubmittingWithError('Не удалось отправить ход на сервер.');
+    }
+  }
+
+  Future<void> _drawDomino() async {
+    if (_isSubmittingMove || !_gameState.canDrawFromBoneyard) {
+      return;
+    }
+
+    setState(() {
+      _isSubmittingMove = true;
+      _pendingDominoId = null;
+    });
+
+    try {
+      final state = await _apiService.drawDomino(
+        roomId: _gameState.roomId,
+        playerId: _gameState.myPlayerId,
+      );
+
       if (!mounted) return;
+      _applyGameState(state);
       setState(() {
         _isSubmittingMove = false;
-        _pendingDominoId = null;
       });
-      _showMessage('Не удалось отправить ход на сервер.');
+    } on ApiException catch (error) {
+      _finishSubmittingWithError(error.message);
+    } catch (_) {
+      _finishSubmittingWithError('Не удалось взять костяшку из базара.');
     }
+  }
+
+  Future<void> _passTurn() async {
+    if (_isSubmittingMove || !_gameState.canPass) {
+      return;
+    }
+
+    setState(() {
+      _isSubmittingMove = true;
+      _pendingDominoId = null;
+    });
+
+    try {
+      final state = await _apiService.passTurn(
+        roomId: _gameState.roomId,
+        playerId: _gameState.myPlayerId,
+      );
+
+      if (!mounted) return;
+      _applyGameState(state);
+      setState(() {
+        _isSubmittingMove = false;
+      });
+    } on ApiException catch (error) {
+      _finishSubmittingWithError(error.message);
+    } catch (_) {
+      _finishSubmittingWithError('Не удалось передать ход.');
+    }
+  }
+
+  void _finishSubmittingWithError(String message) {
+    if (!mounted) return;
+    setState(() {
+      _isSubmittingMove = false;
+      _pendingDominoId = null;
+    });
+    _showMessage(message);
   }
 
   void _showMessage(String message) {
@@ -302,8 +361,30 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
               bottom: 14,
               child: DominoBoneyardPile(
                 count: _gameState.boneyardCount,
-                enabled: false,
-                onTap: () {},
+                enabled: _gameState.canDrawFromBoneyard && !_isSubmittingMove,
+                onTap: _drawDomino,
+              ),
+            ),
+          if (_gameState.canPass)
+            Positioned(
+              right: 14,
+              bottom: 18,
+              child: FilledButton.icon(
+                onPressed: _isSubmittingMove ? null : _passTurn,
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF183B52),
+                  foregroundColor: Colors.greenAccent,
+                  side: const BorderSide(color: Colors.greenAccent),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                ),
+                icon: const Icon(Icons.skip_next_rounded, size: 20),
+                label: const Text(
+                  'Пас',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
               ),
             ),
           Positioned(
@@ -554,22 +635,26 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
 
   String _handHintText() {
     if (_isSubmittingMove) {
-      return 'Сервер проверяет ход...';
+      return 'Сервер проверяет действие...';
     }
 
     if (!_gameState.isMyTurn) {
       return 'Ход: ${_gameState.currentPlayer.name}';
     }
 
-    if (!_gameState.hasPlayableDomino) {
-      return 'Нет подходящей костяшки. Базар подключим следующим этапом.';
-    }
-
     if (_gameState.table.isEmpty) {
       return 'Нажми зелёную стартовую костяшку.';
     }
 
-    return 'Зелёные костяшки можно сыграть. Нажми на одну из них.';
+    if (_gameState.hasPlayableDomino) {
+      return 'Зелёные костяшки можно сыграть. Нажми на одну из них.';
+    }
+
+    if (_gameState.boneyardCount > 0) {
+      return 'Нет подходящей костяшки — возьми одну из базара.';
+    }
+
+    return 'Ходов нет и базар пуст — нажми «Пас».';
   }
 
   Player _toPlayer(MultiplayerPlayerState player, {required bool isMe}) {

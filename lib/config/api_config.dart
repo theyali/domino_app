@@ -13,6 +13,20 @@ class ApiConfig {
     return Uri.parse('$normalizedBaseUrl$normalizedPath');
   }
 
+  static String? resolveUrl(String? value) {
+    final raw = value?.trim();
+    if (raw == null || raw.isEmpty) {
+      return null;
+    }
+
+    final parsed = Uri.tryParse(raw);
+    if (parsed != null && parsed.hasScheme) {
+      return raw;
+    }
+
+    return uri(raw).toString();
+  }
+
   static Uri webSocketUri(
     String path, {
     Map<String, String>? queryParameters,

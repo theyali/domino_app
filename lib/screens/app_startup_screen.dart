@@ -2,13 +2,21 @@ import 'package:flutter/material.dart';
 
 import '../models/multiplayer_game_state.dart';
 import '../models/restaurant.dart';
+import '../models/user_account.dart';
 import '../services/active_game_session_store.dart';
 import '../services/api_service.dart';
+import 'main_shell_screen.dart';
 import 'multiplayer_game_screen.dart';
-import 'restaurants_screen.dart';
 
 class AppStartupScreen extends StatefulWidget {
-  const AppStartupScreen({super.key});
+  final UserAccount user;
+  final Future<void> Function() onLogout;
+
+  const AppStartupScreen({
+    super.key,
+    required this.user,
+    required this.onLogout,
+  });
 
   @override
   State<AppStartupScreen> createState() => _AppStartupScreenState();
@@ -190,7 +198,10 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
     }
 
     if (_skipRecoveryForThisLaunch || _savedSession == null) {
-      return const RestaurantsScreen();
+      return MainShellScreen(
+        user: widget.user,
+        onLogout: widget.onLogout,
+      );
     }
 
     return Scaffold(

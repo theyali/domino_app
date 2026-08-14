@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/domino.dart';
+import '../theme/app_colors.dart';
 
 class DominoTile extends StatelessWidget {
   final Domino domino;
@@ -23,11 +24,9 @@ class DominoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isCompact =
-        width < 45 || height < 45;
-
-    final halfPadding =
-        isCompact ? 3.0 : 6.0;
+    final isCompact = width < 45 || height < 45;
+    final halfPadding = isCompact ? 3.0 : 6.0;
+    final radius = isCompact ? 6.5 : 9.0;
 
     return GestureDetector(
       onTap: onTap,
@@ -35,36 +34,44 @@ class DominoTile extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(
-            isCompact ? 6 : 8,
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFFFFFFF),
+              AppColors.cream,
+              Color(0xFFEDE4D1),
+            ],
           ),
+          borderRadius: BorderRadius.circular(radius),
           border: Border.all(
-            color: Colors.black,
-            width: 2,
+            color: AppColors.ink,
+            width: isCompact ? 2 : 2.3,
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Colors.black26,
-              blurRadius: 4,
-              offset: Offset(1, 2),
+              color: Colors.black.withValues(alpha: 0.34),
+              blurRadius: isCompact ? 4 : 7,
+              offset: const Offset(1, 3),
+            ),
+            BoxShadow(
+              color: Colors.white.withValues(alpha: 0.38),
+              blurRadius: 2,
+              offset: const Offset(-1, -1),
             ),
           ],
         ),
-        child: horizontal
-            ? _buildHorizontal(
-                halfPadding,
-              )
-            : _buildVertical(
-                halfPadding,
-              ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(radius - 2),
+          child: horizontal
+              ? _buildHorizontal(halfPadding)
+              : _buildVertical(halfPadding),
+        ),
       ),
     );
   }
 
-  Widget _buildVertical(
-    double halfPadding,
-  ) {
+  Widget _buildVertical(double halfPadding) {
     return Column(
       children: [
         Expanded(
@@ -77,7 +84,7 @@ class DominoTile extends StatelessWidget {
         ),
         Container(
           height: 2,
-          color: Colors.black,
+          color: AppColors.ink,
         ),
         Expanded(
           child: DominoHalf(
@@ -91,9 +98,7 @@ class DominoTile extends StatelessWidget {
     );
   }
 
-  Widget _buildHorizontal(
-    double halfPadding,
-  ) {
+  Widget _buildHorizontal(double halfPadding) {
     return Row(
       children: [
         Expanded(
@@ -106,7 +111,7 @@ class DominoTile extends StatelessWidget {
         ),
         Container(
           width: 2,
-          color: Colors.black,
+          color: AppColors.ink,
         ),
         Expanded(
           child: DominoHalf(
@@ -126,8 +131,6 @@ class DominoHalf extends StatelessWidget {
   final double dotSize;
   final double padding;
 
-  /// Ориентация всей костяшки.
-  /// Нужна, чтобы шестёрка визуально поворачивалась вместе с домино.
   final bool horizontalTile;
 
   const DominoHalf({
@@ -141,23 +144,17 @@ class DominoHalf extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.all(
-        padding,
-      ),
+      padding: EdgeInsets.all(padding),
       child: Stack(
         children: _buildDots(),
       ),
     );
   }
 
-  Widget _dot(
-    Alignment alignment,
-  ) {
+  Widget _dot(Alignment alignment) {
     return Align(
       alignment: alignment,
-      child: DominoDot(
-        size: dotSize,
-      ),
+      child: DominoDot(size: dotSize),
     );
   }
 
@@ -165,128 +162,56 @@ class DominoHalf extends StatelessWidget {
     switch (value) {
       case 0:
         return [];
-
       case 1:
-        return [
-          _dot(
-            Alignment.center,
-          ),
-        ];
-
+        return [_dot(Alignment.center)];
       case 2:
         return [
-          _dot(
-            Alignment.topLeft,
-          ),
-          _dot(
-            Alignment.bottomRight,
-          ),
+          _dot(Alignment.topLeft),
+          _dot(Alignment.bottomRight),
         ];
-
       case 3:
         return [
-          _dot(
-            Alignment.topLeft,
-          ),
-          _dot(
-            Alignment.center,
-          ),
-          _dot(
-            Alignment.bottomRight,
-          ),
+          _dot(Alignment.topLeft),
+          _dot(Alignment.center),
+          _dot(Alignment.bottomRight),
         ];
-
       case 4:
         return [
-          _dot(
-            Alignment.topLeft,
-          ),
-          _dot(
-            Alignment.topRight,
-          ),
-          _dot(
-            Alignment.bottomLeft,
-          ),
-          _dot(
-            Alignment.bottomRight,
-          ),
+          _dot(Alignment.topLeft),
+          _dot(Alignment.topRight),
+          _dot(Alignment.bottomLeft),
+          _dot(Alignment.bottomRight),
         ];
-
       case 5:
         return [
-          _dot(
-            Alignment.topLeft,
-          ),
-          _dot(
-            Alignment.topRight,
-          ),
-          _dot(
-            Alignment.center,
-          ),
-          _dot(
-            Alignment.bottomLeft,
-          ),
-          _dot(
-            Alignment.bottomRight,
-          ),
+          _dot(Alignment.topLeft),
+          _dot(Alignment.topRight),
+          _dot(Alignment.center),
+          _dot(Alignment.bottomLeft),
+          _dot(Alignment.bottomRight),
         ];
-
       case 6:
         if (horizontalTile) {
-          // Горизонтальная костяшка: 2 ряда по 3 точки.
-          // ● ● ●
-          // ● ● ●
           return [
-            _dot(
-              Alignment.topLeft,
-            ),
-            _dot(
-              Alignment.topCenter,
-            ),
-            _dot(
-              Alignment.topRight,
-            ),
-            _dot(
-              Alignment.bottomLeft,
-            ),
-            _dot(
-              Alignment.bottomCenter,
-            ),
-            _dot(
-              Alignment.bottomRight,
-            ),
+            _dot(Alignment.topLeft),
+            _dot(Alignment.topCenter),
+            _dot(Alignment.topRight),
+            _dot(Alignment.bottomLeft),
+            _dot(Alignment.bottomCenter),
+            _dot(Alignment.bottomRight),
           ];
         }
 
-        // Вертикальная костяшка / дубль: 3 ряда по 2 точки.
-        // ●   ●
-        // ●   ●
-        // ●   ●
         return [
-          _dot(
-            Alignment.topLeft,
-          ),
-          _dot(
-            Alignment.topRight,
-          ),
-          _dot(
-            Alignment.centerLeft,
-          ),
-          _dot(
-            Alignment.centerRight,
-          ),
-          _dot(
-            Alignment.bottomLeft,
-          ),
-          _dot(
-            Alignment.bottomRight,
-          ),
+          _dot(Alignment.topLeft),
+          _dot(Alignment.topRight),
+          _dot(Alignment.centerLeft),
+          _dot(Alignment.centerRight),
+          _dot(Alignment.bottomLeft),
+          _dot(Alignment.bottomRight),
         ];
-
       default:
-        throw ArgumentError(
-          'Domino value must be between 0 and 6',
-        );
+        throw ArgumentError('Domino value must be between 0 and 6');
     }
   }
 }
@@ -304,9 +229,16 @@ class DominoDot extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: const BoxDecoration(
-        color: Colors.black,
+      decoration: BoxDecoration(
+        color: AppColors.ink,
         shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.28),
+            blurRadius: 1.5,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
     );
   }

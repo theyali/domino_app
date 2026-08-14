@@ -67,7 +67,6 @@ class ApiService {
 
   Future<GameRoom> createRoom({
     required int restaurantId,
-    required String ownerName,
     required int maxPlayers,
     String password = '',
     String name = '',
@@ -76,7 +75,6 @@ class ApiService {
       ApiConfig.uri('/api/restaurants/$restaurantId/rooms/'),
       headers: await _authorizedJsonHeaders(),
       body: jsonEncode({
-        'owner_name': ownerName.trim(),
         'max_players': maxPlayers,
         'password': password,
         'name': name.trim(),
@@ -89,14 +87,12 @@ class ApiService {
 
   Future<JoinRoomResult> joinRoom({
     required int roomId,
-    required String playerName,
     String password = '',
   }) async {
     final response = await http.post(
       ApiConfig.uri('/api/rooms/$roomId/join/'),
       headers: await _authorizedJsonHeaders(),
       body: jsonEncode({
-        'player_name': playerName.trim(),
         'password': password,
       }),
     );

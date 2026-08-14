@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../localization/app_localizations.dart';
 import '../models/game_room.dart';
 import '../models/restaurant.dart';
 import '../models/room_player.dart';
@@ -54,7 +55,7 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Не удалось загрузить комнаты.';
+        _errorMessage = context.tr('rooms_load_failed');
       });
     } finally {
       if (mounted) {
@@ -120,7 +121,7 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
       _showError(error.message);
     } catch (_) {
       if (!mounted) return;
-      _showError('Не удалось создать комнату.');
+      _showError(context.tr('create_room_failed'));
     } finally {
       if (mounted) {
         setState(() {
@@ -175,7 +176,7 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
       await _loadRooms();
     } catch (_) {
       if (!mounted) return;
-      _showError('Не удалось войти в комнату.');
+      _showError(context.tr('join_room_failed'));
     } finally {
       if (mounted) {
         setState(() {
@@ -192,7 +193,7 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
       }
     }
 
-    throw const ApiException('Сервер не вернул создателя комнаты.');
+    throw ApiException(context.tr('room_owner_missing'));
   }
 
   void _showError(String message) {
@@ -209,12 +210,12 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
         actions: [
           IconButton(
             onPressed: _showGiftShop,
-            tooltip: 'Подарки ресторана',
+            tooltip: context.tr('restaurant_gifts'),
             icon: const Icon(Icons.card_giftcard_rounded),
           ),
           IconButton(
             onPressed: _isLoading ? null : _loadRooms,
-            tooltip: 'Обновить',
+            tooltip: context.tr('refresh'),
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
@@ -228,7 +229,7 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.add_rounded),
-        label: const Text('Создать стол'),
+        label: Text(context.tr('create_table')),
       ),
       body: RefreshIndicator(
         onRefresh: _loadRooms,
@@ -254,10 +255,10 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
               sliver: SliverToBoxAdapter(
                 child: Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Открытые столы',
-                        style: TextStyle(
+                        context.tr('open_tables'),
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
                         ),
@@ -286,9 +287,9 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
                 hasScrollBody: false,
                 child: _RoomListMessage(
                   icon: Icons.cloud_off_rounded,
-                  title: 'Не удалось загрузить комнаты',
+                  title: context.tr('rooms_load_failed_title'),
                   subtitle: _errorMessage!,
-                  buttonText: 'Повторить',
+                  buttonText: context.tr('retry'),
                   onPressed: _loadRooms,
                 ),
               )
@@ -297,9 +298,9 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
                 hasScrollBody: false,
                 child: _RoomListMessage(
                   icon: Icons.table_restaurant_outlined,
-                  title: 'Пока нет открытых столов',
-                  subtitle: 'Создай первый стол на 2, 3 или 4 игроков.',
-                  buttonText: 'Создать стол',
+                  title: context.tr('no_open_tables'),
+                  subtitle: context.tr('create_first_table'),
+                  buttonText: context.tr('create_table'),
                   onPressed: _showCreateRoomSheet,
                 ),
               )
@@ -371,11 +372,17 @@ class _RestaurantRoomHeader extends StatelessWidget {
             children: [
               _StatChip(
                 icon: Icons.table_restaurant,
-                label: '$roomsCount столов',
+                label: context.tr(
+                  'tables_count',
+                  arguments: {'count': roomsCount},
+                ),
               ),
               _StatChip(
                 icon: Icons.groups_rounded,
-                label: '$waitingPlayers игроков',
+                label: context.tr(
+                  'players_count',
+                  arguments: {'count': waitingPlayers},
+                ),
               ),
             ],
           ),
@@ -385,9 +392,9 @@ class _RestaurantRoomHeader extends StatelessWidget {
             child: FilledButton.tonalIcon(
               onPressed: onOpenGiftShop,
               icon: const Icon(Icons.card_giftcard_rounded),
-              label: const Text(
-                'Подарки ресторана',
-                style: TextStyle(fontWeight: FontWeight.w800),
+              label: Text(
+                context.tr('restaurant_gifts'),
+                style: const TextStyle(fontWeight: FontWeight.w800),
               ),
             ),
           ),

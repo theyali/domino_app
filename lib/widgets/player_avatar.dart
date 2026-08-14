@@ -307,12 +307,12 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
         ? '?'
         : player.name.trim().substring(0, 1).toUpperCase();
 
-    final canvasWidth = widget.compact ? 84.0 : 92.0;
-    final canvasHeight = widget.compact ? 70.0 : 82.0;
-    final ringSize = widget.compact ? 64.0 : 72.0;
-    final frameSize = widget.compact ? 58.0 : 64.0;
-    final ringLeft = (canvasWidth - ringSize) / 2;
-    final ringTop = widget.compact ? 2.0 : 5.0;
+    final canvasWidth = widget.compact ? 82.0 : 90.0;
+    final canvasHeight = widget.compact ? 66.0 : 76.0;
+    final avatarAreaSize = widget.compact ? 60.0 : 68.0;
+    final frameSize = widget.compact ? 56.0 : 62.0;
+    final avatarLeft = (canvasWidth - avatarAreaSize) / 2;
+    final avatarTop = widget.compact ? 3.0 : 4.0;
 
     const avatarFrameGradient = LinearGradient(
       begin: Alignment.topLeft,
@@ -344,76 +344,60 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
               clipBehavior: Clip.none,
               children: [
                 Positioned(
-                  left: ringLeft,
-                  top: ringTop,
+                  left: avatarLeft,
+                  top: avatarTop,
                   child: SizedBox(
-                    width: ringSize,
-                    height: ringSize,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        if (widget.isActive)
-                          SizedBox(
-                            width: ringSize,
-                            height: ringSize,
-                            child: CircularProgressIndicator(
-                              value: widget.turnProgress.clamp(0.0, 1.0).toDouble(),
-                              strokeWidth: widget.compact ? 4.0 : 4.5,
-                              backgroundColor: Colors.black.withValues(alpha: 0.34),
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                AppColors.lime,
-                              ),
+                    width: avatarAreaSize,
+                    height: avatarAreaSize,
+                    child: Center(
+                      child: Container(
+                        width: frameSize,
+                        height: frameSize,
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: avatarFrameGradient,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black54,
+                              blurRadius: 8,
+                              offset: Offset(0, 4),
                             ),
-                          ),
-                        Container(
-                          width: frameSize,
-                          height: frameSize,
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
+                          ],
+                        ),
+                        child: Container(
+                          decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            gradient: avatarFrameGradient,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black54,
-                                blurRadius: 8,
-                                offset: Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  AppColors.cream,
-                                  Color(0xFFE2E6EB),
-                                ],
-                              ),
-                              border: Border.all(
-                                color: AppColors.ink,
-                                width: 1.6,
-                              ),
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                AppColors.cream,
+                                Color(0xFFE2E6EB),
+                              ],
                             ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              avatarLetter,
-                              style: TextStyle(
-                                color: const Color(0xFF6242A3),
-                                fontSize: widget.compact ? 22 : 24,
-                                fontWeight: FontWeight.w900,
-                                shadows: const [
-                                  Shadow(
-                                    color: Colors.white,
-                                    offset: Offset(0, 1),
-                                  ),
-                                ],
-                              ),
+                            border: Border.all(
+                              color: AppColors.ink,
+                              width: 1.6,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            avatarLetter,
+                            style: TextStyle(
+                              color: const Color(0xFF6242A3),
+                              fontSize: widget.compact ? 21 : 23,
+                              fontWeight: FontWeight.w900,
+                              shadows: const [
+                                Shadow(
+                                  color: Colors.white,
+                                  offset: Offset(0, 1),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -454,7 +438,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                   right: widget.giftPlacement == PlayerGiftPlacement.right
                       ? 0
                       : null,
-                  top: widget.compact ? 25 : 30,
+                  top: widget.compact ? 24 : 28,
                   child: SizedBox(
                     width: 30,
                     height: 30,

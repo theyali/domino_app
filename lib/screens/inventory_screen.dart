@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../localization/app_localizations.dart';
 import '../models/gift.dart';
 import '../services/api_service.dart';
 import '../services/gift_service.dart';
@@ -47,7 +48,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Не удалось загрузить полученные подарки.';
+        _errorMessage = context.tr('inventory_load_failed');
         _isLoading = false;
       });
     }
@@ -67,11 +68,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Инвентарь'),
+        title: Text(context.tr('received_gifts')),
         actions: [
           IconButton(
             onPressed: _isLoading ? null : _load,
-            tooltip: 'Обновить',
+            tooltip: context.tr('refresh'),
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
@@ -112,7 +113,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
             child: FilledButton.icon(
               onPressed: _load,
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Повторить'),
+              label: Text(context.tr('retry')),
             ),
           ),
         ],
@@ -131,17 +132,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
             color: Theme.of(context).colorScheme.primary,
           ),
           const SizedBox(height: 18),
-          const Text(
-            'Полученных подарков пока нет',
+          Text(
+            context.tr('received_gifts_empty'),
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 9),
           Text(
-            'Здесь хранятся только подарки, которые тебе отправили другие '
-            'игроки. У каждого — свой QR-код для использования в ресторане.\n\n'
-            'Подарки, подготовленные тобой для отправки другим игрокам, '
-            'показываются только в каталоге конкретного ресторана.',
+            context.tr('received_gifts_empty_description'),
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -224,7 +222,10 @@ class _ReceivedGiftCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 7),
                     Text(
-                      'Подарил: ${item.senderLabel}',
+                      context.tr(
+                        'gift_from',
+                        arguments: {'name': item.senderLabel},
+                      ),
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                     if (item.giftedAt != null) ...[
@@ -247,7 +248,9 @@ class _ReceivedGiftCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    redeemed ? 'Использован' : 'Доступен',
+                    context.tr(
+                      redeemed ? 'gift_redeemed' : 'gift_available',
+                    ),
                     style: theme.textTheme.labelSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                       color: redeemed
@@ -301,7 +304,10 @@ class _InventoryGiftDetails extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'Подарил: ${item.senderLabel}',
+            context.tr(
+              'gift_from',
+              arguments: {'name': item.senderLabel},
+            ),
             style: const TextStyle(fontWeight: FontWeight.w800),
           ),
           if (item.giftedAt != null) ...[
@@ -323,9 +329,11 @@ class _InventoryGiftDetails extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            redeemed
-                ? 'Этот подарок уже использован.'
-                : 'Покажи этот QR-код сотруднику ресторана при использовании подарка.',
+            context.tr(
+              redeemed
+                  ? 'gift_redeemed_description'
+                  : 'gift_qr_description',
+            ),
             textAlign: TextAlign.center,
             style: theme.textTheme.bodySmall,
           ),

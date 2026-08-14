@@ -28,6 +28,10 @@ class DominoTile extends StatelessWidget {
     final halfPadding = isCompact ? 3.0 : 6.0;
     final radius = isCompact ? 6.5 : 9.0;
 
+    final faces = horizontal
+        ? _buildHorizontal(halfPadding)
+        : _buildVertical(halfPadding);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -63,9 +67,35 @@ class DominoTile extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(radius - 2),
-          child: horizontal
-              ? _buildHorizontal(halfPadding)
-              : _buildVertical(halfPadding),
+          child: Stack(
+            children: [
+              Positioned.fill(child: faces),
+              Positioned(
+                left: 3,
+                right: 3,
+                top: 1,
+                child: Container(
+                  height: isCompact ? 1 : 1.5,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.58),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 3,
+                right: 3,
+                bottom: 1,
+                child: Container(
+                  height: isCompact ? 1 : 1.5,
+                  decoration: BoxDecoration(
+                    color: AppColors.ink.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

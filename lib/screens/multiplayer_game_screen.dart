@@ -58,6 +58,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
   final Map<int, GlobalKey> _handDominoKeys = <int, GlobalKey>{};
   final GlobalKey _boneyardKey = GlobalKey(debugLabel: 'multiplayer-boneyard');
   final GlobalKey _handAreaKey = GlobalKey(debugLabel: 'multiplayer-hand-area');
+  final ScrollController _handScrollController = ScrollController();
 
   bool _isSubmittingMove = false;
   bool _isStartingNextRound = false;
@@ -113,6 +114,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
   @override
   void dispose() {
     _turnTicker?.cancel();
+    _handScrollController.dispose();
     unawaited(_messageSubscription?.cancel());
     unawaited(_statusSubscription?.cancel());
     unawaited(_socketService.dispose());
@@ -144,6 +146,21 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     return renderObject.localToGlobal(
       renderObject.size.center(Offset.zero),
     );
+  }
+
+  void _scrollHandToEnd() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_handScrollController.hasClients) return;
+
+      final position = _handScrollController.position;
+      unawaited(
+        _handScrollController.animateTo(
+          position.maxScrollExtent,
+          duration: const Duration(milliseconds: 330),
+          curve: Curves.easeOutCubic,
+        ),
+      );
+    });
   }
 
   void _syncServerClock(MultiplayerGameState state) {
@@ -447,6 +464,10 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     });
 
     _restartTurnTicker();
+
+    if (newDraw != null && (drawSource == null || drawTarget == null)) {
+      _scrollHandToEnd();
+    }
   }
 
   Future<void> _onDominoTap(ServerDomino domino) async {
@@ -562,6 +583,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
       _boneyardDrawFlight = null;
       _hiddenDrawnDominoId = null;
     });
+    _scrollHandToEnd();
   }
 
   Future<void> _passTurn() async {
@@ -871,6 +893,9 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
       final isCurrentTurn = _gameState.isActive &&
           opponent.isActive &&
           opponent.id == _gameState.currentPlayerId;
+      final giftPlacement = relativeSeat == 1
+          ? PlayerGiftPlacement.left
+          : PlayerGiftPlacement.right;
       final avatar = PlayerAvatar(
         key: _playerAvatarKeyFor(opponent.id),
         player: _toPlayer(opponent, isMe: false),
@@ -879,6 +904,9 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
         turnSecondsLeft: isCurrentTurn ? _turnSecondsLeft : null,
         turnProgress: isCurrentTurn ? _turnProgress : 0,
         isOnline: opponent.isOnline,
+        activeGiftImageUrl: opponent.activeGift?.imageUrl,
+        activeGiftName: opponent.activeGift?.name,
+        giftPlacement: giftPlacement,
         onTap: () {},
       );
 
@@ -1052,6 +1080,9 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
             turnProgress: isMyCurrentTurn ? _turnProgress : 0,
             isOnline:
                 _socketStatus == SocketConnectionStatus.connected && me.isOnline,
+            activeGiftImageUrl: me.activeGift?.imageUrl,
+            activeGiftName: me.activeGift?.name,
+            giftPlacement: PlayerGiftPlacement.right,
             onTap: () {},
           ),
           const SizedBox(height: 5),
@@ -1059,6 +1090,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
             key: _handAreaKey,
             height: 108,
             child: ListView.separated(
+              controller: _handScrollController,
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               itemCount: _gameState.myHand.length,

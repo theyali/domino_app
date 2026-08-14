@@ -136,6 +136,7 @@ class MultiplayerGameState {
   final String status;
   final int roundNumber;
   final int version;
+  final DateTime? serverTime;
   final int currentPlayerId;
   final int openingPlayerId;
   final int openingDominoId;
@@ -154,6 +155,7 @@ class MultiplayerGameState {
     required this.status,
     required this.roundNumber,
     required this.version,
+    required this.serverTime,
     required this.currentPlayerId,
     required this.openingPlayerId,
     required this.openingDominoId,
@@ -179,6 +181,7 @@ class MultiplayerGameState {
       status: json['status'] as String? ?? 'active',
       roundNumber: json['round_number'] as int? ?? 1,
       version: json['version'] as int? ?? 1,
+      serverTime: DateTime.tryParse(json['server_time'] as String? ?? ''),
       currentPlayerId: json['current_player_id'] as int,
       openingPlayerId: json['opening_player_id'] as int,
       openingDominoId: json['opening_domino_id'] as int,

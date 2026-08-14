@@ -296,12 +296,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   @override
   Widget build(BuildContext context) {
     final player = widget.player;
-    final avatarBorderColor = widget.isActive || player.isMe
-        ? AppColors.lime
-        : Colors.white;
-    final nameColor = widget.isActive || player.isMe
-        ? AppColors.lime
-        : Colors.white;
+    final emphasized = widget.isActive || player.isMe;
     final avatarLetter = player.name.trim().isEmpty
         ? '?'
         : player.name.trim().substring(0, 1).toUpperCase();
@@ -321,60 +316,100 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: 88,
-            height: 80,
+            width: 92,
+            height: 82,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
                 Positioned(
                   left: 10,
-                  top: 6,
+                  top: 5,
                   child: SizedBox(
-                    width: 68,
-                    height: 68,
+                    width: 72,
+                    height: 72,
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
                         if (widget.isActive)
                           SizedBox(
-                            width: 68,
-                            height: 68,
+                            width: 72,
+                            height: 72,
                             child: CircularProgressIndicator(
                               value: widget.turnProgress.clamp(0.0, 1.0).toDouble(),
-                              strokeWidth: 4,
-                              backgroundColor: Colors.black.withValues(alpha: 0.30),
+                              strokeWidth: 4.5,
+                              backgroundColor: Colors.black.withValues(alpha: 0.38),
                               valueColor: const AlwaysStoppedAnimation<Color>(
                                 AppColors.lime,
                               ),
                             ),
                           ),
                         Container(
-                          width: 60,
-                          height: 60,
+                          width: 64,
+                          height: 64,
+                          padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(
-                              width: widget.isActive ? 3 : 2.5,
-                              color: avatarBorderColor,
-                            ),
-                            boxShadow: widget.isActive
-                                ? [
-                                    BoxShadow(
-                                      color: AppColors.lime.withValues(alpha: 0.34),
-                                      blurRadius: 14,
-                                      spreadRadius: 2,
-                                    ),
-                                  ]
-                                : null,
+                            gradient: emphasized
+                                ? const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      AppColors.limeSoft,
+                                      AppColors.lime,
+                                      AppColors.limeDark,
+                                    ],
+                                  )
+                                : const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Colors.white,
+                                      Color(0xFF93A1AE),
+                                    ],
+                                  ),
+                            boxShadow: [
+                              const BoxShadow(
+                                color: Colors.black54,
+                                blurRadius: 8,
+                                offset: Offset(0, 4),
+                              ),
+                              if (widget.isActive)
+                                BoxShadow(
+                                  color: AppColors.lime.withValues(alpha: 0.34),
+                                  blurRadius: 16,
+                                  spreadRadius: 2,
+                                ),
+                            ],
                           ),
-                          child: CircleAvatar(
-                            backgroundColor: Colors.grey.shade300,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  AppColors.cream,
+                                  Color(0xFFE2E6EB),
+                                ],
+                              ),
+                              border: Border.all(
+                                color: AppColors.ink,
+                                width: 1.7,
+                              ),
+                            ),
+                            alignment: Alignment.center,
                             child: Text(
                               avatarLetter,
                               style: const TextStyle(
-                                color: Color(0xFF5B3A9E),
-                                fontSize: 23,
-                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF6242A3),
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.white,
+                                    offset: Offset(0, 1),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -386,28 +421,29 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                 Positioned(
                   top: 0,
                   right: 0,
-                  child: _RoundBadge(
+                  child: _HudBadge(
                     text: '${player.score}',
-                    minWidth: 27,
-                    backgroundColor: const Color(0xFF0B1F33),
-                    borderColor: Colors.white,
+                    minWidth: 29,
+                    backgroundColor: AppColors.badge,
+                    borderColor: AppColors.cream,
                   ),
                 ),
                 if (widget.isActive && widget.turnSecondsLeft != null)
                   Positioned(
                     left: 0,
                     top: 0,
-                    child: _RoundBadge(
+                    child: _HudBadge(
                       text: '${widget.turnSecondsLeft}',
-                      minWidth: 31,
+                      minWidth: 34,
                       backgroundColor: AppColors.lime,
-                      borderColor: AppColors.lime,
+                      borderColor: AppColors.ink,
                       textColor: Colors.black,
+                      glow: true,
                     ),
                   ),
                 if (!player.isMe)
                   Positioned(
-                    right: 0,
+                    right: -1,
                     bottom: 0,
                     child: _DominoCountBadge(count: widget.dominoCount),
                   ),
@@ -418,7 +454,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                   right: widget.giftPlacement == PlayerGiftPlacement.right
                       ? -1
                       : null,
-                  top: 28,
+                  top: 30,
                   child: SizedBox(
                     width: 32,
                     height: 32,
@@ -471,15 +507,37 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
               ],
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            player.isMe
-                ? '${player.name} (${_isAzerbaijani ? 'Sən' : 'Ты'})'
-                : player.name,
-            style: TextStyle(
-              color: nameColor,
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
+          const SizedBox(height: 1),
+          Container(
+            constraints: const BoxConstraints(minWidth: 54),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+            decoration: BoxDecoration(
+              color: AppColors.badge.withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: emphasized
+                    ? AppColors.lime.withValues(alpha: 0.72)
+                    : Colors.white24,
+                width: 1.2,
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black38,
+                  blurRadius: 5,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              player.isMe
+                  ? '${player.name} (${_isAzerbaijani ? 'Sən' : 'Ты'})'
+                  : player.name,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: emphasized ? AppColors.lime : Colors.white,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],
@@ -581,20 +639,27 @@ class _DominoCountBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 24,
+      height: 23,
       padding: const EdgeInsets.symmetric(horizontal: 7),
       decoration: BoxDecoration(
-        color: const Color(0xFF15283A),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.badgeLight,
+            AppColors.badge,
+          ],
+        ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.78),
+          color: AppColors.cream.withValues(alpha: 0.82),
           width: 1.4,
         ),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.28),
+            color: Colors.black45,
             blurRadius: 5,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -608,7 +673,7 @@ class _DominoCountBadge extends StatelessWidget {
             style: const TextStyle(
               color: Colors.white,
               fontSize: 11,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
@@ -617,37 +682,45 @@ class _DominoCountBadge extends StatelessWidget {
   }
 }
 
-class _RoundBadge extends StatelessWidget {
+class _HudBadge extends StatelessWidget {
   final String text;
   final double minWidth;
   final Color backgroundColor;
   final Color borderColor;
   final Color textColor;
+  final bool glow;
 
-  const _RoundBadge({
+  const _HudBadge({
     required this.text,
     required this.minWidth,
     required this.backgroundColor,
     required this.borderColor,
     this.textColor = Colors.white,
+    this.glow = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 27,
+      height: 29,
       constraints: BoxConstraints(minWidth: minWidth),
-      padding: const EdgeInsets.symmetric(horizontal: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 7),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(color: borderColor, width: 1.8),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black38,
-            blurRadius: 5,
-            offset: Offset(0, 2),
+        boxShadow: [
+          const BoxShadow(
+            color: Colors.black45,
+            blurRadius: 6,
+            offset: Offset(0, 3),
           ),
+          if (glow)
+            BoxShadow(
+              color: AppColors.lime.withValues(alpha: 0.32),
+              blurRadius: 10,
+              spreadRadius: 1,
+            ),
         ],
       ),
       alignment: Alignment.center,
@@ -655,7 +728,7 @@ class _RoundBadge extends StatelessWidget {
         text,
         style: TextStyle(
           color: textColor,
-          fontSize: 11,
+          fontSize: 11.5,
           fontWeight: FontWeight.w900,
         ),
       ),
@@ -672,13 +745,14 @@ class _MiniDominoIcon extends StatelessWidget {
       width: 10,
       height: 16,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(2.5),
+        color: AppColors.cream,
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(color: AppColors.ink, width: 0.8),
       ),
       child: Column(
         children: [
           const Expanded(child: SizedBox()),
-          Container(height: 1, color: const Color(0xFF15283A)),
+          Container(height: 1, color: AppColors.ink),
           const Expanded(child: SizedBox()),
         ],
       ),

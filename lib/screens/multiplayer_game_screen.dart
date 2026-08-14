@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -11,8 +12,10 @@ import '../services/game_socket_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/domino_boneyard_draw_animation.dart';
 import '../widgets/domino_boneyard_pile.dart';
+import '../widgets/domino_hand_rack.dart';
 import '../widgets/domino_placement_target.dart';
 import '../widgets/domino_tile.dart';
+import '../widgets/game_table_decorations.dart';
 import '../widgets/multiplayer_domino_snake.dart';
 import '../widgets/multiplayer_game_result_overlay.dart';
 import '../widgets/player_avatar.dart';
@@ -832,19 +835,14 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
         ),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          color: AppColors.lime.withValues(alpha: 0.58),
-          width: 2.4,
+          color: AppColors.brass.withValues(alpha: 0.88),
+          width: 1.7,
         ),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: AppColors.lime.withValues(alpha: 0.10),
+            color: Colors.black54,
             blurRadius: 18,
-            spreadRadius: 1,
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.34),
-            blurRadius: 18,
-            offset: const Offset(0, 9),
+            offset: Offset(0, 9),
           ),
         ],
       ),
@@ -859,19 +857,22 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withValues(alpha: 0.22),
-                      const Color(0xFF07131D).withValues(alpha: 0.12),
-                      Colors.black.withValues(alpha: 0.34),
+                      Colors.black.withValues(alpha: 0.18),
+                      const Color(0xFF07131D).withValues(alpha: 0.08),
+                      Colors.black.withValues(alpha: 0.28),
                     ],
                   ),
                 ),
               ),
             ),
           ),
+          Positioned.fill(
+            child: GameTableDecorations(label: widget.restaurant.name),
+          ),
           ..._buildOpponentAvatars(),
           Positioned.fill(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(10, 110, 10, 86),
+              padding: const EdgeInsets.fromLTRB(10, 108, 10, 78),
               child: _buildTableCenter(),
             ),
           ),
@@ -1110,14 +1111,19 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     );
   }
 
+  double _handTiltTurns(int index) {
+    const degrees = <double>[-1.4, 0.9, -0.7, 1.35, -1.0, 0.55];
+    return degrees[index % degrees.length] / 360;
+  }
+
   Widget _buildMyPanel() {
     final me = _gameState.myPlayer;
     final isMyCurrentTurn = _gameState.isActive && _gameState.isMyTurn;
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(8, 4, 8, 2),
-      padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
+      margin: const EdgeInsets.fromLTRB(8, 3, 8, 2),
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 5),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
@@ -1127,169 +1133,166 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
             AppColors.panelBottom,
           ],
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: isMyCurrentTurn
-              ? AppColors.lime.withValues(alpha: 0.44)
-              : Colors.white.withValues(alpha: 0.10),
-          width: isMyCurrentTurn ? 1.5 : 1,
+          color: AppColors.brass.withValues(alpha: 0.22),
+          width: 1,
         ),
-        boxShadow: [
-          const BoxShadow(
+        boxShadow: const [
+          BoxShadow(
             color: Colors.black45,
-            blurRadius: 12,
-            offset: Offset(0, 6),
+            blurRadius: 11,
+            offset: Offset(0, 5),
           ),
-          if (isMyCurrentTurn)
-            BoxShadow(
-              color: AppColors.lime.withValues(alpha: 0.06),
-              blurRadius: 12,
-            ),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 34,
-            height: 3,
-            margin: const EdgeInsets.only(bottom: 1),
-            decoration: BoxDecoration(
-              color: isMyCurrentTurn
-                  ? AppColors.lime.withValues(alpha: 0.62)
-                  : Colors.white24,
-              borderRadius: BorderRadius.circular(99),
-            ),
-          ),
-          PlayerAvatar(
-            key: _playerAvatarKeyFor(me.id),
-            player: _toPlayer(me, isMe: true),
-            dominoCount: _gameState.myHand.length,
-            isActive: isMyCurrentTurn,
-            turnSecondsLeft: isMyCurrentTurn ? _turnSecondsLeft : null,
-            turnProgress: isMyCurrentTurn ? _turnProgress : 0,
-            isOnline:
-                _socketStatus == SocketConnectionStatus.connected && me.isOnline,
-            activeGiftImageUrl: me.activeGift?.imageUrl,
-            activeGiftName: me.activeGift?.name,
-            giftPlacement: PlayerGiftPlacement.right,
-            onTap: () {},
-          ),
-          const SizedBox(height: 2),
-          Container(
-            key: _handAreaKey,
-            height: 98,
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.22),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.08),
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 7,
-                  offset: Offset(0, 3),
-                ),
-              ],
-            ),
-            child: ListView.separated(
-              controller: _handScrollController,
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              itemCount: _gameState.myHand.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 5),
-              itemBuilder: (context, index) {
-                final serverDomino = _gameState.myHand[index];
-                final playableSides = _gameState.playableSidesFor(serverDomino);
-                final isPlayable = playableSides.isNotEmpty;
-                final isPending = _pendingDominoId == serverDomino.id;
-                final isSelected = _selectedDominoId == serverDomino.id;
-                final isHiddenByDraw =
-                    _hiddenDrawnDominoId == serverDomino.id;
-                final isRequiredOpening = _gameState.table.isEmpty &&
-                    _gameState.isMyTurn &&
-                    serverDomino.id == _gameState.openingDominoId;
+      child: SizedBox(
+        height: 148,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: 2,
+              right: 2,
+              top: 46,
+              bottom: 0,
+              child: SizedBox(
+                key: _handAreaKey,
+                child: DominoHandRack(
+                  child: ListView.separated(
+                    controller: _handScrollController,
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(7, 5, 7, 9),
+                    itemCount: _gameState.myHand.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(width: 5),
+                    itemBuilder: (context, index) {
+                      final serverDomino = _gameState.myHand[index];
+                      final playableSides =
+                          _gameState.playableSidesFor(serverDomino);
+                      final isPlayable = playableSides.isNotEmpty;
+                      final isPending = _pendingDominoId == serverDomino.id;
+                      final isSelected = _selectedDominoId == serverDomino.id;
+                      final isHiddenByDraw =
+                          _hiddenDrawnDominoId == serverDomino.id;
+                      final isRequiredOpening = _gameState.table.isEmpty &&
+                          _gameState.isMyTurn &&
+                          serverDomino.id == _gameState.openingDominoId;
+                      final canPlay = isPlayable || isRequiredOpening;
 
-                return AnimatedOpacity(
-                  duration: const Duration(milliseconds: 160),
-                  opacity: isHiddenByDraw
-                      ? 0
-                      : _gameState.isMyTurn && !isPlayable
-                          ? 0.55
-                          : 1,
-                  child: AnimatedContainer(
-                    key: _handDominoKeyFor(serverDomino.id),
-                    duration: const Duration(milliseconds: 180),
-                    curve: Curves.easeOut,
-                    transform: Matrix4.translationValues(
-                      0,
-                      isSelected ? -5 : 0,
-                      0,
-                    ),
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: isSelected
-                          ? AppColors.lime.withValues(alpha: 0.12)
-                          : Colors.transparent,
-                      border: Border.all(
-                        color: isPlayable || isRequiredOpening
-                            ? AppColors.lime
-                            : Colors.transparent,
-                        width: isSelected ? 3 : 2.6,
-                      ),
-                      boxShadow: isPlayable
-                          ? [
-                              BoxShadow(
-                                color: AppColors.lime.withValues(
-                                  alpha: isSelected ? 0.38 : 0.20,
+                      return AnimatedOpacity(
+                        duration: const Duration(milliseconds: 160),
+                        opacity: isHiddenByDraw
+                            ? 0
+                            : _gameState.isMyTurn && !isPlayable
+                                ? 0.60
+                                : 1,
+                        child: AnimatedRotation(
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOutCubic,
+                          turns: isSelected ? 0 : _handTiltTurns(index),
+                          alignment: Alignment.bottomCenter,
+                          child: AnimatedContainer(
+                            key: _handDominoKeyFor(serverDomino.id),
+                            duration: const Duration(milliseconds: 180),
+                            curve: Curves.easeOutCubic,
+                            transform: Matrix4.translationValues(
+                              0,
+                              isSelected ? -5 : 0,
+                              0,
+                            ),
+                            padding: const EdgeInsets.all(2.5),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: isSelected
+                                  ? AppColors.lime.withValues(alpha: 0.08)
+                                  : Colors.transparent,
+                              border: Border.all(
+                                color: isSelected
+                                    ? AppColors.lime
+                                    : canPlay
+                                        ? AppColors.lime.withValues(alpha: 0.52)
+                                        : Colors.transparent,
+                                width: isSelected ? 3 : 1.4,
+                              ),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: AppColors.lime
+                                            .withValues(alpha: 0.15),
+                                        blurRadius: 7,
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                DominoTile(
+                                  domino: serverDomino.domino,
+                                  width: 42,
+                                  height: 74,
+                                  dotSize: 5.5,
+                                  onTap: isHiddenByDraw
+                                      ? null
+                                      : () => _onDominoTap(serverDomino),
                                 ),
-                                blurRadius: isSelected ? 14 : 9,
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        DominoTile(
-                          domino: serverDomino.domino,
-                          width: 45,
-                          height: 78,
-                          dotSize: 5.8,
-                          onTap: isHiddenByDraw
-                              ? null
-                              : () => _onDominoTap(serverDomino),
-                        ),
-                        if (isPending)
-                          Positioned.fill(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.38),
-                                borderRadius: BorderRadius.circular(9),
-                              ),
-                              child: const Center(
-                                child: SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.4,
-                                    color: AppColors.lime,
+                                if (isPending)
+                                  Positioned.fill(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.black
+                                            .withValues(alpha: 0.38),
+                                        borderRadius: BorderRadius.circular(9),
+                                      ),
+                                      child: const Center(
+                                        child: SizedBox(
+                                          width: 21,
+                                          height: 21,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.3,
+                                            color: AppColors.lime,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
+                              ],
                             ),
                           ),
-                      ],
-                    ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
+                ),
+              ),
             ),
-          ),
-        ],
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: PlayerAvatar(
+                  key: _playerAvatarKeyFor(me.id),
+                  player: _toPlayer(me, isMe: true),
+                  dominoCount: _gameState.myHand.length,
+                  isActive: isMyCurrentTurn,
+                  turnSecondsLeft:
+                      isMyCurrentTurn ? _turnSecondsLeft : null,
+                  turnProgress: isMyCurrentTurn ? _turnProgress : 0,
+                  isOnline: _socketStatus == SocketConnectionStatus.connected &&
+                      me.isOnline,
+                  activeGiftImageUrl: me.activeGift?.imageUrl,
+                  activeGiftName: me.activeGift?.name,
+                  giftPlacement: PlayerGiftPlacement.right,
+                  showName: false,
+                  compact: true,
+                  onTap: () {},
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1391,7 +1394,7 @@ class _RoundBadge extends StatelessWidget {
         arguments: {'number': roundNumber},
       ),
       child: Container(
-        height: 42,
+        height: 40,
         padding: const EdgeInsets.fromLTRB(7, 5, 9, 5),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
@@ -1404,8 +1407,8 @@ class _RoundBadge extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: AppColors.lime.withValues(alpha: 0.64),
-            width: 1.5,
+            color: AppColors.brass.withValues(alpha: 0.72),
+            width: 1.3,
           ),
           boxShadow: const [
             BoxShadow(
@@ -1419,8 +1422,8 @@ class _RoundBadge extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 28,
-              height: 28,
+              width: 27,
+              height: 27,
               decoration: BoxDecoration(
                 color: AppColors.lime,
                 shape: BoxShape.circle,
@@ -1429,11 +1432,7 @@ class _RoundBadge extends StatelessWidget {
                   width: 1.4,
                 ),
               ),
-              child: const Icon(
-                Icons.flag_rounded,
-                size: 17,
-                color: Colors.black,
-              ),
+              child: const _CartoonFlagIcon(),
             ),
             const SizedBox(width: 5),
             Text(
@@ -1442,6 +1441,63 @@ class _RoundBadge extends StatelessWidget {
                 color: Colors.white,
                 fontSize: 13,
                 fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CartoonFlagIcon extends StatelessWidget {
+  const _CartoonFlagIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SizedBox(
+        width: 17,
+        height: 18,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: 4,
+              top: 2,
+              bottom: 1,
+              child: Container(
+                width: 2.5,
+                decoration: BoxDecoration(
+                  color: AppColors.ink,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 6,
+              top: 2,
+              child: Transform.rotate(
+                angle: -0.06,
+                alignment: Alignment.topLeft,
+                child: Container(
+                  width: 10,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: AppColors.ink,
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(3),
+                      bottomRight: Radius.circular(3),
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.white38,
+                        blurRadius: 1,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],

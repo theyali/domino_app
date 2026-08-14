@@ -8,11 +8,13 @@ import 'restaurants_screen.dart';
 
 class MainShellScreen extends StatefulWidget {
   final UserAccount user;
+  final ValueChanged<UserAccount> onUserUpdated;
   final Future<void> Function() onLogout;
 
   const MainShellScreen({
     super.key,
     required this.user,
+    required this.onUserUpdated,
     required this.onLogout,
   });
 
@@ -30,6 +32,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
       const InventoryScreen(),
       ProfileScreen(
         user: widget.user,
+        onUserUpdated: widget.onUserUpdated,
         onLogout: widget.onLogout,
       ),
     ];

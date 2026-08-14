@@ -231,8 +231,8 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
           ? null
           : avatarTarget +
               Offset(
-                widget.giftPlacement == PlayerGiftPlacement.right ? 58 : -58,
-                -6,
+                widget.giftPlacement == PlayerGiftPlacement.right ? 25 : -25,
+                -8,
               );
 
       if (source == null || target == null) {
@@ -403,12 +403,6 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                       borderColor: Colors.greenAccent,
                     ),
                   ),
-                if (widget.isOnline != null)
-                  Positioned(
-                    left: 10,
-                    bottom: 5,
-                    child: _PresenceDot(isOnline: widget.isOnline!),
-                  ),
                 Positioned(
                   right: 0,
                   bottom: 0,
@@ -417,13 +411,16 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                 if (hasActiveGift && _pendingGiftEventId == null)
                   Positioned(
                     left: widget.giftPlacement == PlayerGiftPlacement.left
-                        ? -48
+                        ? -2
                         : null,
                     right: widget.giftPlacement == PlayerGiftPlacement.right
-                        ? -48
+                        ? -2
                         : null,
-                    top: 18,
+                    top: 23,
                     child: _ActiveGiftImage(
+                      key: ValueKey(
+                        '${activeGiftImageUrl ?? ''}|${activeGiftName ?? ''}',
+                      ),
                       imageUrl: activeGiftImageUrl,
                       name: activeGiftName,
                     ),
@@ -452,65 +449,86 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   }
 }
 
-class _ActiveGiftImage extends StatelessWidget {
+class _ActiveGiftImage extends StatefulWidget {
   final String? imageUrl;
   final String? name;
 
-  const _ActiveGiftImage({required this.imageUrl, required this.name});
+  const _ActiveGiftImage({
+    super.key,
+    required this.imageUrl,
+    required this.name,
+  });
+
+  @override
+  State<_ActiveGiftImage> createState() => _ActiveGiftImageState();
+}
+
+class _ActiveGiftImageState extends State<_ActiveGiftImage>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _float;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1550),
+    )..repeat(reverse: true);
+    _float = Tween<double>(begin: -1.2, end: 1.2).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
+    );
+    _scale = Tween<double>(begin: 0.96, end: 1.05).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final fallbackName = context.appLanguage.code == 'az' ? 'Hədiyyə' : 'Подарок';
 
     return Tooltip(
-      message: name?.trim().isNotEmpty == true ? name! : fallbackName,
-      child: SizedBox(
-        width: 44,
-        height: 44,
-        child: imageUrl?.trim().isNotEmpty == true
-            ? Image.network(
-                imageUrl!,
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.high,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Icon(
-                    Icons.card_giftcard_rounded,
-                    color: Colors.amberAccent,
-                    size: 34,
-                  );
-                },
-              )
-            : const Icon(
-                Icons.card_giftcard_rounded,
-                color: Colors.amberAccent,
-                size: 34,
-              ),
-      ),
-    );
-  }
-}
-
-class _PresenceDot extends StatelessWidget {
-  final bool isOnline;
-
-  const _PresenceDot({required this.isOnline});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isOnline ? Colors.greenAccent : Colors.blueGrey.shade300;
-    return Container(
-      width: 15,
-      height: 15,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color,
-        border: Border.all(color: const Color(0xFF0D1B2A), width: 2.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 4,
-          ),
-        ],
+      message: widget.name?.trim().isNotEmpty == true ? widget.name! : fallbackName,
+      child: AnimatedBuilder(
+        animation: _controller,
+        child: SizedBox(
+          width: 34,
+          height: 34,
+          child: widget.imageUrl?.trim().isNotEmpty == true
+              ? Image.network(
+                  widget.imageUrl!,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(
+                      Icons.card_giftcard_rounded,
+                      color: Colors.amberAccent,
+                      size: 28,
+                    );
+                  },
+                )
+              : const Icon(
+                  Icons.card_giftcard_rounded,
+                  color: Colors.amberAccent,
+                  size: 28,
+                ),
+        ),
+        builder: (context, child) {
+          return Transform.translate(
+            offset: Offset(0, _float.value),
+            child: Transform.scale(
+              scale: _scale.value,
+              child: child,
+            ),
+          );
+        },
       ),
     );
   }

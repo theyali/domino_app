@@ -49,7 +49,7 @@ class _DominoPlayAnimationState extends State<DominoPlayAnimation>
     _controller = AnimationController(
       vsync: this,
       duration: Duration(
-        milliseconds: widget.isDouble ? 900 : 620,
+        milliseconds: widget.isDouble ? 900 : 650,
       ),
     )..addListener(_handleAnimationTick);
 
@@ -80,18 +80,12 @@ class _DominoPlayAnimationState extends State<DominoPlayAnimation>
     final scaleX = (globalX - globalOrigin).distance;
     final scaleY = (globalY - globalOrigin).distance;
 
-    final globalDelta =
-        widget.sourceGlobalCenter -
-        targetGlobalCenter;
+    final globalDelta = widget.sourceGlobalCenter - targetGlobalCenter;
 
     setState(() {
       _sourceOffset = Offset(
-        scaleX == 0
-            ? globalDelta.dx
-            : globalDelta.dx / scaleX,
-        scaleY == 0
-            ? globalDelta.dy
-            : globalDelta.dy / scaleY,
+        scaleX == 0 ? globalDelta.dx : globalDelta.dx / scaleX,
+        scaleY == 0 ? globalDelta.dy : globalDelta.dy / scaleY,
       );
 
       _isReady = true;
@@ -101,13 +95,9 @@ class _DominoPlayAnimationState extends State<DominoPlayAnimation>
   }
 
   void _handleAnimationTick() {
-    final impactPoint =
-        widget.isDouble ? 0.58 : 0.66;
+    final impactPoint = widget.isDouble ? 0.58 : 0.66;
 
-    if (
-      !_impactTriggered &&
-      _controller.value >= impactPoint
-    ) {
+    if (!_impactTriggered && _controller.value >= impactPoint) {
       _impactTriggered = true;
 
       _playImpactFeedback();
@@ -155,30 +145,23 @@ class _DominoPlayAnimationState extends State<DominoPlayAnimation>
   }
 
   double _flightProgress(double value) {
-    final flightEnd =
-        widget.isDouble ? 0.58 : 0.66;
+    final flightEnd = widget.isDouble ? 0.58 : 0.66;
 
     if (value >= flightEnd) {
       return 1;
     }
 
-    return Curves.easeOutCubic.transform(
-      value / flightEnd,
-    );
+    return Curves.easeOutCubic.transform(value / flightEnd);
   }
 
   double _impactProgress(double value) {
-    final impactStart =
-        widget.isDouble ? 0.58 : 0.66;
+    final impactStart = widget.isDouble ? 0.58 : 0.66;
 
     if (value <= impactStart) {
       return 0;
     }
 
-    return (
-      (value - impactStart) /
-      (1 - impactStart)
-    )
+    return ((value - impactStart) / (1 - impactStart))
         .clamp(0.0, 1.0)
         .toDouble();
   }
@@ -192,122 +175,67 @@ class _DominoPlayAnimationState extends State<DominoPlayAnimation>
       return 0;
     }
 
-    return (
-      (impact - delay) / duration
-    )
-        .clamp(0.0, 1.0)
-        .toDouble();
+    return ((impact - delay) / duration).clamp(0.0, 1.0).toDouble();
   }
 
   double _doubleImpactY(double progress) {
     if (progress < 0.20) {
-      return _lerp(
-        -14,
-        6,
-        progress / 0.20,
-      );
+      return _lerp(-14, 6, progress / 0.20);
     }
 
     if (progress < 0.44) {
-      return _lerp(
-        6,
-        -4,
-        (progress - 0.20) / 0.24,
-      );
+      return _lerp(6, -4, (progress - 0.20) / 0.24);
     }
 
-    return _lerp(
-      -4,
-      0,
-      (progress - 0.44) / 0.56,
-    );
+    return _lerp(-4, 0, (progress - 0.44) / 0.56);
   }
 
   double _normalImpactY(double progress) {
-    if (progress < 0.28) {
-      return _lerp(
-        -6,
-        2,
-        progress / 0.28,
-      );
+    if (progress < 0.26) {
+      return _lerp(-8, 3.5, progress / 0.26);
     }
 
-    return _lerp(
-      2,
-      0,
-      (progress - 0.28) / 0.72,
-    );
+    if (progress < 0.52) {
+      return _lerp(3.5, -1.8, (progress - 0.26) / 0.26);
+    }
+
+    return _lerp(-1.8, 0, (progress - 0.52) / 0.48);
   }
 
-  double _doubleScale(
-    double flight,
-    double impact,
-  ) {
+  double _doubleScale(double flight, double impact) {
     if (impact == 0) {
-      return _lerp(
-        0.78,
-        1.18,
-        flight,
-      );
+      return _lerp(0.78, 1.18, flight);
     }
 
     if (impact < 0.20) {
-      return _lerp(
-        1.18,
-        0.82,
-        impact / 0.20,
-      );
+      return _lerp(1.18, 0.82, impact / 0.20);
     }
 
     if (impact < 0.46) {
-      return _lerp(
-        0.82,
-        1.08,
-        (impact - 0.20) / 0.26,
-      );
+      return _lerp(0.82, 1.08, (impact - 0.20) / 0.26);
     }
 
-    return _lerp(
-      1.08,
-      1,
-      (impact - 0.46) / 0.54,
-    );
+    return _lerp(1.08, 1, (impact - 0.46) / 0.54);
   }
 
-  double _normalScale(
-    double flight,
-    double impact,
-  ) {
+  double _normalScale(double flight, double impact) {
     if (impact == 0) {
-      return _lerp(
-        0.84,
-        1.04,
-        flight,
-      );
+      return _lerp(0.84, 1.06, flight);
     }
 
-    if (impact < 0.30) {
-      return _lerp(
-        1.04,
-        0.96,
-        impact / 0.30,
-      );
+    if (impact < 0.28) {
+      return _lerp(1.06, 0.94, impact / 0.28);
     }
 
-    return _lerp(
-      0.96,
-      1,
-      (impact - 0.30) / 0.70,
-    );
+    if (impact < 0.55) {
+      return _lerp(0.94, 1.025, (impact - 0.28) / 0.27);
+    }
+
+    return _lerp(1.025, 1, (impact - 0.55) / 0.45);
   }
 
-  double _lerp(
-    double start,
-    double end,
-    double t,
-  ) {
-    return start +
-        (end - start) * t;
+  double _lerp(double start, double end, double t) {
+    return start + (end - start) * t;
   }
 
   Widget _buildImpactWave({
@@ -321,8 +249,7 @@ class _DominoPlayAnimationState extends State<DominoPlayAnimation>
       return const SizedBox.shrink();
     }
 
-    final opacity =
-        (1 - progress) * maxOpacity;
+    final opacity = (1 - progress) * maxOpacity;
 
     final scale = _lerp(
       startScale,
@@ -367,138 +294,66 @@ class _DominoPlayAnimationState extends State<DominoPlayAnimation>
     return AnimatedBuilder(
       animation: _controller,
       child: widget.child,
-      builder: (
-        context,
-        child,
-      ) {
-        final value =
-            _controller.value;
+      builder: (context, child) {
+        final value = _controller.value;
 
-        final flight =
-            _flightProgress(value);
+        final flight = _flightProgress(value);
+        final impact = _impactProgress(value);
 
-        final impact =
-            _impactProgress(value);
+        final approachY = widget.isDouble ? -14.0 : -8.0;
 
-        final approachY =
-            widget.isDouble
-                ? -14.0
-                : -6.0;
-
-        final flightOffset =
-            Offset.lerp(
+        final flightOffset = Offset.lerp(
           _sourceOffset,
-          Offset(
-            0,
-            approachY,
-          ),
+          Offset(0, approachY),
           flight,
         )!;
 
-        final arcY =
-            -math.sin(
-                  flight * math.pi,
-                ) *
-                (
-                  widget.isDouble
-                      ? 54
-                      : 38
-                );
+        final arcY = -math.sin(flight * math.pi) *
+            (widget.isDouble ? 54 : 38);
 
-        final impactY =
-            widget.isDouble
-                ? _doubleImpactY(
-                    impact,
-                  )
-                : _normalImpactY(
-                    impact,
-                  );
+        final impactY = widget.isDouble
+            ? _doubleImpactY(impact)
+            : _normalImpactY(impact);
 
-        final shakeX =
-            widget.isDouble &&
-                    impact > 0
-                ? math.sin(
-                        impact *
-                            math.pi *
-                            9,
-                      ) *
-                    (1 - impact) *
-                    7
-                : 0.0;
+        final shakeX = widget.isDouble && impact > 0
+            ? math.sin(impact * math.pi * 9) * (1 - impact) * 7
+            : 0.0;
 
-        final translation =
-            impact == 0
-                ? flightOffset +
-                    Offset(
-                      0,
-                      arcY,
-                    )
-                : Offset(
-                    shakeX,
-                    impactY,
-                  );
+        final translation = impact == 0
+            ? flightOffset + Offset(0, arcY)
+            : Offset(shakeX, impactY);
 
-        final startRotation =
-            widget.horizontal
-                ? -math.pi / 2
-                : (
-                  widget.isDouble
-                      ? -0.10
-                      : -0.05
-                );
+        final startRotation = widget.horizontal
+            ? -math.pi / 2
+            : (widget.isDouble ? -0.10 : -0.05);
 
-        final rotationDuringFlight =
-            _lerp(
-          startRotation,
-          0,
-          flight,
-        );
+        final rotationDuringFlight = _lerp(startRotation, 0, flight);
 
-        final impactRotation =
-            widget.isDouble &&
-                    impact > 0
-                ? math.sin(
-                        impact *
-                            math.pi *
-                            7,
-                      ) *
-                    (1 - impact) *
-                    0.07
-                : 0.0;
+        final impactRotation = widget.isDouble && impact > 0
+            ? math.sin(impact * math.pi * 7) * (1 - impact) * 0.07
+            : 0.0;
 
-        final rotation =
-            impact == 0
-                ? rotationDuringFlight
-                : impactRotation;
+        final rotation = impact == 0 ? rotationDuringFlight : impactRotation;
 
-        final scale =
-            widget.isDouble
-                ? _doubleScale(
-                    flight,
-                    impact,
-                  )
-                : _normalScale(
-                    flight,
-                    impact,
-                  );
+        final scale = widget.isDouble
+            ? _doubleScale(flight, impact)
+            : _normalScale(flight, impact);
 
-        final firstWave =
-            widget.isDouble
-                ? _waveProgress(
-                    impact: impact,
-                    delay: 0.01,
-                    duration: 0.58,
-                  )
-                : 0.0;
+        final firstWave = widget.isDouble
+            ? _waveProgress(
+                impact: impact,
+                delay: 0.01,
+                duration: 0.58,
+              )
+            : 0.0;
 
-        final secondWave =
-            widget.isDouble
-                ? _waveProgress(
-                    impact: impact,
-                    delay: 0.13,
-                    duration: 0.62,
-                  )
-                : 0.0;
+        final secondWave = widget.isDouble
+            ? _waveProgress(
+                impact: impact,
+                delay: 0.13,
+                duration: 0.62,
+              )
+            : 0.0;
 
         return Stack(
           clipBehavior: Clip.none,
@@ -520,7 +375,6 @@ class _DominoPlayAnimationState extends State<DominoPlayAnimation>
                 borderWidth: 1.2,
               ),
             ],
-
             Transform.translate(
               offset: translation,
               child: Transform.rotate(

@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 
 class CreateRoomRequest {
-  final String playerName;
   final String roomName;
   final int maxPlayers;
   final String password;
 
   const CreateRoomRequest({
-    required this.playerName,
     required this.roomName,
     required this.maxPlayers,
     required this.password,
@@ -15,12 +13,7 @@ class CreateRoomRequest {
 }
 
 class CreateRoomBottomSheet extends StatefulWidget {
-  final String initialPlayerName;
-
-  const CreateRoomBottomSheet({
-    super.key,
-    this.initialPlayerName = '',
-  });
+  const CreateRoomBottomSheet({super.key});
 
   @override
   State<CreateRoomBottomSheet> createState() =>
@@ -28,7 +21,6 @@ class CreateRoomBottomSheet extends StatefulWidget {
 }
 
 class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
-  late final TextEditingController _playerNameController;
   final TextEditingController _roomNameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -36,32 +28,15 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
   bool _obscurePassword = true;
 
   @override
-  void initState() {
-    super.initState();
-    _playerNameController = TextEditingController(text: widget.initialPlayerName);
-  }
-
-  @override
   void dispose() {
-    _playerNameController.dispose();
     _roomNameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   void _submit() {
-    final playerName = _playerNameController.text.trim();
-
-    if (playerName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Введите имя игрока.')),
-      );
-      return;
-    }
-
     Navigator.of(context).pop(
       CreateRoomRequest(
-        playerName: playerName,
         roomName: _roomNameController.text.trim(),
         maxPlayers: _maxPlayers,
         password: _passwordController.text,
@@ -97,24 +72,12 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Выбери количество игроков и при желании поставь пароль.',
+              'Ты войдёшь под именем своего аккаунта. Выбери количество игроков и при желании поставь пароль.',
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 22),
-            TextField(
-              controller: _playerNameController,
-              maxLength: 40,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Твоё имя',
-                prefixIcon: Icon(Icons.person_outline_rounded),
-                border: OutlineInputBorder(),
-                counterText: '',
-              ),
-            ),
-            const SizedBox(height: 14),
             TextField(
               controller: _roomNameController,
               maxLength: 80,

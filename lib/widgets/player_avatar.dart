@@ -301,6 +301,34 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
         ? '?'
         : player.name.trim().substring(0, 1).toUpperCase();
 
+    final avatarFrameGradient = widget.isActive
+        ? const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFF7FAFC),
+              Color(0xFF9AA8B6),
+            ],
+          )
+        : player.isMe
+            ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.limeSoft,
+                  AppColors.lime,
+                  AppColors.limeDark,
+                ],
+              )
+            : const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white,
+                  Color(0xFF93A1AE),
+                ],
+              );
+
     final realtimeGift = _activeGift;
     final activeGiftImageUrl = realtimeGift?.imageUrl ?? widget.activeGiftImageUrl;
     final activeGiftName = realtimeGift?.name ?? widget.activeGiftName;
@@ -349,36 +377,13 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            gradient: emphasized
-                                ? const LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      AppColors.limeSoft,
-                                      AppColors.lime,
-                                      AppColors.limeDark,
-                                    ],
-                                  )
-                                : const LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      Colors.white,
-                                      Color(0xFF93A1AE),
-                                    ],
-                                  ),
-                            boxShadow: [
-                              const BoxShadow(
+                            gradient: avatarFrameGradient,
+                            boxShadow: const [
+                              BoxShadow(
                                 color: Colors.black54,
                                 blurRadius: 8,
                                 offset: Offset(0, 4),
                               ),
-                              if (widget.isActive)
-                                BoxShadow(
-                                  color: AppColors.lime.withValues(alpha: 0.34),
-                                  blurRadius: 16,
-                                  spreadRadius: 2,
-                                ),
                             ],
                           ),
                           child: Container(

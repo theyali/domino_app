@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../localization/app_localizations.dart';
 import '../models/game_room.dart';
 import '../models/multiplayer_game_state.dart';
 import '../models/restaurant.dart';
@@ -146,7 +147,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Не удалось запустить игру.';
+        _errorMessage = context.tr('game_start_failed');
       });
     } finally {
       if (mounted && !_isOpeningGame) {
@@ -186,7 +187,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
 
     setState(() {
       _allowPop = true;
-      _errorMessage = 'Стол закрыт: в комнате больше не осталось игроков.';
+      _errorMessage = context.tr('room_closed');
     });
 
     await Future<void>.delayed(const Duration(milliseconds: 900));
@@ -226,7 +227,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Не удалось выйти из комнаты.';
+        _errorMessage = context.tr('leave_room_failed');
       });
     } finally {
       if (mounted && !_allowPop) {
@@ -269,7 +270,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Не удалось обновить комнату.';
+        _errorMessage = context.tr('room_refresh_failed');
       });
     } finally {
       if (mounted && !_isOpeningGame) {
@@ -331,9 +332,12 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                 const SizedBox(height: 12),
                 _RealtimeStatus(status: _socketStatus),
                 const SizedBox(height: 24),
-                const Text(
-                  'Игроки',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                Text(
+                  context.tr('players'),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 for (var seat = 0; seat < _room.maxPlayers; seat++)
@@ -379,9 +383,11 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                             )
                           : const Icon(Icons.play_arrow_rounded),
                       label: Text(
-                        _isStartingGame || _isOpeningGame
-                            ? 'Запускаем игру...'
-                            : 'Начать игру',
+                        context.tr(
+                          _isStartingGame || _isOpeningGame
+                              ? 'starting_game'
+                              : 'start_game',
+                        ),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
@@ -394,11 +400,16 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                 Text(
                   allPlayersReady
                       ? !allPlayersOnline
-                          ? 'Все места заняты, но кто-то временно offline. Ждём автоматическое переподключение.'
+                          ? context.tr('all_seats_offline')
                           : isLocalOwner
-                              ? 'Все игроки в сети. Можно запускать серверную раздачу.'
-                              : 'Все игроки в сети. Ожидаем запуск от создателя комнаты.'
-                      : 'Ожидаем ещё ${_room.maxPlayers - _room.currentPlayers} игрока(ов).',
+                              ? context.tr('owner_can_start')
+                              : context.tr('waiting_owner_start')
+                      : context.tr(
+                          'waiting_more_players',
+                          arguments: {
+                            'count': _room.maxPlayers - _room.currentPlayers,
+                          },
+                        ),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -444,26 +455,26 @@ class _RealtimeStatus extends StatelessWidget {
     final (icon, title, subtitle, isLoading) = switch (status) {
       SocketConnectionStatus.connected => (
           Icons.bolt_rounded,
-          'Realtime подключён',
-          'Состояние комнаты синхронизировано с сервером',
+          context.tr('realtime_connected'),
+          context.tr('realtime_connected_subtitle'),
           false,
         ),
       SocketConnectionStatus.connecting => (
           Icons.sync_rounded,
-          'Подключаем realtime',
-          'Устанавливаем WebSocket и получаем актуальное состояние',
+          context.tr('realtime_connecting'),
+          context.tr('realtime_connecting_subtitle'),
           true,
         ),
       SocketConnectionStatus.reconnecting => (
           Icons.sync_rounded,
-          'Переподключаемся',
-          'Место игрока сохранено, состояние восстановится автоматически',
+          context.tr('realtime_reconnecting'),
+          context.tr('realtime_reconnecting_subtitle'),
           true,
         ),
       SocketConnectionStatus.disconnected => (
           Icons.cloud_off_rounded,
-          'Realtime временно недоступен',
-          'Пробуем подключиться снова автоматически',
+          context.tr('realtime_disconnected'),
+          context.tr('realtime_disconnected_subtitle'),
           true,
         ),
     };
@@ -536,10 +547,10 @@ class _LobbyHeader extends StatelessWidget {
             ? Icons.check_circle_rounded
             : Icons.cloud_off_rounded;
     final statusText = !allPlayersReady
-        ? 'Ожидание игроков'
+        ? context.tr('waiting_players')
         : allPlayersOnline
-            ? 'Все игроки в сети'
-            : 'Ждём переподключение';
+            ? context.tr('all_players_online')
+            : context.tr('realtime_reconnecting');
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -687,7 +698,7 @@ class _LobbySeat extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  player?.name ?? 'Свободное место',
+                  player?.name ?? context.tr('empty_seat'),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -696,12 +707,11 @@ class _LobbySeat extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   player == null
-                      ? 'Ожидаем игрока'
+                      ? context.tr('waiting_players')
                       : [
-                          if (player!.isOwner) 'Создатель комнаты',
-                          if (isMe) 'Это ты',
-                          if (!player!.isOwner && !isMe)
-                            'Игрок ${seatIndex + 1}',
+                          if (player!.isOwner) context.tr('owner'),
+                          if (isMe) context.tr('you'),
+                          if (!player!.isOwner && !isMe) '#${seatIndex + 1}',
                         ].join(' • '),
                   style: theme.textTheme.bodySmall,
                 ),
@@ -746,7 +756,7 @@ class _LobbyPresenceBadge extends StatelessWidget {
           ),
           const SizedBox(width: 5),
           Text(
-            isOnline ? 'В сети' : 'Offline',
+            context.tr(isOnline ? 'online' : 'offline'),
             style: theme.textTheme.labelSmall?.copyWith(
               color: color,
               fontWeight: FontWeight.w800,

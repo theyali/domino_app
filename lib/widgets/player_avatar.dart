@@ -34,21 +34,23 @@ class PlayerAvatar extends StatelessWidget {
       return;
     }
 
-    final emotionAsset = await EmotionPickerSheet.show(context);
-    if (emotionAsset == null || !context.mounted) {
-      return;
-    }
-
-    final sent = EmotionRealtimeService.instance.sendEmotion(emotionAsset);
-    if (!sent && context.mounted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Эмоцию можно отправить после восстановления realtime.'),
-          ),
-        );
-    }
+    await EmotionPickerSheet.show(
+      context,
+      onSelected: (emotionAsset) {
+        final sent = EmotionRealtimeService.instance.sendEmotion(emotionAsset);
+        if (!sent && context.mounted) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Эмоцию можно отправить после восстановления realtime.',
+                ),
+              ),
+            );
+        }
+      },
+    );
   }
 
   @override

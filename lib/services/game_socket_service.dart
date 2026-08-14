@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/widgets.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../config/api_config.dart';
+import 'active_game_session_store.dart';
 
 enum SocketConnectionStatus {
   disconnected,
@@ -12,7 +14,7 @@ enum SocketConnectionStatus {
   reconnecting,
 }
 
-class GameSocketService {
+class GameSocketService with WidgetsBindingObserver {
   static const Duration _heartbeatInterval = Duration(seconds: 10);
   static const Duration _heartbeatTimeout = Duration(seconds: 30);
 
@@ -20,6 +22,7 @@ class GameSocketService {
       StreamController<Map<String, dynamic>>.broadcast();
   final StreamController<SocketConnectionStatus> _statusController =
       StreamController<SocketConnectionStatus>.broadcast();
+  final ActiveGameSessionStore _sessionStore;
 
   WebSocketChannel? _channel;
   StreamSubscription<dynamic>? _channelSubscription;
@@ -36,11 +39,34 @@ class GameSocketService {
   bool _disposed = false;
   SocketConnectionStatus _status = SocketConnectionStatus.disconnected;
 
+  GameSocketService({ActiveGameSessionStore? sessionStore})
+      : _sessionStore = sessionStore ?? ActiveGameSessionStore() {
+    WidgetsBinding.instance.addObserver(this);
+  }
+
   Stream<Map<String, dynamic>> get messages => _messageController.stream;
 
   Stream<SocketConnectionStatus> get statuses => _statusController.stream;
 
   SocketConnectionStatus get status => _status;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || _disposed || _manualClose) {
+      return;
+    }
+
+    final roomId = _roomId;
+    final playerId = _playerId;
+    if (roomId == null || playerId == null) return;
+
+    unawaited(
+      connectToRoom(
+        roomId: roomId,
+        playerId: playerId,
+      ),
+    );
+  }
 
   Future<void> connectToRoom({
     required int roomId,
@@ -86,6 +112,7 @@ class GameSocketService {
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
+    WidgetsBinding.instance.removeObserver(this);
     await disconnect();
     await _messageController.close();
     await _statusController.close();
@@ -160,6 +187,30 @@ class GameSocketService {
 
         if (message['type'] == 'pong') {
           return;
+        }
+
+        final roomId = _roomId;
+        final playerId = _playerId;
+        final type = message['type'];
+
+        if ((type == 'game_started' || type == 'game_state') &&
+            roomId != null &&
+            playerId != null) {
+          unawaited(
+            _sessionStore.save(
+              roomId: roomId,
+              playerId: playerId,
+            ),
+          );
+        }
+
+        if (type == 'room_deleted' && roomId != null && playerId != null) {
+          unawaited(
+            _sessionStore.clearIfMatches(
+              roomId: roomId,
+              playerId: playerId,
+            ),
+          );
         }
 
         _messageController.add(message);

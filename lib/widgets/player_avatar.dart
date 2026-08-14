@@ -1,11 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../models/gift.dart';
 import '../models/player.dart';
+import '../services/active_game_session_store.dart';
+import '../services/api_service.dart';
 import '../services/emotion_realtime_service.dart';
+import '../services/gift_realtime_service.dart';
+import '../services/gift_service.dart';
+import '../services/player_avatar_registry.dart';
 import 'emotion_picker_sheet.dart';
+import 'gift_flight_animation.dart';
+import 'multiplayer_gift_sheet.dart';
 import 'player_emotion_overlay.dart';
 
-class PlayerAvatar extends StatelessWidget {
+class PlayerAvatar extends StatefulWidget {
   final Player player;
   final VoidCallback onTap;
 
@@ -30,50 +40,246 @@ class PlayerAvatar extends StatelessWidget {
     this.activeGiftName,
   });
 
-  Future<void> _handleTap(BuildContext context) async {
-    final isMultiplayerAvatar = isOnline != null;
+  @override
+  State<PlayerAvatar> createState() => _PlayerAvatarState();
+}
 
-    if (!player.isMe || !isMultiplayerAvatar) {
-      onTap();
+class _PlayerAvatarState extends State<PlayerAvatar> {
+  static const ApiService _apiService = ApiService();
+  static const GiftService _giftService = GiftService();
+
+  final ActiveGameSessionStore _sessionStore = ActiveGameSessionStore();
+  final GiftRealtimeService _giftRealtime = GiftRealtimeService.instance;
+  final PlayerAvatarRegistry _avatarRegistry = PlayerAvatarRegistry.instance;
+  final GlobalKey _anchorKey = GlobalKey();
+
+  StreamSubscription<GiftRealtimeEvent>? _giftEventSubscription;
+  StreamSubscription<void>? _giftStateSubscription;
+
+  Gift? _activeGift;
+  String? _pendingGiftEventId;
+  OverlayEntry? _flightOverlay;
+  bool _isOpeningGiftMenu = false;
+
+  bool get _isMultiplayerAvatar => widget.isOnline != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _activeGift = _giftRealtime.activeGiftFor(widget.player.id);
+    _giftEventSubscription = _giftRealtime.events.listen(_handleGiftEvent);
+    _giftStateSubscription = _giftRealtime.stateChanges.listen((_) {
+      if (!mounted || _pendingGiftEventId != null) return;
+      setState(() {
+        _activeGift = _giftRealtime.activeGiftFor(widget.player.id);
+      });
+    });
+    _registerAnchorAfterFrame();
+  }
+
+  @override
+  void didUpdateWidget(covariant PlayerAvatar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.player.id != widget.player.id) {
+      _avatarRegistry.unregister(
+        playerId: oldWidget.player.id,
+        owner: this,
+      );
+      _activeGift = _giftRealtime.activeGiftFor(widget.player.id);
+    }
+
+    _registerAnchorAfterFrame();
+  }
+
+  @override
+  void dispose() {
+    _avatarRegistry.unregister(
+      playerId: widget.player.id,
+      owner: this,
+    );
+    unawaited(_giftEventSubscription?.cancel());
+    unawaited(_giftStateSubscription?.cancel());
+    _flightOverlay?.remove();
+    _flightOverlay = null;
+    super.dispose();
+  }
+
+  void _registerAnchorAfterFrame() {
+    if (!_isMultiplayerAvatar) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final anchorContext = _anchorKey.currentContext;
+      if (anchorContext == null) return;
+
+      _avatarRegistry.register(
+        playerId: widget.player.id,
+        owner: this,
+        context: anchorContext,
+      );
+    });
+  }
+
+  Future<void> _handleTap() async {
+    if (!_isMultiplayerAvatar) {
+      widget.onTap();
       return;
     }
 
+    if (widget.player.isMe) {
+      await _showEmotionPicker();
+      return;
+    }
+
+    await _showGiftPicker();
+  }
+
+  Future<void> _showEmotionPicker() async {
     final emotionAsset = await EmotionPickerSheet.show(context);
-    if (emotionAsset == null || !context.mounted) {
+    if (emotionAsset == null || !mounted) {
       return;
     }
 
-    // Give the modal sheet enough time to leave the screen. The realtime event
-    // is intentionally sent only afterwards so the local player can actually
-    // see the same avatar animation as everyone else.
+    // The event is sent after the bottom sheet has visually left the screen,
+    // otherwise the local player would not see their own avatar animation.
     await Future<void>.delayed(const Duration(milliseconds: 170));
-    if (!context.mounted) return;
+    if (!mounted) return;
 
     final sent = EmotionRealtimeService.instance.sendEmotion(emotionAsset);
-    if (!sent && context.mounted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Эмоцию можно отправить после восстановления realtime.',
-            ),
-          ),
-        );
+    if (!sent) {
+      _showMessage('Эмоцию можно отправить после восстановления realtime.');
     }
+  }
+
+  Future<void> _showGiftPicker() async {
+    if (_isOpeningGiftMenu) return;
+    _isOpeningGiftMenu = true;
+
+    try {
+      final savedSession = await _sessionStore.load();
+      if (savedSession == null) {
+        _showMessage('Не удалось определить текущий стол.');
+        return;
+      }
+
+      final gameState = await _apiService.fetchGameState(
+        roomId: savedSession.roomId,
+        playerId: savedSession.playerId,
+      );
+      final room = await _apiService.fetchRoom(savedSession.roomId);
+
+      if (!mounted) return;
+
+      final request = await MultiplayerGiftSheet.show(
+        context,
+        restaurantId: room.restaurantId,
+        myPlayerId: gameState.myPlayerId,
+        initialRecipientPlayerId: widget.player.id,
+        players: gameState.players,
+      );
+
+      if (request == null || !mounted) return;
+
+      await _giftService.sendGift(
+        roomId: savedSession.roomId,
+        giftId: request.giftId,
+        recipientPlayerIds: request.recipientPlayerIds,
+      );
+    } on ApiException catch (error) {
+      if (mounted) {
+        _showMessage(error.message);
+      }
+    } catch (_) {
+      if (mounted) {
+        _showMessage('Не удалось отправить подарок.');
+      }
+    } finally {
+      _isOpeningGiftMenu = false;
+    }
+  }
+
+  void _handleGiftEvent(GiftRealtimeEvent event) {
+    if (!mounted ||
+        !_isMultiplayerAvatar ||
+        !event.recipientPlayerIds.contains(widget.player.id)) {
+      return;
+    }
+
+    _pendingGiftEventId = event.id;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _pendingGiftEventId != event.id) return;
+
+      final source = _avatarRegistry.globalCenterFor(event.senderPlayerId);
+      final target = _avatarRegistry.globalCenterFor(widget.player.id);
+
+      if (source == null || target == null) {
+        _finishGiftLanding(event);
+        return;
+      }
+
+      _flightOverlay?.remove();
+
+      late final OverlayEntry entry;
+      entry = OverlayEntry(
+        builder: (overlayContext) {
+          return Positioned.fill(
+            child: GiftFlightAnimation(
+              imageUrl: event.gift.imageUrl,
+              giftName: event.gift.name,
+              sourceGlobalCenter: source,
+              targetGlobalCenter: target,
+              onCompleted: () {
+                if (entry.mounted) {
+                  entry.remove();
+                }
+                if (identical(_flightOverlay, entry)) {
+                  _flightOverlay = null;
+                }
+                _finishGiftLanding(event);
+              },
+            ),
+          );
+        },
+      );
+
+      _flightOverlay = entry;
+      Overlay.of(context, rootOverlay: true).insert(entry);
+    });
+  }
+
+  void _finishGiftLanding(GiftRealtimeEvent event) {
+    if (!mounted || _pendingGiftEventId != event.id) {
+      return;
+    }
+
+    _giftRealtime.setActiveGiftAfterLanding(widget.player.id, event.gift);
+    setState(() {
+      _pendingGiftEventId = null;
+      _activeGift = event.gift;
+    });
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
+    final player = widget.player;
     final avatarBorderColor =
-        isActive
+        widget.isActive
             ? Colors.greenAccent
             : player.isMe
                 ? Colors.green
                 : Colors.white;
 
     final nameColor =
-        isActive
+        widget.isActive
             ? Colors.greenAccent
             : player.isMe
                 ? Colors.greenAccent
@@ -83,12 +289,16 @@ class PlayerAvatar extends StatelessWidget {
         ? '?'
         : player.name.trim().substring(0, 1).toUpperCase();
 
+    final realtimeGift = _activeGift;
+    final activeGiftImageUrl = realtimeGift?.imageUrl ?? widget.activeGiftImageUrl;
+    final activeGiftName = realtimeGift?.name ?? widget.activeGiftName;
     final hasActiveGift =
         (activeGiftImageUrl?.trim().isNotEmpty ?? false) ||
         (activeGiftName?.trim().isNotEmpty ?? false);
 
     return GestureDetector(
-      onTap: () => _handleTap(context),
+      key: _anchorKey,
+      onTap: _handleTap,
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -108,36 +318,33 @@ class PlayerAvatar extends StatelessWidget {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        if (isActive)
+                        if (widget.isActive)
                           SizedBox(
                             width: 68,
                             height: 68,
                             child: CircularProgressIndicator(
-                              value: turnProgress
+                              value: widget.turnProgress
                                   .clamp(0.0, 1.0)
                                   .toDouble(),
                               strokeWidth: 4,
                               backgroundColor:
-                                  Colors.black.withValues(
-                                alpha: 0.30,
-                              ),
+                                  Colors.black.withValues(alpha: 0.30),
                               valueColor:
                                   const AlwaysStoppedAnimation<Color>(
                                 Colors.greenAccent,
                               ),
                             ),
                           ),
-
                         Container(
                           width: 60,
                           height: 60,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              width: isActive ? 3 : 2.5,
+                              width: widget.isActive ? 3 : 2.5,
                               color: avatarBorderColor,
                             ),
-                            boxShadow: isActive
+                            boxShadow: widget.isActive
                                 ? [
                                     BoxShadow(
                                       color: Colors.greenAccent.withValues(
@@ -165,62 +372,49 @@ class PlayerAvatar extends StatelessWidget {
                     ),
                   ),
                 ),
-
                 Positioned(
                   top: 0,
                   right: 0,
                   child: _RoundBadge(
                     text: '${player.score}',
                     minWidth: 27,
-                    backgroundColor:
-                        const Color(0xFF0B1F33),
+                    backgroundColor: const Color(0xFF0B1F33),
                     borderColor: Colors.white,
                   ),
                 ),
-
-                if (isActive && turnSecondsLeft != null)
+                if (widget.isActive && widget.turnSecondsLeft != null)
                   Positioned(
                     left: 0,
                     top: 0,
                     child: _RoundBadge(
-                      text: '$turnSecondsLeft',
+                      text: '${widget.turnSecondsLeft}',
                       minWidth: 31,
-                      backgroundColor:
-                          const Color(0xFF123C2B),
-                      borderColor:
-                          Colors.greenAccent,
+                      backgroundColor: const Color(0xFF123C2B),
+                      borderColor: Colors.greenAccent,
                     ),
                   ),
-
-                if (isOnline != null)
+                if (widget.isOnline != null)
                   Positioned(
                     left: 10,
                     bottom: 5,
-                    child: _PresenceDot(isOnline: isOnline!),
+                    child: _PresenceDot(isOnline: widget.isOnline!),
                   ),
-
                 Positioned(
                   right: 0,
                   bottom: 0,
                   child: Container(
                     height: 24,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 7),
                     decoration: BoxDecoration(
                       color: const Color(0xFF15283A),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Colors.white.withValues(
-                          alpha: 0.78,
-                        ),
+                        color: Colors.white.withValues(alpha: 0.78),
                         width: 1.4,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(
-                            alpha: 0.28,
-                          ),
+                          color: Colors.black.withValues(alpha: 0.28),
                           blurRadius: 5,
                           offset: const Offset(0, 2),
                         ),
@@ -232,7 +426,7 @@ class PlayerAvatar extends StatelessWidget {
                         const _MiniDominoIcon(),
                         const SizedBox(width: 4),
                         Text(
-                          '$dominoCount',
+                          '${widget.dominoCount}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 11,
@@ -243,8 +437,7 @@ class PlayerAvatar extends StatelessWidget {
                     ),
                   ),
                 ),
-
-                if (hasActiveGift)
+                if (hasActiveGift && _pendingGiftEventId == null)
                   Positioned(
                     right: -17,
                     top: 31,
@@ -253,21 +446,16 @@ class PlayerAvatar extends StatelessWidget {
                       name: activeGiftName,
                     ),
                   ),
-
-                if (isOnline != null)
+                if (widget.isOnline != null)
                   Positioned.fill(
                     child: PlayerEmotionOverlay(playerId: player.id),
                   ),
               ],
             ),
           ),
-
           const SizedBox(height: 2),
-
           Text(
-            player.isMe
-                ? '${player.name} (Ты)'
-                : player.name,
+            player.isMe ? '${player.name} (Ты)' : player.name,
             style: TextStyle(
               color: nameColor,
               fontSize: 14,
@@ -380,19 +568,12 @@ class _RoundBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 27,
-      constraints: BoxConstraints(
-        minWidth: minWidth,
-      ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: 6,
-      ),
+      constraints: BoxConstraints(minWidth: minWidth),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: borderColor,
-          width: 1.8,
-        ),
+        border: Border.all(color: borderColor, width: 1.8),
         boxShadow: const [
           BoxShadow(
             color: Colors.black38,
@@ -428,16 +609,9 @@ class _MiniDominoIcon extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Expanded(
-            child: SizedBox(),
-          ),
-          Container(
-            height: 1,
-            color: const Color(0xFF15283A),
-          ),
-          const Expanded(
-            child: SizedBox(),
-          ),
+          const Expanded(child: SizedBox()),
+          Container(height: 1, color: const Color(0xFF15283A)),
+          const Expanded(child: SizedBox()),
         ],
       ),
     );

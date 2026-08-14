@@ -10,8 +10,9 @@ import '../models/room_player.dart';
 
 class ApiException implements Exception {
   final String message;
+  final int? statusCode;
 
-  const ApiException(this.message);
+  const ApiException(this.message, {this.statusCode});
 
   @override
   String toString() => message;
@@ -212,7 +213,10 @@ class ApiService {
     final rawGame = data['game'];
 
     if (rawGame is! Map) {
-      throw const ApiException('Сервер не вернул состояние игры.');
+      throw ApiException(
+        'Сервер не вернул состояние игры.',
+        statusCode: response.statusCode,
+      );
     }
 
     return MultiplayerGameState.fromJson(
@@ -228,6 +232,7 @@ class ApiService {
     } catch (_) {
       throw ApiException(
         'Сервер вернул некорректный ответ (${response.statusCode}).',
+        statusCode: response.statusCode,
       );
     }
 
@@ -235,7 +240,10 @@ class ApiService {
       return data;
     }
 
-    throw ApiException(_extractErrorMessage(data, response.statusCode));
+    throw ApiException(
+      _extractErrorMessage(data, response.statusCode),
+      statusCode: response.statusCode,
+    );
   }
 
   String _extractErrorMessage(dynamic data, int statusCode) {

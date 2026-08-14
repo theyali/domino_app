@@ -41,6 +41,8 @@ class MultiplayerPlayerState {
   final int seatIndex;
   final bool isOwner;
   final bool isActive;
+  final bool isOnline;
+  final DateTime? lastSeenAt;
   final int score;
   final int dominoCount;
 
@@ -50,6 +52,8 @@ class MultiplayerPlayerState {
     required this.seatIndex,
     required this.isOwner,
     required this.isActive,
+    required this.isOnline,
+    required this.lastSeenAt,
     required this.score,
     required this.dominoCount,
   });
@@ -61,6 +65,8 @@ class MultiplayerPlayerState {
       seatIndex: json['seat_index'] as int,
       isOwner: json['is_owner'] as bool? ?? false,
       isActive: json['is_active'] as bool? ?? true,
+      isOnline: json['is_online'] as bool? ?? false,
+      lastSeenAt: DateTime.tryParse(json['last_seen_at'] as String? ?? ''),
       score: json['score'] as int? ?? 0,
       dominoCount: json['domino_count'] as int? ?? 0,
     );
@@ -103,7 +109,10 @@ class MultiplayerRoundResult {
 
   static List<int> _intList(dynamic raw) {
     if (raw is! List) return const <int>[];
-    return raw.whereType<num>().map((value) => value.toInt()).toList(growable: false);
+    return raw
+        .whereType<num>()
+        .map((value) => value.toInt())
+        .toList(growable: false);
   }
 
   static Map<int, int> _intMap(dynamic raw) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../localization/app_localizations.dart';
 import '../models/game_room.dart';
 
 class JoinRoomRequest {
@@ -64,14 +65,20 @@ class _JoinRoomBottomSheetState extends State<JoinRoomBottomSheet> {
             ),
             const SizedBox(height: 6),
             Text(
-              '${widget.room.currentPlayers} / ${widget.room.maxPlayers} игроков',
+              context.tr(
+                'room_players',
+                arguments: {
+                  'current': widget.room.currentPlayers,
+                  'max': widget.room.maxPlayers,
+                },
+              ),
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Ты войдёшь под именем своего аккаунта.',
+              context.tr('join_account_description'),
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -84,7 +91,7 @@ class _JoinRoomBottomSheetState extends State<JoinRoomBottomSheet> {
                 maxLength: 64,
                 onSubmitted: (_) => _submit(),
                 decoration: InputDecoration(
-                  labelText: 'Пароль комнаты',
+                  labelText: context.tr('room_password'),
                   prefixIcon: const Icon(Icons.lock_outline_rounded),
                   border: const OutlineInputBorder(),
                   counterText: '',
@@ -110,7 +117,7 @@ class _JoinRoomBottomSheetState extends State<JoinRoomBottomSheet> {
               child: FilledButton.icon(
                 onPressed: _submit,
                 icon: const Icon(Icons.login_rounded),
-                label: const Text('Войти за стол'),
+                label: Text(context.tr('join_table')),
               ),
             ),
           ],

@@ -64,7 +64,6 @@ class _GiftFlightAnimationState extends State<GiftFlightAnimation>
       _isReady = true;
     });
 
-    HapticFeedback.selectionClick();
     _controller.forward(from: 0);
   }
 
@@ -282,7 +281,7 @@ class _LandingBurst extends StatelessWidget {
   Widget build(BuildContext context) {
     final eased = Curves.easeOutCubic.transform(progress);
     final fade = (1 - progress).clamp(0.0, 1.0).toDouble();
-    final radius = 20 + 34 * eased;
+    final radius = 22 + 35 * eased;
 
     return Positioned(
       left: center.dx - radius,
@@ -292,41 +291,86 @@ class _LandingBurst extends StatelessWidget {
         height: radius * 2,
         child: Stack(
           alignment: Alignment.center,
+          clipBehavior: Clip.none,
           children: [
-            Container(
-              width: radius * 1.55,
-              height: radius * 1.55,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.65 * fade),
-                  width: 1.5,
+            Transform.scale(
+              scale: 0.72 + eased * 0.62,
+              child: Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.56 * fade),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.pinkAccent.withValues(alpha: 0.20 * fade),
+                      blurRadius: 18,
+                      spreadRadius: 3,
+                    ),
+                  ],
                 ),
               ),
             ),
-            for (var i = 0; i < 6; i++)
-              Transform.rotate(
-                angle: (math.pi * 2 / 6) * i,
-                child: Transform.translate(
-                  offset: Offset(0, -radius * 0.72),
-                  child: Container(
-                    width: 5,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.amberAccent.withValues(alpha: 0.9 * fade),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.amberAccent.withValues(alpha: 0.5 * fade),
-                          blurRadius: 8,
-                          spreadRadius: 1,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+            for (var i = 0; i < 8; i++)
+              _HeartParticle(
+                index: i,
+                progress: eased,
+                opacity: fade,
+                radius: radius,
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HeartParticle extends StatelessWidget {
+  final int index;
+  final double progress;
+  final double opacity;
+  final double radius;
+
+  const _HeartParticle({
+    required this.index,
+    required this.progress,
+    required this.opacity,
+    required this.radius,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final angle = -math.pi / 2 + (math.pi * 2 / 8) * index;
+    final distance = radius * (0.18 + 0.70 * progress);
+    final wobble = math.sin(progress * math.pi * 2 + index) * 3.5;
+    final dx = math.cos(angle) * distance + math.cos(angle + math.pi / 2) * wobble;
+    final dy = math.sin(angle) * distance + math.sin(angle + math.pi / 2) * wobble;
+    final particleScale = 0.55 + math.sin(progress * math.pi) * 0.62;
+    final rotation = angle + math.pi / 2 + (1 - progress) * 0.45;
+
+    return Transform.translate(
+      offset: Offset(dx, dy),
+      child: Opacity(
+        opacity: opacity,
+        child: Transform.rotate(
+          angle: rotation,
+          child: Transform.scale(
+            scale: particleScale,
+            child: Icon(
+              Icons.favorite_rounded,
+              size: index.isEven ? 10 : 8,
+              color: index.isEven ? Colors.pinkAccent : Colors.redAccent,
+              shadows: [
+                Shadow(
+                  color: Colors.pinkAccent.withValues(alpha: 0.42 * opacity),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

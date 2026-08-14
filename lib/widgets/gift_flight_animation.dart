@@ -107,25 +107,26 @@ class _GiftFlightAnimationState extends State<GiftFlightAnimation>
         animation: _controller,
         builder: (context, child) {
           final raw = _controller.value;
-          final flightT = Curves.easeInOutCubic.transform(
-            (raw / 0.84).clamp(0.0, 1.0),
-          );
+          final flightInput = (raw / 0.84).clamp(0.0, 1.0).toDouble();
+          final flightT = Curves.easeInOutCubic.transform(flightInput);
           final center = _curvePoint(flightT);
 
-          final landingT = ((raw - 0.80) / 0.20).clamp(0.0, 1.0);
+          final landingT =
+              ((raw - 0.80) / 0.20).clamp(0.0, 1.0).toDouble();
           if (landingT > 0.08 && !_landingHapticSent) {
             _landingHapticSent = true;
             HapticFeedback.lightImpact();
           }
 
+          final scaleInput = (raw / 0.66).clamp(0.0, 1.0).toDouble();
           final flightScale = raw < 0.66
-              ? 0.46 +
-                  0.72 * Curves.easeOutBack.transform((raw / 0.66).clamp(0, 1))
+              ? 0.46 + 0.72 * Curves.easeOutBack.transform(scaleInput)
               : 1.18;
           final landingBounce = landingT == 0
               ? 0.0
               : math.sin(landingT * math.pi) * 0.22;
-          final landingShrink = 0.30 * Curves.easeOutCubic.transform(landingT);
+          final landingShrink =
+              0.30 * Curves.easeOutCubic.transform(landingT);
           final scale = flightScale + landingBounce - landingShrink;
 
           final rotation =
@@ -134,9 +135,15 @@ class _GiftFlightAnimationState extends State<GiftFlightAnimation>
               ? 1.0
               : 1 - Curves.easeIn.transform((raw - 0.97) / 0.03);
 
-          final trail1 = _curvePoint((flightT - 0.055).clamp(0.0, 1.0));
-          final trail2 = _curvePoint((flightT - 0.11).clamp(0.0, 1.0));
-          final trail3 = _curvePoint((flightT - 0.165).clamp(0.0, 1.0));
+          final trail1T =
+              (flightT - 0.055).clamp(0.0, 1.0).toDouble();
+          final trail2T =
+              (flightT - 0.11).clamp(0.0, 1.0).toDouble();
+          final trail3T =
+              (flightT - 0.165).clamp(0.0, 1.0).toDouble();
+          final trail1 = _curvePoint(trail1T);
+          final trail2 = _curvePoint(trail2T);
+          final trail3 = _curvePoint(trail3T);
 
           return Stack(
             clipBehavior: Clip.none,
@@ -167,7 +174,7 @@ class _GiftFlightAnimationState extends State<GiftFlightAnimation>
                 left: center.dx - _giftSize / 2,
                 top: center.dy - _giftSize / 2,
                 child: Opacity(
-                  opacity: opacity.clamp(0.0, 1.0),
+                  opacity: opacity.clamp(0.0, 1.0).toDouble(),
                   child: Transform.rotate(
                     angle: rotation,
                     child: Transform.scale(
@@ -236,6 +243,8 @@ class _TrailSpark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final safeOpacity = opacity.clamp(0.0, 1.0).toDouble();
+
     return Positioned(
       left: center.dx - size / 2,
       top: center.dy - size / 2,
@@ -244,11 +253,11 @@ class _TrailSpark extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.white.withValues(alpha: opacity.clamp(0.0, 1.0)),
+          color: Colors.white.withValues(alpha: safeOpacity),
           boxShadow: [
             BoxShadow(
               color: Colors.amberAccent.withValues(
-                alpha: (opacity * 0.9).clamp(0.0, 1.0),
+                alpha: (safeOpacity * 0.9).clamp(0.0, 1.0).toDouble(),
               ),
               blurRadius: size * 1.8,
               spreadRadius: 1,
@@ -272,7 +281,7 @@ class _LandingBurst extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final eased = Curves.easeOutCubic.transform(progress);
-    final fade = (1 - progress).clamp(0.0, 1.0);
+    final fade = (1 - progress).clamp(0.0, 1.0).toDouble();
     final radius = 20 + 34 * eased;
 
     return Positioned(

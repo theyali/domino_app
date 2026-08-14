@@ -139,6 +139,8 @@ class MultiplayerGameState {
   final int currentPlayerId;
   final int openingPlayerId;
   final int openingDominoId;
+  final DateTime? turnStartedAt;
+  final DateTime? turnDeadlineAt;
   final int boneyardCount;
   final int myPlayerId;
   final List<ServerDomino> myHand;
@@ -155,6 +157,8 @@ class MultiplayerGameState {
     required this.currentPlayerId,
     required this.openingPlayerId,
     required this.openingDominoId,
+    required this.turnStartedAt,
+    required this.turnDeadlineAt,
     required this.boneyardCount,
     required this.myPlayerId,
     required this.myHand,
@@ -178,6 +182,8 @@ class MultiplayerGameState {
       currentPlayerId: json['current_player_id'] as int,
       openingPlayerId: json['opening_player_id'] as int,
       openingDominoId: json['opening_domino_id'] as int,
+      turnStartedAt: DateTime.tryParse(json['turn_started_at'] as String? ?? ''),
+      turnDeadlineAt: DateTime.tryParse(json['turn_deadline_at'] as String? ?? ''),
       boneyardCount: json['boneyard_count'] as int? ?? 0,
       myPlayerId: json['my_player_id'] as int,
       myHand: rawHand

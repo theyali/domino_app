@@ -15,4 +15,12 @@ abstract final class AppColors {
   static const ink = Color(0xFF101820);
   static const badge = Color(0xFF102338);
   static const badgeLight = Color(0xFF2A4257);
+
+  static const brassLight = Color(0xFFFFD783);
+  static const brass = Color(0xFFD49A42);
+  static const brassDark = Color(0xFF704318);
+
+  static const rackWoodLight = Color(0xFF7A4B2D);
+  static const rackWood = Color(0xFF4C3021);
+  static const rackWoodDark = Color(0xFF201713);
 }

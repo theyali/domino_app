@@ -306,6 +306,8 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
     final avatarLetter = player.name.trim().isEmpty
         ? '?'
         : player.name.trim().substring(0, 1).toUpperCase();
+    final avatarUrl =
+        player.avatarUrl ?? PlayerAvatarCache.avatarUrlFor(player.id);
 
     final canvasWidth = widget.compact ? 82.0 : 90.0;
     final canvasHeight = widget.compact ? 66.0 : 76.0;
@@ -324,7 +326,8 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
     );
 
     final realtimeGift = _activeGift;
-    final activeGiftImageUrl = realtimeGift?.imageUrl ?? widget.activeGiftImageUrl;
+    final activeGiftImageUrl =
+        realtimeGift?.imageUrl ?? widget.activeGiftImageUrl;
     final activeGiftName = realtimeGift?.name ?? widget.activeGiftName;
     final hasActiveGift =
         (activeGiftImageUrl?.trim().isNotEmpty ?? false) ||
@@ -366,6 +369,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                           ],
                         ),
                         child: Container(
+                          clipBehavior: Clip.antiAlias,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: const LinearGradient(
@@ -382,19 +386,10 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                             ),
                           ),
                           alignment: Alignment.center,
-                          child: Text(
-                            avatarLetter,
-                            style: TextStyle(
-                              color: const Color(0xFF6242A3),
-                              fontSize: widget.compact ? 21 : 23,
-                              fontWeight: FontWeight.w900,
-                              shadows: const [
-                                Shadow(
-                                  color: Colors.white,
-                                  offset: Offset(0, 1),
-                                ),
-                              ],
-                            ),
+                          child: _AvatarFace(
+                            avatarUrl: avatarUrl,
+                            letter: avatarLetter,
+                            compact: widget.compact,
                           ),
                         ),
                       ),
@@ -530,6 +525,66 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   }
 }
 
+class _AvatarFace extends StatelessWidget {
+  final String? avatarUrl;
+  final String letter;
+  final bool compact;
+
+  const _AvatarFace({
+    required this.avatarUrl,
+    required this.letter,
+    required this.compact,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final normalizedUrl = avatarUrl?.trim();
+
+    Widget fallback() {
+      return Container(
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.cream,
+              Color(0xFFE2E6EB),
+            ],
+          ),
+        ),
+        child: Text(
+          letter,
+          style: TextStyle(
+            color: const Color(0xFF6242A3),
+            fontSize: compact ? 21 : 23,
+            fontWeight: FontWeight.w900,
+            shadows: const [
+              Shadow(
+                color: Colors.white,
+                offset: Offset(0, 1),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (normalizedUrl == null || normalizedUrl.isEmpty) {
+      return fallback();
+    }
+
+    return Image.network(
+      normalizedUrl,
+      width: double.infinity,
+      height: double.infinity,
+      fit: BoxFit.cover,
+      filterQuality: FilterQuality.high,
+      errorBuilder: (context, error, stackTrace) => fallback(),
+    );
+  }
+}
+
 class _ActiveGiftImage extends StatefulWidget {
   final String? imageUrl;
   final String? name;
@@ -573,10 +628,12 @@ class _ActiveGiftImageState extends State<_ActiveGiftImage>
 
   @override
   Widget build(BuildContext context) {
-    final fallbackName = context.appLanguage.code == 'az' ? 'Hədiyyə' : 'Подарок';
+    final fallbackName =
+        context.appLanguage.code == 'az' ? 'Hədiyyə' : 'Подарок';
 
     return Tooltip(
-      message: widget.name?.trim().isNotEmpty == true ? widget.name! : fallbackName,
+      message:
+          widget.name?.trim().isNotEmpty == true ? widget.name! : fallbackName,
       child: AnimatedBuilder(
         animation: _controller,
         child: SizedBox(

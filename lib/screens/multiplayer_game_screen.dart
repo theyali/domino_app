@@ -8,6 +8,7 @@ import '../models/player.dart';
 import '../models/restaurant.dart';
 import '../services/api_service.dart';
 import '../services/game_socket_service.dart';
+import '../theme/app_colors.dart';
 import '../widgets/domino_boneyard_draw_animation.dart';
 import '../widgets/domino_boneyard_pile.dart';
 import '../widgets/domino_placement_target.dart';
@@ -748,10 +749,10 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFF0D1B2A),
+        backgroundColor: AppColors.background,
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          backgroundColor: const Color(0xFF0D1B2A),
+          backgroundColor: AppColors.background,
           foregroundColor: Colors.white,
           elevation: 0,
           title: Text(widget.restaurant.name),
@@ -815,21 +816,51 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF1B5978),
-            Color(0xFF123B54),
-          ],
+        color: const Color(0xFF123B54),
+        image: const DecorationImage(
+          image: AssetImage('assets/texture/table.jpg'),
+          fit: BoxFit.cover,
         ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white24),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: AppColors.lime.withValues(alpha: 0.48),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.lime.withValues(alpha: 0.10),
+            blurRadius: 18,
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.30),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.26),
+                      const Color(0xFF07131D).withValues(alpha: 0.16),
+                      Colors.black.withValues(alpha: 0.38),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
           ..._buildOpponentAvatars(),
           Positioned.fill(
             child: Padding(
@@ -855,18 +886,21 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
               child: FilledButton.icon(
                 onPressed: _isSubmittingMove ? null : _passTurn,
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF183B52),
-                  foregroundColor: Colors.greenAccent,
-                  side: const BorderSide(color: Colors.greenAccent),
+                  backgroundColor: const Color(0xCC102230),
+                  foregroundColor: AppColors.lime,
+                  side: const BorderSide(color: AppColors.lime, width: 2),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
                 icon: const Icon(Icons.skip_next_rounded, size: 20),
                 label: Text(
                   context.tr('pass'),
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+                  style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
               ),
             ),
@@ -1023,7 +1057,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
         children: [
           Icon(
             isMyTurn ? Icons.touch_app_rounded : Icons.hourglass_top_rounded,
-            color: isMyTurn ? Colors.greenAccent : Colors.white54,
+            color: isMyTurn ? AppColors.lime : Colors.white54,
             size: 30,
           ),
           const SizedBox(height: 10),
@@ -1036,9 +1070,9 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
                   ),
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isMyTurn ? Colors.greenAccent : Colors.white70,
+              color: isMyTurn ? AppColors.lime : Colors.white70,
               fontSize: 16,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(height: 7),
@@ -1066,7 +1100,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(top: 5, bottom: 8),
-      decoration: const BoxDecoration(color: Color(0xFF111827)),
+      decoration: const BoxDecoration(color: AppColors.surface),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1126,19 +1160,19 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(11),
                       color: isSelected
-                          ? Colors.greenAccent.withValues(alpha: 0.08)
+                          ? AppColors.lime.withValues(alpha: 0.10)
                           : Colors.transparent,
                       border: Border.all(
                         color: isPlayable || isRequiredOpening
-                            ? Colors.greenAccent
+                            ? AppColors.lime
                             : Colors.transparent,
                         width: isSelected ? 3.4 : 3,
                       ),
                       boxShadow: isPlayable
                           ? [
                               BoxShadow(
-                                color: Colors.greenAccent.withValues(
-                                  alpha: isSelected ? 0.38 : 0.24,
+                                color: AppColors.lime.withValues(
+                                  alpha: isSelected ? 0.42 : 0.26,
                                 ),
                                 blurRadius: isSelected ? 18 : 12,
                               ),
@@ -1170,7 +1204,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
                                   height: 24,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2.5,
-                                    color: Colors.greenAccent,
+                                    color: AppColors.lime,
                                   ),
                                 ),
                               ),
@@ -1335,9 +1369,11 @@ class _RoundBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.28),
+        color: const Color(0xCC102230),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white24),
+        border: Border.all(
+          color: AppColors.lime.withValues(alpha: 0.32),
+        ),
       ),
       child: Text(
         context.tr(

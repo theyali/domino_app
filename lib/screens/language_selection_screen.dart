@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../localization/app_language.dart';
+import '../theme/app_colors.dart';
 
 class LanguageSelectionScreen extends StatelessWidget {
   final Future<void> Function(AppLanguage language) onSelected;
@@ -13,7 +14,7 @@ class LanguageSelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1B2A),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -26,14 +27,24 @@ class LanguageSelectionScreen extends StatelessWidget {
                     width: 86,
                     height: 86,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.08),
+                      color: AppColors.lime.withValues(alpha: 0.10),
                       borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: Colors.white12),
+                      border: Border.all(
+                        color: AppColors.lime.withValues(alpha: 0.55),
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.lime.withValues(alpha: 0.18),
+                          blurRadius: 24,
+                          spreadRadius: 2,
+                        ),
+                      ],
                     ),
                     child: const Icon(
                       Icons.casino_rounded,
                       size: 48,
-                      color: Colors.greenAccent,
+                      color: AppColors.lime,
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -115,7 +126,7 @@ class _LanguageButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF142638),
+      color: AppColors.surfaceRaised,
       borderRadius: BorderRadius.circular(22),
       child: InkWell(
         onTap: onTap,
@@ -125,8 +136,8 @@ class _LanguageButton extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
             border: Border.all(
-              color: isDefault ? Colors.greenAccent : Colors.white12,
-              width: isDefault ? 1.4 : 1,
+              color: isDefault ? AppColors.lime : Colors.white12,
+              width: isDefault ? 2 : 1,
             ),
           ),
           child: Row(
@@ -159,9 +170,9 @@ class _LanguageButton extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
-                color: Colors.white54,
+                color: isDefault ? AppColors.lime : Colors.white54,
               ),
             ],
           ),

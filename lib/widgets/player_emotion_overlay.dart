@@ -77,7 +77,9 @@ class _PlayerEmotionOverlayState extends State<PlayerEmotionOverlay> {
     _timers.clear();
 
     if (notify && mounted) {
-      setState(_visible.clear);
+      setState(() {
+        _visible.clear();
+      });
     } else {
       _visible.clear();
     }
@@ -196,7 +198,7 @@ class _EmotionBurstState extends State<_EmotionBurst>
         animation: _controller,
         builder: (context, child) {
           return Opacity(
-            opacity: _opacity.value.clamp(0.0, 1.0),
+            opacity: _opacity.value.clamp(0.0, 1.0).toDouble(),
             child: Transform.translate(
               offset: Offset(0, _rise.value),
               child: Transform.scale(

@@ -8,6 +8,7 @@ import '../models/multiplayer_game_state.dart';
 import '../models/restaurant.dart';
 import '../models/room_player.dart';
 import 'active_game_session_store.dart';
+import 'auth_session_store.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -28,6 +29,7 @@ class JoinRoomResult {
 
 class ApiService {
   static final ActiveGameSessionStore _sessionStore = ActiveGameSessionStore();
+  static final AuthSessionStore _authStore = AuthSessionStore();
 
   const ApiService();
 
@@ -72,7 +74,7 @@ class ApiService {
   }) async {
     final response = await http.post(
       ApiConfig.uri('/api/restaurants/$restaurantId/rooms/'),
-      headers: const {'Content-Type': 'application/json'},
+      headers: await _authorizedJsonHeaders(),
       body: jsonEncode({
         'owner_name': ownerName.trim(),
         'max_players': maxPlayers,
@@ -92,7 +94,7 @@ class ApiService {
   }) async {
     final response = await http.post(
       ApiConfig.uri('/api/rooms/$roomId/join/'),
-      headers: const {'Content-Type': 'application/json'},
+      headers: await _authorizedJsonHeaders(),
       body: jsonEncode({
         'player_name': playerName.trim(),
         'password': password,
@@ -213,6 +215,18 @@ class ApiService {
     );
 
     return _decodeGameStateResponse(response);
+  }
+
+  Future<Map<String, String>> _authorizedJsonHeaders() async {
+    final token = await _authStore.loadToken();
+    if (token == null) {
+      throw const ApiException('Сессия авторизации не найдена.', statusCode: 401);
+    }
+
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Token $token',
+    };
   }
 
   MultiplayerGameState _decodeGameStateResponse(http.Response response) {

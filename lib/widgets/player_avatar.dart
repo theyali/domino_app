@@ -27,7 +27,9 @@ class PlayerAvatar extends StatelessWidget {
   });
 
   Future<void> _handleTap(BuildContext context) async {
-    if (!player.isMe) {
+    final isMultiplayerAvatar = isOnline != null;
+
+    if (!player.isMe || !isMultiplayerAvatar) {
       onTap();
       return;
     }
@@ -64,6 +66,10 @@ class PlayerAvatar extends StatelessWidget {
             : player.isMe
                 ? Colors.greenAccent
                 : Colors.white;
+
+    final avatarLetter = player.name.trim().isEmpty
+        ? '?'
+        : player.name.trim().substring(0, 1).toUpperCase();
 
     return GestureDetector(
       onTap: () => _handleTap(context),
@@ -130,9 +136,7 @@ class PlayerAvatar extends StatelessWidget {
                           child: CircleAvatar(
                             backgroundColor: Colors.grey.shade300,
                             child: Text(
-                              player.name
-                                  .substring(0, 1)
-                                  .toUpperCase(),
+                              avatarLetter,
                               style: const TextStyle(
                                 color: Color(0xFF5B3A9E),
                                 fontSize: 23,
@@ -224,9 +228,10 @@ class PlayerAvatar extends StatelessWidget {
                   ),
                 ),
 
-                Positioned.fill(
-                  child: PlayerEmotionOverlay(playerId: player.id),
-                ),
+                if (isOnline != null)
+                  Positioned.fill(
+                    child: PlayerEmotionOverlay(playerId: player.id),
+                  ),
               ],
             ),
           ),

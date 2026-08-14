@@ -83,6 +83,7 @@ class GameSocketService with WidgetsBindingObserver {
     _manualClose = false;
     _reconnectAttempt = 0;
     _reconnectTimer?.cancel();
+    _reconnectTimer = null;
 
     _connectionGeneration += 1;
     final generation = _connectionGeneration;
@@ -157,116 +158,149 @@ class GameSocketService with WidgetsBindingObserver {
     _channel = channel;
 
     _channelSubscription = channel.stream.listen(
-      (event) => _handleIncomingMessage(event, generation),
-      onError: (_) => _handleDisconnected(generation),
-      onDone: () => _handleDisconnected(generation),
+      (event) => _handleIncomingMessage(
+        event,
+        generation: generation,
+        channel: channel,
+      ),
+      onError: (_) => _handleDisconnected(
+        generation: generation,
+        channel: channel,
+      ),
+      onDone: () => _handleDisconnected(
+        generation: generation,
+        channel: channel,
+      ),
       cancelOnError: false,
     );
 
     try {
       await channel.ready.timeout(const Duration(seconds: 8));
 
-      if (_disposed ||
-          _manualClose ||
-          generation != _connectionGeneration ||
-          !identical(_channel, channel)) {
+      if (!_isCurrentConnection(
+        generation: generation,
+        channel: channel,
+      )) {
         await channel.sink.close();
         return;
       }
 
       _lastPongAt = DateTime.now();
 
-      // Do not announce `connected` yet. Django sends room/game state right
-      // after accepting the socket. We switch to connected only after that
-      // authoritative state reaches Flutter, so the UI does not hide the
-      // reconnect indicator too early.
+      // Django sends room/game state immediately after accepting the socket.
+      // We announce `connected` only after that authoritative state reaches
+      // Flutter, not merely after the WebSocket handshake succeeds.
       if (_status != SocketConnectionStatus.connected) {
         _stateSyncTimer?.cancel();
         _stateSyncTimer = Timer(_stateSyncTimeout, () {
           _stateSyncTimer = null;
 
-          if (_disposed ||
-              _manualClose ||
-              generation != _connectionGeneration ||
+          if (!_isCurrentConnection(
+                generation: generation,
+                channel: channel,
+              ) ||
               _status == SocketConnectionStatus.connected) {
             return;
           }
 
           unawaited(channel.sink.close());
-          _handleDisconnected(generation);
+          _handleDisconnected(
+            generation: generation,
+            channel: channel,
+          );
         });
       }
 
       channel.sink.add(jsonEncode(const {'type': 'ping'}));
     } catch (_) {
-      _handleDisconnected(generation);
+      _handleDisconnected(
+        generation: generation,
+        channel: channel,
+      );
     }
   }
 
-  void _handleIncomingMessage(dynamic event, int generation) {
-    if (_disposed || generation != _connectionGeneration) return;
+  void _handleIncomingMessage(
+    dynamic event, {
+    required int generation,
+    required WebSocketChannel channel,
+  }) {
+    if (!_isCurrentConnection(
+      generation: generation,
+      channel: channel,
+    )) {
+      return;
+    }
+
     if (event is! String) return;
 
     try {
       final decoded = jsonDecode(event);
-      if (decoded is Map) {
-        final message = Map<String, dynamic>.from(decoded);
-        _lastPongAt = DateTime.now();
+      if (decoded is! Map) return;
 
-        final type = message['type'];
-        final isAuthoritativeState =
-            type == 'room_state' || type == 'game_started' || type == 'game_state';
+      final message = Map<String, dynamic>.from(decoded);
+      _lastPongAt = DateTime.now();
 
-        if (isAuthoritativeState &&
-            _status != SocketConnectionStatus.connected) {
-          _stateSyncTimer?.cancel();
-          _stateSyncTimer = null;
-          _reconnectAttempt = 0;
-          _setStatus(SocketConnectionStatus.connected);
-          _startHeartbeat(generation);
-        }
+      final type = message['type'];
+      final isAuthoritativeState =
+          type == 'room_state' || type == 'game_started' || type == 'game_state';
 
-        if (type == 'pong') {
-          return;
-        }
-
-        final roomId = _roomId;
-        final playerId = _playerId;
-
-        if ((type == 'game_started' || type == 'game_state') &&
-            roomId != null &&
-            playerId != null) {
-          unawaited(
-            _sessionStore.save(
-              roomId: roomId,
-              playerId: playerId,
-            ),
-          );
-        }
-
-        if (type == 'room_deleted' && roomId != null && playerId != null) {
-          unawaited(
-            _sessionStore.clearIfMatches(
-              roomId: roomId,
-              playerId: playerId,
-            ),
-          );
-        }
-
-        _messageController.add(message);
+      if (isAuthoritativeState &&
+          _status != SocketConnectionStatus.connected) {
+        _stateSyncTimer?.cancel();
+        _stateSyncTimer = null;
+        _reconnectAttempt = 0;
+        _setStatus(SocketConnectionStatus.connected);
+        _startHeartbeat(
+          generation: generation,
+          channel: channel,
+        );
       }
+
+      if (type == 'pong') {
+        return;
+      }
+
+      final roomId = _roomId;
+      final playerId = _playerId;
+
+      if ((type == 'game_started' || type == 'game_state') &&
+          roomId != null &&
+          playerId != null) {
+        unawaited(
+          _sessionStore.save(
+            roomId: roomId,
+            playerId: playerId,
+          ),
+        );
+      }
+
+      if (type == 'room_deleted' && roomId != null && playerId != null) {
+        unawaited(
+          _sessionStore.clearIfMatches(
+            roomId: roomId,
+            playerId: playerId,
+          ),
+        );
+      }
+
+      _messageController.add(message);
     } catch (_) {
       // Ignore malformed messages. The connection itself can stay alive.
     }
   }
 
-  void _startHeartbeat(int generation) {
+  void _startHeartbeat({
+    required int generation,
+    required WebSocketChannel channel,
+  }) {
     _heartbeatTimer?.cancel();
 
     _heartbeatTimer = Timer.periodic(_heartbeatInterval, (timer) {
-      if (_disposed ||
-          _manualClose ||
-          generation != _connectionGeneration ||
+      if (!_isCurrentConnection(
+            generation: generation,
+            channel: channel,
+          ) ||
           _status != SocketConnectionStatus.connected) {
         timer.cancel();
         return;
@@ -278,29 +312,44 @@ class GameSocketService with WidgetsBindingObserver {
         timer.cancel();
         _heartbeatTimer = null;
 
-        final channel = _channel;
-        if (channel != null) {
-          unawaited(channel.sink.close());
-        }
-        _handleDisconnected(generation);
+        unawaited(channel.sink.close());
+        _handleDisconnected(
+          generation: generation,
+          channel: channel,
+        );
         return;
       }
 
-      send(const {'type': 'ping'});
+      channel.sink.add(jsonEncode(const {'type': 'ping'}));
     });
   }
 
-  void _handleDisconnected(int generation) {
-    if (_disposed ||
-        _manualClose ||
-        generation != _connectionGeneration) {
+  void _handleDisconnected({
+    required int generation,
+    required WebSocketChannel channel,
+  }) {
+    if (!_isCurrentConnection(
+      generation: generation,
+      channel: channel,
+    )) {
       return;
     }
+
+    // Detach this exact socket before scheduling a replacement. Any delayed
+    // onDone/onError callback from it will then fail _isCurrentConnection and
+    // cannot knock a newer socket back into reconnecting state.
+    final subscription = _channelSubscription;
+    _channelSubscription = null;
+    _channel = null;
 
     _stateSyncTimer?.cancel();
     _stateSyncTimer = null;
     _heartbeatTimer?.cancel();
     _heartbeatTimer = null;
+    _lastPongAt = null;
+
+    unawaited(subscription?.cancel());
+
     _setStatus(SocketConnectionStatus.disconnected);
     _scheduleReconnect(generation);
   }
@@ -336,6 +385,16 @@ class GameSocketService with WidgetsBindingObserver {
         ),
       );
     });
+  }
+
+  bool _isCurrentConnection({
+    required int generation,
+    required WebSocketChannel channel,
+  }) {
+    return !_disposed &&
+        !_manualClose &&
+        generation == _connectionGeneration &&
+        identical(_channel, channel);
   }
 
   Future<void> _closeCurrentConnection() async {

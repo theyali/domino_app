@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../models/player.dart';
+import '../services/emotion_realtime_service.dart';
+import 'emotion_picker_sheet.dart';
+import 'player_emotion_overlay.dart';
 
 class PlayerAvatar extends StatelessWidget {
   final Player player;
@@ -23,6 +26,29 @@ class PlayerAvatar extends StatelessWidget {
     this.isOnline,
   });
 
+  Future<void> _handleTap(BuildContext context) async {
+    if (!player.isMe) {
+      onTap();
+      return;
+    }
+
+    final emotionAsset = await EmotionPickerSheet.show(context);
+    if (emotionAsset == null || !context.mounted) {
+      return;
+    }
+
+    final sent = EmotionRealtimeService.instance.sendEmotion(emotionAsset);
+    if (!sent && context.mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Эмоцию можно отправить после восстановления realtime.'),
+          ),
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final avatarBorderColor =
@@ -40,7 +66,7 @@ class PlayerAvatar extends StatelessWidget {
                 : Colors.white;
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => _handleTap(context),
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -196,6 +222,10 @@ class PlayerAvatar extends StatelessWidget {
                       ],
                     ),
                   ),
+                ),
+
+                Positioned.fill(
+                  child: PlayerEmotionOverlay(playerId: player.id),
                 ),
               ],
             ),

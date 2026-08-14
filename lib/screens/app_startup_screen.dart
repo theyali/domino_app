@@ -6,6 +6,7 @@ import '../models/restaurant.dart';
 import '../models/user_account.dart';
 import '../services/active_game_session_store.dart';
 import '../services/api_service.dart';
+import '../theme/app_colors.dart';
 import 'main_shell_screen.dart';
 import 'multiplayer_game_screen.dart';
 
@@ -209,7 +210,7 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1B2A),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -219,9 +220,18 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
               child: Container(
                 padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF142638),
+                  color: AppColors.surfaceRaised,
                   borderRadius: BorderRadius.circular(26),
-                  border: Border.all(color: Colors.white24),
+                  border: Border.all(
+                    color: AppColors.lime.withValues(alpha: 0.32),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.lime.withValues(alpha: 0.10),
+                      blurRadius: 24,
+                      spreadRadius: 1,
+                    ),
+                  ],
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -229,7 +239,7 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
                   children: [
                     const Icon(
                       Icons.history_rounded,
-                      color: Colors.greenAccent,
+                      color: AppColors.lime,
                       size: 46,
                     ),
                     const SizedBox(height: 12),
@@ -378,12 +388,12 @@ class _StartupLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1B2A),
+      backgroundColor: AppColors.background,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(color: Colors.greenAccent),
+            const CircularProgressIndicator(color: AppColors.lime),
             const SizedBox(height: 14),
             Text(
               context.tr('checking_active_game'),

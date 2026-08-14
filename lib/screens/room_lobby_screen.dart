@@ -284,9 +284,21 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
   Widget build(BuildContext context) {
     final localPlayer = _currentLocalPlayer;
     final isLocalOwner = localPlayer.isOwner;
-    final allPlayersReady = _room.currentPlayers >= _room.maxPlayers;
+    final activePlayers = _room.players
+        .where((player) => player.isActive)
+        .toList(growable: false);
+    final allPlayersReady = activePlayers.length >= _room.maxPlayers;
+    final localRealtimeConnected =
+        _socketStatus == SocketConnectionStatus.connected;
+    final allPlayersOnline = allPlayersReady &&
+        activePlayers.every(
+          (player) => player.id == widget.localPlayer.id
+              ? player.isOnline && localRealtimeConnected
+              : player.isOnline,
+        );
     final canStart =
         allPlayersReady &&
+        allPlayersOnline &&
         isLocalOwner &&
         _room.status == 'waiting' &&
         !_isStartingGame &&
@@ -314,6 +326,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                   restaurantName: widget.restaurant.name,
                   room: _room,
                   allPlayersReady: allPlayersReady,
+                  allPlayersOnline: allPlayersOnline,
                 ),
                 const SizedBox(height: 12),
                 _RealtimeStatus(status: _socketStatus),
@@ -330,6 +343,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                       seatIndex: seat,
                       player: _playerAtSeat(seat),
                       localPlayerId: widget.localPlayer.id,
+                      localRealtimeConnected: localRealtimeConnected,
                     ),
                   ),
                 if (_errorMessage != null) ...[
@@ -379,9 +393,11 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                 ],
                 Text(
                   allPlayersReady
-                      ? isLocalOwner
-                          ? 'Все игроки в сборе. Можно запускать серверную раздачу.'
-                          : 'Все игроки в сборе. Ожидаем запуск от создателя комнаты.'
+                      ? !allPlayersOnline
+                          ? 'Все места заняты, но кто-то временно offline. Ждём автоматическое переподключение.'
+                          : isLocalOwner
+                              ? 'Все игроки в сети. Можно запускать серверную раздачу.'
+                              : 'Все игроки в сети. Ожидаем запуск от создателя комнаты.'
                       : 'Ожидаем ещё ${_room.maxPlayers - _room.currentPlayers} игрока(ов).',
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -429,19 +445,19 @@ class _RealtimeStatus extends StatelessWidget {
       SocketConnectionStatus.connected => (
           Icons.bolt_rounded,
           'Realtime подключён',
-          'Игроки и запуск игры приходят автоматически',
+          'Состояние комнаты синхронизировано с сервером',
           false,
         ),
       SocketConnectionStatus.connecting => (
           Icons.sync_rounded,
           'Подключаем realtime',
-          'Устанавливаем WebSocket-соединение',
+          'Устанавливаем WebSocket и получаем актуальное состояние',
           true,
         ),
       SocketConnectionStatus.reconnecting => (
           Icons.sync_rounded,
           'Переподключаемся',
-          'Соединение восстановится автоматически',
+          'Место игрока сохранено, состояние восстановится автоматически',
           true,
         ),
       SocketConnectionStatus.disconnected => (
@@ -501,16 +517,29 @@ class _LobbyHeader extends StatelessWidget {
   final String restaurantName;
   final GameRoom room;
   final bool allPlayersReady;
+  final bool allPlayersOnline;
 
   const _LobbyHeader({
     required this.restaurantName,
     required this.room,
     required this.allPlayersReady,
+    required this.allPlayersOnline,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+
+    final icon = !allPlayersReady
+        ? Icons.hourglass_top_rounded
+        : allPlayersOnline
+            ? Icons.check_circle_rounded
+            : Icons.cloud_off_rounded;
+    final statusText = !allPlayersReady
+        ? 'Ожидание игроков'
+        : allPlayersOnline
+            ? 'Все игроки в сети'
+            : 'Ждём переподключение';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -546,17 +575,13 @@ class _LobbyHeader extends StatelessWidget {
           Row(
             children: [
               Icon(
-                allPlayersReady
-                    ? Icons.check_circle_rounded
-                    : Icons.hourglass_top_rounded,
+                icon,
                 color: colorScheme.onPrimaryContainer,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  allPlayersReady
-                      ? 'Все игроки в сборе'
-                      : 'Ожидание игроков',
+                  statusText,
                   style: TextStyle(
                     color: colorScheme.onPrimaryContainer,
                     fontWeight: FontWeight.w700,
@@ -583,17 +608,22 @@ class _LobbySeat extends StatelessWidget {
   final int seatIndex;
   final RoomPlayer? player;
   final int localPlayerId;
+  final bool localRealtimeConnected;
 
   const _LobbySeat({
     required this.seatIndex,
     required this.player,
     required this.localPlayerId,
+    required this.localRealtimeConnected,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isMe = player?.id == localPlayerId;
+    final isOnline = player != null &&
+        player!.isOnline &&
+        (!isMe || localRealtimeConnected);
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -610,22 +640,46 @@ class _LobbySeat extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: player == null
-                ? theme.colorScheme.surfaceContainerHighest
-                : theme.colorScheme.primary,
-            foregroundColor: player == null
-                ? theme.colorScheme.onSurfaceVariant
-                : theme.colorScheme.onPrimary,
-            child: player == null
-                ? const Icon(Icons.person_add_alt_1_rounded)
-                : Text(
-                    player!.name.isEmpty
-                        ? '?'
-                        : player!.name.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(fontWeight: FontWeight.w800),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: player == null
+                    ? theme.colorScheme.surfaceContainerHighest
+                    : theme.colorScheme.primary,
+                foregroundColor: player == null
+                    ? theme.colorScheme.onSurfaceVariant
+                    : theme.colorScheme.onPrimary,
+                child: player == null
+                    ? const Icon(Icons.person_add_alt_1_rounded)
+                    : Text(
+                        player!.name.isEmpty
+                            ? '?'
+                            : player!.name.substring(0, 1).toUpperCase(),
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+              ),
+              if (player != null)
+                Positioned(
+                  right: -1,
+                  bottom: -1,
+                  child: Container(
+                    width: 13,
+                    height: 13,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isOnline
+                          ? Colors.greenAccent.shade400
+                          : Colors.blueGrey.shade300,
+                      border: Border.all(
+                        color: theme.colorScheme.surface,
+                        width: 2,
+                      ),
+                    ),
                   ),
+                ),
+            ],
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -655,10 +709,49 @@ class _LobbySeat extends StatelessWidget {
             ),
           ),
           if (player != null)
-            Icon(
-              Icons.check_circle_rounded,
-              color: theme.colorScheme.primary,
+            _LobbyPresenceBadge(isOnline: isOnline),
+        ],
+      ),
+    );
+  }
+}
+
+class _LobbyPresenceBadge extends StatelessWidget {
+  final bool isOnline;
+
+  const _LobbyPresenceBadge({required this.isOnline});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = isOnline ? Colors.green.shade700 : Colors.blueGrey.shade600;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color,
             ),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            isOnline ? 'В сети' : 'Offline',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ],
       ),
     );

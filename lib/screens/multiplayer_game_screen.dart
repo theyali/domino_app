@@ -193,7 +193,9 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     }
 
     final remainingMilliseconds = deadline.difference(_serverNow).inMilliseconds;
-    return (remainingMilliseconds / totalMilliseconds).clamp(0.0, 1.0);
+    return (remainingMilliseconds / totalMilliseconds)
+        .clamp(0.0, 1.0)
+        .toDouble();
   }
 
   void _restartTurnTicker() {

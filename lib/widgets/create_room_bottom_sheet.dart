@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../localization/app_localizations.dart';
+
 class CreateRoomRequest {
   final String roomName;
   final int maxPlayers;
@@ -66,13 +68,13 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
               ),
             ),
             const SizedBox(height: 18),
-            const Text(
-              'Создать стол',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+            Text(
+              context.tr('create_table'),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 6),
             Text(
-              'Ты войдёшь под именем своего аккаунта. Выбери количество игроков и при желании поставь пароль.',
+              context.tr('create_table_account_description'),
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -82,17 +84,17 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
               controller: _roomNameController,
               maxLength: 80,
               textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Название стола (необязательно)',
-                prefixIcon: Icon(Icons.edit_outlined),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.tr('table_name_optional'),
+                prefixIcon: const Icon(Icons.edit_outlined),
+                border: const OutlineInputBorder(),
                 counterText: '',
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Количество игроков',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            Text(
+              context.tr('player_count'),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 10),
             SegmentedButton<int>(
@@ -117,7 +119,7 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
               obscureText: _obscurePassword,
               onSubmitted: (_) => _submit(),
               decoration: InputDecoration(
-                labelText: 'Пароль (необязательно)',
+                labelText: context.tr('password_optional'),
                 prefixIcon: const Icon(Icons.lock_outline_rounded),
                 border: const OutlineInputBorder(),
                 counterText: '',
@@ -142,7 +144,7 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
               child: FilledButton.icon(
                 onPressed: _submit,
                 icon: const Icon(Icons.add_rounded),
-                label: const Text('Создать комнату'),
+                label: Text(context.tr('create_room')),
               ),
             ),
           ],

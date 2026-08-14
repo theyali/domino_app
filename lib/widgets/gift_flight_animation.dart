@@ -93,8 +93,8 @@ class _GiftFlightAnimationState extends State<GiftFlightAnimation>
             clipBehavior: Clip.none,
             children: [
               Positioned(
-                left: center.dx - 25,
-                top: center.dy - 25,
+                left: center.dx - 29,
+                top: center.dy - 29,
                 child: Transform.rotate(
                   angle: rotation,
                   child: Transform.scale(
@@ -106,39 +106,27 @@ class _GiftFlightAnimationState extends State<GiftFlightAnimation>
             ],
           );
         },
-        child: Container(
-          width: 50,
-          height: 50,
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.amberAccent, width: 2.5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.32),
-                blurRadius: 11,
-                offset: const Offset(0, 5),
-              ),
-            ],
-          ),
-          child: ClipOval(
-            child: widget.imageUrl?.trim().isNotEmpty == true
-                ? Image.network(
-                    widget.imageUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
-                        Icons.card_giftcard_rounded,
-                        color: Color(0xFF5B3A9E),
-                      );
-                    },
-                  )
-                : const Icon(
-                    Icons.card_giftcard_rounded,
-                    color: Color(0xFF5B3A9E),
-                  ),
-          ),
+        child: SizedBox(
+          width: 58,
+          height: 58,
+          child: widget.imageUrl?.trim().isNotEmpty == true
+              ? Image.network(
+                  widget.imageUrl!,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(
+                      Icons.card_giftcard_rounded,
+                      color: Color(0xFF5B3A9E),
+                      size: 46,
+                    );
+                  },
+                )
+              : const Icon(
+                  Icons.card_giftcard_rounded,
+                  color: Color(0xFF5B3A9E),
+                  size: 46,
+                ),
         ),
       ),
     );

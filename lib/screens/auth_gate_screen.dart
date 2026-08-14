@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../localization/app_language.dart';
+import '../localization/app_localizations.dart';
 import '../models/user_account.dart';
 import '../services/active_game_session_store.dart';
 import '../services/api_service.dart';
@@ -7,6 +9,7 @@ import '../services/auth_service.dart';
 import '../services/auth_session_store.dart';
 import 'app_startup_screen.dart';
 import 'auth_screen.dart';
+import 'language_selection_screen.dart';
 
 class AuthGateScreen extends StatefulWidget {
   const AuthGateScreen({super.key});
@@ -82,7 +85,7 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Не удалось проверить авторизацию.';
+        _errorMessage = context.tr('auth_check_failed');
         _isLoading = false;
       });
     }
@@ -123,6 +126,8 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final languageController = LanguageScope.of(context);
+
     if (_isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -156,7 +161,7 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
                   FilledButton.icon(
                     onPressed: _restoreSession,
                     icon: const Icon(Icons.refresh_rounded),
-                    label: const Text('Повторить'),
+                    label: Text(context.tr('retry')),
                   ),
                   TextButton(
                     onPressed: () async {
@@ -169,13 +174,19 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
                         _errorMessage = null;
                       });
                     },
-                    child: const Text('Войти заново'),
+                    child: Text(context.tr('login_again')),
                   ),
                 ],
               ),
             ),
           ),
         ),
+      );
+    }
+
+    if (!languageController.hasSelectedLanguage) {
+      return LanguageSelectionScreen(
+        onSelected: languageController.setLanguage,
       );
     }
 

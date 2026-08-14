@@ -2,15 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class EmotionPickerSheet extends StatefulWidget {
-  const EmotionPickerSheet({super.key});
+  final ValueChanged<String> onSelected;
 
-  static Future<String?> show(BuildContext context) {
-    return showModalBottomSheet<String>(
+  const EmotionPickerSheet({
+    super.key,
+    required this.onSelected,
+  });
+
+  static Future<void> show(
+    BuildContext context, {
+    required ValueChanged<String> onSelected,
+  }) {
+    return showModalBottomSheet<void>(
       context: context,
       useSafeArea: true,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (context) => const EmotionPickerSheet(),
+      builder: (context) => EmotionPickerSheet(onSelected: onSelected),
     );
   }
 
@@ -63,7 +71,7 @@ class _EmotionPickerSheetState extends State<EmotionPickerSheet> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Нажимай сколько угодно — флуд разрешён 😄',
+              'Нажимай сколько угодно — меню останется открытым 😄',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall,
             ),
@@ -102,7 +110,7 @@ class _EmotionPickerSheetState extends State<EmotionPickerSheet> {
 
                       return InkWell(
                         borderRadius: BorderRadius.circular(16),
-                        onTap: () => Navigator.of(context).pop(asset),
+                        onTap: () => widget.onSelected(asset),
                         child: Ink(
                           decoration: BoxDecoration(
                             color: Theme.of(context)

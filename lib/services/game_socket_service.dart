@@ -7,6 +7,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../config/api_config.dart';
 import 'active_game_session_store.dart';
 import 'emotion_realtime_service.dart';
+import 'gift_realtime_service.dart';
 
 enum SocketConnectionStatus {
   disconnected,
@@ -26,6 +27,7 @@ class GameSocketService with WidgetsBindingObserver {
       StreamController<SocketConnectionStatus>.broadcast();
   final ActiveGameSessionStore _sessionStore;
   final EmotionRealtimeService _emotionService = EmotionRealtimeService.instance;
+  final GiftRealtimeService _giftService = GiftRealtimeService.instance;
 
   WebSocketChannel? _channel;
   StreamSubscription<dynamic>? _channelSubscription;
@@ -267,6 +269,7 @@ class GameSocketService with WidgetsBindingObserver {
       if (type == 'player_emotion') {
         _emotionService.handleSocketMessage(message);
       }
+      _giftService.handleSocketMessage(message);
 
       if (type == 'pong') {
         return;

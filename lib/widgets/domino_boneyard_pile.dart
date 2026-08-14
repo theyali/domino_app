@@ -27,7 +27,6 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
   late final AnimationController _pulseController;
   late final AnimationController _drawController;
   late final Animation<double> _scale;
-  late final Animation<double> _glow;
 
   @override
   void initState() {
@@ -35,7 +34,7 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
 
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 820),
+      duration: const Duration(milliseconds: 900),
     )..repeat(reverse: true);
 
     _drawController = AnimationController(
@@ -44,18 +43,8 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
     );
 
     _scale = Tween<double>(
-      begin: 0.985,
-      end: 1.035,
-    ).animate(
-      CurvedAnimation(
-        parent: _pulseController,
-        curve: Curves.easeInOut,
-      ),
-    );
-
-    _glow = Tween<double>(
-      begin: 0.14,
-      end: 0.30,
+      begin: 0.99,
+      end: 1.025,
     ).animate(
       CurvedAnimation(
         parent: _pulseController,
@@ -96,7 +85,6 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
           ]),
           builder: (context, child) {
             final pulseScale = widget.enabled ? _scale.value : 1.0;
-            final glow = widget.enabled ? _glow.value : 0.06;
 
             final drawProgress = _drawController.value;
             final drawDecay = 1 - drawProgress;
@@ -129,23 +117,17 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
                       ),
                       borderRadius: BorderRadius.circular(21),
                       border: Border.all(
-                        color: widget.enabled
-                            ? AppColors.lime.withValues(alpha: 0.88)
-                            : Colors.white.withValues(alpha: 0.20),
-                        width: widget.enabled ? 2 : 1.2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.42),
-                          blurRadius: 11,
-                          offset: const Offset(0, 6),
+                        color: AppColors.brass.withValues(
+                          alpha: widget.enabled ? 0.78 : 0.38,
                         ),
-                        if (widget.enabled)
-                          BoxShadow(
-                            color: AppColors.lime.withValues(alpha: glow),
-                            blurRadius: 16,
-                            spreadRadius: 1,
-                          ),
+                        width: widget.enabled ? 1.6 : 1.1,
+                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black45,
+                          blurRadius: 11,
+                          offset: Offset(0, 6),
+                        ),
                       ],
                     ),
                     child: Stack(
@@ -176,8 +158,8 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
                               color: AppColors.badge,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: AppColors.lime.withValues(alpha: 0.72),
-                                width: 1.2,
+                                color: AppColors.brass.withValues(alpha: 0.62),
+                                width: 1.1,
                               ),
                             ),
                             child: Icon(

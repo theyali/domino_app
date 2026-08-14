@@ -54,8 +54,8 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
     );
 
     _glow = Tween<double>(
-      begin: 0.16,
-      end: 0.34,
+      begin: 0.14,
+      end: 0.30,
     ).animate(
       CurvedAnimation(
         parent: _pulseController,
@@ -84,164 +84,167 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
   Widget build(BuildContext context) {
     final boneyardLabel = context.appLanguage.code == 'az' ? 'Bazar' : 'Базар';
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: widget.enabled ? widget.onTap : null,
-      child: AnimatedBuilder(
-        animation: Listenable.merge([
-          _pulseController,
-          _drawController,
-        ]),
-        builder: (context, child) {
-          final pulseScale = widget.enabled ? _scale.value : 1.0;
-          final glow = widget.enabled ? _glow.value : 0.08;
+    return Tooltip(
+      message: '$boneyardLabel: ${widget.count}',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.enabled ? widget.onTap : null,
+        child: AnimatedBuilder(
+          animation: Listenable.merge([
+            _pulseController,
+            _drawController,
+          ]),
+          builder: (context, child) {
+            final pulseScale = widget.enabled ? _scale.value : 1.0;
+            final glow = widget.enabled ? _glow.value : 0.06;
 
-          final drawProgress = _drawController.value;
-          final drawDecay = 1 - drawProgress;
-          final shakeX = math.sin(drawProgress * math.pi * 5) *
-              drawDecay *
-              4.2;
-          final shakeRotation = math.sin(drawProgress * math.pi * 4) *
-              drawDecay *
-              0.042;
-          final drawScale =
-              1 - math.sin(drawProgress * math.pi) * 0.05;
+            final drawProgress = _drawController.value;
+            final drawDecay = 1 - drawProgress;
+            final shakeX = math.sin(drawProgress * math.pi * 5) *
+                drawDecay *
+                4.0;
+            final shakeRotation = math.sin(drawProgress * math.pi * 4) *
+                drawDecay *
+                0.04;
+            final drawScale =
+                1 - math.sin(drawProgress * math.pi) * 0.05;
 
-          return Transform.translate(
-            offset: Offset(shakeX, 0),
-            child: Transform.rotate(
-              angle: shakeRotation,
-              child: Transform.scale(
-                scale: pulseScale * drawScale,
-                child: Container(
-                  width: 82,
-                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        AppColors.panelTop,
-                        AppColors.panelBottom,
+            return Transform.translate(
+              offset: Offset(shakeX, 0),
+              child: Transform.rotate(
+                angle: shakeRotation,
+                child: Transform.scale(
+                  scale: pulseScale * drawScale,
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppColors.panelTop,
+                          AppColors.panelBottom,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(21),
+                      border: Border.all(
+                        color: widget.enabled
+                            ? AppColors.lime.withValues(alpha: 0.88)
+                            : Colors.white.withValues(alpha: 0.20),
+                        width: widget.enabled ? 2 : 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.42),
+                          blurRadius: 11,
+                          offset: const Offset(0, 6),
+                        ),
+                        if (widget.enabled)
+                          BoxShadow(
+                            color: AppColors.lime.withValues(alpha: glow),
+                            blurRadius: 16,
+                            spreadRadius: 1,
+                          ),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(
-                      color: widget.enabled
-                          ? AppColors.lime
-                          : Colors.white.withValues(alpha: 0.24),
-                      width: widget.enabled ? 2.2 : 1.2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.42),
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
-                      ),
-                      if (widget.enabled)
-                        BoxShadow(
-                          color: AppColors.lime.withValues(alpha: glow),
-                          blurRadius: 18,
-                          spreadRadius: 1,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        const Positioned(
+                          left: 10,
+                          top: 14,
+                          child: _DominoBack(angle: -0.16),
                         ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 54,
-                        height: 50,
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            const Positioned(
-                              left: 4,
-                              top: 5,
-                              child: _DominoBack(angle: -0.13),
+                        const Positioned(
+                          left: 20,
+                          top: 10,
+                          child: _DominoBack(angle: -0.01),
+                        ),
+                        const Positioned(
+                          left: 30,
+                          top: 14,
+                          child: _DominoBack(angle: 0.16),
+                        ),
+                        Positioned(
+                          left: 5,
+                          bottom: 5,
+                          child: Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: AppColors.badge,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.lime.withValues(alpha: 0.72),
+                                width: 1.2,
+                              ),
                             ),
-                            const Positioned(
-                              left: 13,
-                              top: 3,
-                              child: _DominoBack(angle: 0.02),
+                            child: Icon(
+                              Icons.touch_app_rounded,
+                              color: widget.enabled
+                                  ? AppColors.lime
+                                  : Colors.white54,
+                              size: 13,
                             ),
-                            const Positioned(
-                              left: 22,
-                              top: 5,
-                              child: _DominoBack(angle: 0.13),
-                            ),
-                            Positioned(
-                              right: -3,
-                              top: -5,
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 180),
-                                transitionBuilder: (child, animation) {
-                                  return ScaleTransition(
-                                    scale: animation,
-                                    child: FadeTransition(
-                                      opacity: animation,
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                                child: Container(
-                                  key: ValueKey(widget.count),
-                                  constraints: const BoxConstraints(
-                                    minWidth: 25,
-                                    minHeight: 25,
+                          ),
+                        ),
+                        Positioned(
+                          right: -5,
+                          top: -6,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 180),
+                            transitionBuilder: (child, animation) {
+                              return ScaleTransition(
+                                scale: animation,
+                                child: FadeTransition(
+                                  opacity: animation,
+                                  child: child,
+                                ),
+                              );
+                            },
+                            child: Container(
+                              key: ValueKey(widget.count),
+                              constraints: const BoxConstraints(
+                                minWidth: 27,
+                                minHeight: 27,
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 5),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: AppColors.lime,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: AppColors.ink,
+                                  width: 1.6,
+                                ),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black45,
+                                    blurRadius: 5,
+                                    offset: Offset(0, 2),
                                   ),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 5,
-                                  ),
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.lime,
-                                    borderRadius: BorderRadius.circular(13),
-                                    border: Border.all(
-                                      color: Colors.black87,
-                                      width: 1.5,
-                                    ),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                        color: Colors.black38,
-                                        blurRadius: 5,
-                                        offset: Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Text(
-                                    '${widget.count}',
-                                    style: const TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                '${widget.count}',
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w900,
                                 ),
                               ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        boneyardLabel,
-                        style: TextStyle(
-                          color: widget.enabled
-                              ? AppColors.lime
-                              : Colors.white70,
-                          fontSize: 11.5,
-                          letterSpacing: 0.2,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -259,21 +262,21 @@ class _DominoBack extends StatelessWidget {
     return Transform.rotate(
       angle: angle,
       child: Container(
-        width: 24,
-        height: 40,
+        width: 21,
+        height: 36,
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF9AA8B6),
-              Color(0xFF566574),
+              Color(0xFFB7C4D0),
+              Color(0xFF5D6E7D),
             ],
           ),
           borderRadius: BorderRadius.circular(7),
           border: Border.all(
             color: AppColors.cream,
-            width: 1.8,
+            width: 1.7,
           ),
           boxShadow: const [
             BoxShadow(
@@ -285,8 +288,8 @@ class _DominoBack extends StatelessWidget {
         ),
         child: Center(
           child: Container(
-            width: 7,
-            height: 7,
+            width: 6.5,
+            height: 6.5,
             decoration: BoxDecoration(
               color: AppColors.badge,
               shape: BoxShape.circle,

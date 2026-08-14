@@ -136,6 +136,19 @@ class ApiService {
     return _decodeGameStateResponse(response);
   }
 
+  Future<MultiplayerGameState> startNextRound({
+    required int roomId,
+    required int playerId,
+  }) async {
+    final response = await http.post(
+      ApiConfig.uri('/api/rooms/$roomId/game/next-round/'),
+      headers: const {'Content-Type': 'application/json'},
+      body: jsonEncode({'player_id': playerId}),
+    );
+
+    return _decodeGameStateResponse(response);
+  }
+
   Future<MultiplayerGameState> fetchGameState({
     required int roomId,
     required int playerId,

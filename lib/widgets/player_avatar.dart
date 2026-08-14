@@ -15,6 +15,8 @@ import 'gift_flight_animation.dart';
 import 'multiplayer_gift_sheet.dart';
 import 'player_emotion_overlay.dart';
 
+enum PlayerGiftPlacement { left, right }
+
 class PlayerAvatar extends StatefulWidget {
   final Player player;
   final VoidCallback onTap;
@@ -25,6 +27,7 @@ class PlayerAvatar extends StatefulWidget {
   final bool? isOnline;
   final String? activeGiftImageUrl;
   final String? activeGiftName;
+  final PlayerGiftPlacement giftPlacement;
 
   const PlayerAvatar({
     super.key,
@@ -37,6 +40,7 @@ class PlayerAvatar extends StatefulWidget {
     this.isOnline,
     this.activeGiftImageUrl,
     this.activeGiftName,
+    this.giftPlacement = PlayerGiftPlacement.right,
   });
 
   @override
@@ -138,8 +142,6 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
     final emotionAsset = await EmotionPickerSheet.show(context);
     if (emotionAsset == null || !mounted) return;
 
-    // Сначала полностью закрываем sheet, затем отправляем realtime-событие.
-    // Благодаря этому отправитель видит свою же анимацию возле аватара.
     await Future<void>.delayed(const Duration(milliseconds: 170));
     if (!mounted) return;
 
@@ -199,8 +201,6 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
       return;
     }
 
-    // Новый подарок сразу скрывает старый badge. Новый badge появится только
-    // после завершения полёта.
     setState(() {
       _pendingGiftEventId = event.id;
     });
@@ -209,7 +209,14 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
       if (!mounted || _pendingGiftEventId != event.id) return;
 
       final source = _avatarRegistry.globalCenterFor(event.senderPlayerId);
-      final target = _avatarRegistry.globalCenterFor(widget.player.id);
+      final avatarTarget = _avatarRegistry.globalCenterFor(widget.player.id);
+      final target = avatarTarget == null
+          ? null
+          : avatarTarget +
+              Offset(
+                widget.giftPlacement == PlayerGiftPlacement.right ? 58 : -58,
+                -6,
+              );
 
       if (source == null || target == null) {
         _finishGiftLanding(event);
@@ -392,9 +399,14 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                 ),
                 if (hasActiveGift && _pendingGiftEventId == null)
                   Positioned(
-                    right: -17,
-                    top: 31,
-                    child: _ActiveGiftBadge(
+                    left: widget.giftPlacement == PlayerGiftPlacement.left
+                        ? -48
+                        : null,
+                    right: widget.giftPlacement == PlayerGiftPlacement.right
+                        ? -48
+                        : null,
+                    top: 18,
+                    child: _ActiveGiftImage(
                       imageUrl: activeGiftImageUrl,
                       name: activeGiftName,
                     ),
@@ -421,51 +433,37 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   }
 }
 
-class _ActiveGiftBadge extends StatelessWidget {
+class _ActiveGiftImage extends StatelessWidget {
   final String? imageUrl;
   final String? name;
 
-  const _ActiveGiftBadge({required this.imageUrl, required this.name});
+  const _ActiveGiftImage({required this.imageUrl, required this.name});
 
   @override
   Widget build(BuildContext context) {
     return Tooltip(
       message: name?.trim().isNotEmpty == true ? name! : 'Подарок',
-      child: Container(
-        width: 34,
-        height: 34,
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.amberAccent, width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.34),
-              blurRadius: 7,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: ClipOval(
-          child: imageUrl?.trim().isNotEmpty == true
-              ? Image.network(
-                  imageUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(
-                      Icons.card_giftcard_rounded,
-                      color: Color(0xFF5B3A9E),
-                      size: 20,
-                    );
-                  },
-                )
-              : const Icon(
-                  Icons.card_giftcard_rounded,
-                  color: Color(0xFF5B3A9E),
-                  size: 20,
-                ),
-        ),
+      child: SizedBox(
+        width: 44,
+        height: 44,
+        child: imageUrl?.trim().isNotEmpty == true
+            ? Image.network(
+                imageUrl!,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(
+                    Icons.card_giftcard_rounded,
+                    color: Colors.amberAccent,
+                    size: 34,
+                  );
+                },
+              )
+            : const Icon(
+                Icons.card_giftcard_rounded,
+                color: Colors.amberAccent,
+                size: 34,
+              ),
       ),
     );
   }

@@ -213,6 +213,19 @@ class ApiService {
     return _decodeGameStateResponse(response);
   }
 
+  Future<MultiplayerGameState> surrenderGame({
+    required int roomId,
+    required int playerId,
+  }) async {
+    final response = await http.post(
+      ApiConfig.uri('/api/rooms/$roomId/game/surrender/'),
+      headers: const {'Content-Type': 'application/json'},
+      body: jsonEncode({'player_id': playerId}),
+    );
+
+    return _decodeGameStateResponse(response);
+  }
+
   Future<Map<String, String>> _authorizedJsonHeaders() async {
     final token = await _authStore.loadToken();
     if (token == null) {

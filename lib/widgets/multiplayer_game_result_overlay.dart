@@ -32,7 +32,7 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
     final reasonSubtitle = _reasonSubtitle(context, result);
 
     return Material(
-      color: Colors.black.withValues(alpha: 0.78),
+      color: Colors.black.withValues(alpha: 0.74),
       child: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -42,16 +42,29 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF102333),
-                  borderRadius: BorderRadius.circular(24),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppColors.panelTop,
+                      AppColors.panelBottom,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(30),
                   border: Border.all(
-                    color: AppColors.lime.withValues(alpha: 0.28),
+                    color: AppColors.lime.withValues(alpha: 0.58),
+                    width: 2,
                   ),
                   boxShadow: [
+                    const BoxShadow(
+                      color: Colors.black87,
+                      blurRadius: 34,
+                      offset: Offset(0, 16),
+                    ),
                     BoxShadow(
-                      color: AppColors.lime.withValues(alpha: 0.08),
-                      blurRadius: 28,
-                      offset: const Offset(0, 12),
+                      color: AppColors.lime.withValues(alpha: 0.10),
+                      blurRadius: 24,
+                      spreadRadius: 2,
                     ),
                   ],
                 ),
@@ -59,26 +72,61 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(
-                      isMatchFinished
-                          ? Icons.emoji_events_rounded
-                          : result.reason == 'fish'
-                              ? Icons.water_rounded
-                              : Icons.flag_rounded,
-                      color: Colors.amberAccent,
-                      size: 46,
+                    Center(
+                      child: Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppColors.limeSoft,
+                              AppColors.lime,
+                              AppColors.limeDark,
+                            ],
+                          ),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.ink,
+                            width: 2.5,
+                          ),
+                          boxShadow: [
+                            const BoxShadow(
+                              color: Colors.black54,
+                              blurRadius: 10,
+                              offset: Offset(0, 5),
+                            ),
+                            BoxShadow(
+                              color: AppColors.lime.withValues(alpha: 0.24),
+                              blurRadius: 18,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          isMatchFinished
+                              ? Icons.emoji_events_rounded
+                              : result.reason == 'fish'
+                                  ? Icons.water_rounded
+                                  : Icons.flag_rounded,
+                          color: Colors.black,
+                          size: 38,
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 14),
                     Text(
                       reasonTitle,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 24,
+                        fontSize: 25,
                         fontWeight: FontWeight.w900,
+                        letterSpacing: 0.2,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 7),
                     Text(
                       reasonSubtitle,
                       textAlign: TextAlign.center,
@@ -86,6 +134,7 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                         color: Colors.white70,
                         fontSize: 13,
                         height: 1.35,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -101,17 +150,30 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                     if (gameState.isRoundFinished) ...[
                       if (gameState.myPlayer.isOwner)
                         SizedBox(
-                          height: 50,
+                          height: 52,
                           child: FilledButton.icon(
                             onPressed: isStartingNextRound || isLeaving
                                 ? null
                                 : onNextRound,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.lime,
+                              foregroundColor: Colors.black,
+                              elevation: 7,
+                              shadowColor: Colors.black54,
+                              side: const BorderSide(
+                                color: AppColors.ink,
+                                width: 2,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                            ),
                             icon: isStartingNextRound
                                 ? const SizedBox(
                                     width: 20,
                                     height: 20,
                                     child: CircularProgressIndicator(
-                                      strokeWidth: 2,
+                                      strokeWidth: 2.5,
                                       color: Colors.black,
                                     ),
                                   )
@@ -123,7 +185,7 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                                     : 'next_round',
                               ),
                               style: const TextStyle(
-                                fontWeight: FontWeight.w800,
+                                fontWeight: FontWeight.w900,
                               ),
                             ),
                           ),
@@ -132,13 +194,19 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.07),
-                            borderRadius: BorderRadius.circular(14),
+                            color: AppColors.badge.withValues(alpha: 0.78),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: AppColors.lime.withValues(alpha: 0.20),
+                            ),
                           ),
                           child: Text(
                             context.tr('wait_owner_next_round'),
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.white70),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       const SizedBox(height: 10),
@@ -147,11 +215,23 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                       height: 48,
                       child: OutlinedButton.icon(
                         onPressed: isLeaving ? null : onExit,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.28),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(17),
+                          ),
+                        ),
                         icon: isLeaving
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
                               )
                             : const Icon(Icons.logout_rounded),
                         label: Text(
@@ -261,29 +341,71 @@ class _PlayerResultRow extends StatelessWidget {
     final isRoundWinner = result.winnerPlayerIds.contains(player.id);
     final isMatchLoser = result.matchLoserPlayerIds.contains(player.id);
 
+    final borderColor = isMatchLoser
+        ? Colors.redAccent.withValues(alpha: 0.72)
+        : isRoundWinner
+            ? AppColors.lime.withValues(alpha: 0.74)
+            : Colors.white.withValues(alpha: 0.10);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isMatchLoser
-              ? Colors.redAccent.withValues(alpha: 0.65)
-              : isRoundWinner
-                  ? AppColors.lime.withValues(alpha: 0.65)
-                  : Colors.white12,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.badgeLight.withValues(alpha: 0.82),
+            AppColors.badge.withValues(alpha: 0.92),
+          ],
         ),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(
+          color: borderColor,
+          width: isRoundWinner || isMatchLoser ? 1.6 : 1,
+        ),
+        boxShadow: [
+          if (isRoundWinner)
+            BoxShadow(
+              color: AppColors.lime.withValues(alpha: 0.08),
+              blurRadius: 12,
+            ),
+        ],
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 17,
-            backgroundColor: Colors.white12,
+          Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: isRoundWinner
+                  ? const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.limeSoft,
+                        AppColors.lime,
+                      ],
+                    )
+                  : const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFFEDF1F5),
+                        Color(0xFFAAB5C0),
+                      ],
+                    ),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.ink,
+                width: 1.5,
+              ),
+            ),
             child: Text(
               player.name.isEmpty ? '?' : player.name[0].toUpperCase(),
               style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
+                color: AppColors.ink,
+                fontWeight: FontWeight.w900,
               ),
             ),
           ),
@@ -298,9 +420,11 @@ class _PlayerResultRow extends StatelessWidget {
                       child: Text(
                         player.name,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
+                        style: TextStyle(
+                          color: isRoundWinner
+                              ? AppColors.limeSoft
+                              : Colors.white,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                     ),
@@ -334,12 +458,23 @@ class _PlayerResultRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            '$total',
-            style: TextStyle(
-              color: isMatchLoser ? Colors.redAccent : Colors.amberAccent,
-              fontSize: 19,
-              fontWeight: FontWeight.w900,
+          Container(
+            constraints: const BoxConstraints(minWidth: 42),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: isMatchLoser
+                  ? Colors.redAccent.withValues(alpha: 0.14)
+                  : AppColors.lime.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Text(
+              '$total',
+              style: TextStyle(
+                color: isMatchLoser ? Colors.redAccent : AppColors.lime,
+                fontSize: 19,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],

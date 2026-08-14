@@ -10,6 +10,7 @@ class PlayerAvatar extends StatelessWidget {
   final int? turnSecondsLeft;
   final double turnProgress;
   final int dominoCount;
+  final bool? isOnline;
 
   const PlayerAvatar({
     super.key,
@@ -19,6 +20,7 @@ class PlayerAvatar extends StatelessWidget {
     this.isActive = false,
     this.turnSecondsLeft,
     this.turnProgress = 0,
+    this.isOnline,
   });
 
   @override
@@ -144,6 +146,13 @@ class PlayerAvatar extends StatelessWidget {
                     ),
                   ),
 
+                if (isOnline != null)
+                  Positioned(
+                    left: 10,
+                    bottom: 5,
+                    child: _PresenceDot(isOnline: isOnline!),
+                  ),
+
                 Positioned(
                   right: 0,
                   bottom: 0,
@@ -203,6 +212,36 @@ class PlayerAvatar extends StatelessWidget {
               fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PresenceDot extends StatelessWidget {
+  final bool isOnline;
+
+  const _PresenceDot({required this.isOnline});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isOnline ? Colors.greenAccent : Colors.blueGrey.shade300;
+
+    return Container(
+      width: 15,
+      height: 15,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        border: Border.all(
+          color: const Color(0xFF0D1B2A),
+          width: 2.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 4,
           ),
         ],
       ),

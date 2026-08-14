@@ -1,4 +1,5 @@
 import 'domino.dart';
+import 'gift.dart';
 
 class ServerDomino {
   final int id;
@@ -37,6 +38,7 @@ class ServerDomino {
 
 class MultiplayerPlayerState {
   final int id;
+  final int? userId;
   final String name;
   final int seatIndex;
   final bool isOwner;
@@ -45,9 +47,11 @@ class MultiplayerPlayerState {
   final DateTime? lastSeenAt;
   final int score;
   final int dominoCount;
+  final Gift? activeGift;
 
   const MultiplayerPlayerState({
     required this.id,
+    required this.userId,
     required this.name,
     required this.seatIndex,
     required this.isOwner,
@@ -56,11 +60,15 @@ class MultiplayerPlayerState {
     required this.lastSeenAt,
     required this.score,
     required this.dominoCount,
+    required this.activeGift,
   });
 
   factory MultiplayerPlayerState.fromJson(Map<String, dynamic> json) {
+    final rawActiveGift = json['active_gift'];
+
     return MultiplayerPlayerState(
       id: json['id'] as int,
+      userId: json['user_id'] as int?,
       name: json['name'] as String,
       seatIndex: json['seat_index'] as int,
       isOwner: json['is_owner'] as bool? ?? false,
@@ -69,6 +77,11 @@ class MultiplayerPlayerState {
       lastSeenAt: DateTime.tryParse(json['last_seen_at'] as String? ?? ''),
       score: json['score'] as int? ?? 0,
       dominoCount: json['domino_count'] as int? ?? 0,
+      activeGift: rawActiveGift is Map
+          ? Gift.fromRealtimeJson(
+              Map<String, dynamic>.from(rawActiveGift),
+            )
+          : null,
     );
   }
 }

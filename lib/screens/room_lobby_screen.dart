@@ -654,23 +654,7 @@ class _LobbySeat extends StatelessWidget {
           Stack(
             clipBehavior: Clip.none,
             children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: player == null
-                    ? theme.colorScheme.surfaceContainerHighest
-                    : theme.colorScheme.primary,
-                foregroundColor: player == null
-                    ? theme.colorScheme.onSurfaceVariant
-                    : theme.colorScheme.onPrimary,
-                child: player == null
-                    ? const Icon(Icons.person_add_alt_1_rounded)
-                    : Text(
-                        player!.name.isEmpty
-                            ? '?'
-                            : player!.name.substring(0, 1).toUpperCase(),
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-              ),
+              _LobbyAvatar(player: player),
               if (player != null)
                 Positioned(
                   right: -1,
@@ -721,6 +705,75 @@ class _LobbySeat extends StatelessWidget {
           if (player != null)
             _LobbyPresenceBadge(isOnline: isOnline),
         ],
+      ),
+    );
+  }
+}
+
+class _LobbyAvatar extends StatelessWidget {
+  final RoomPlayer? player;
+
+  const _LobbyAvatar({required this.player});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final current = player;
+
+    if (current == null) {
+      return CircleAvatar(
+        radius: 22,
+        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+        foregroundColor: theme.colorScheme.onSurfaceVariant,
+        child: const Icon(Icons.person_add_alt_1_rounded),
+      );
+    }
+
+    final letter = current.name.isEmpty
+        ? '?'
+        : current.name.substring(0, 1).toUpperCase();
+    final avatarUrl = current.avatarUrl;
+
+    return Container(
+      width: 46,
+      height: 46,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: theme.colorScheme.primary,
+      ),
+      child: ClipOval(
+        child: avatarUrl != null && avatarUrl.isNotEmpty
+            ? Image.network(
+                avatarUrl,
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.high,
+                errorBuilder: (context, error, stackTrace) => _LobbyAvatarLetter(
+                  letter: letter,
+                ),
+              )
+            : _LobbyAvatarLetter(letter: letter),
+      ),
+    );
+  }
+}
+
+class _LobbyAvatarLetter extends StatelessWidget {
+  final String letter;
+
+  const _LobbyAvatarLetter({required this.letter});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Theme.of(context).colorScheme.primary,
+      alignment: Alignment.center,
+      child: Text(
+        letter,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onPrimary,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }

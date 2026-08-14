@@ -73,6 +73,7 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
 
     for (final player in widget.players) {
       if (player.id == widget.initialRecipientPlayerId &&
+          player.id != widget.myPlayerId &&
           player.isActive &&
           player.userId != null) {
         _recipientIds.add(player.id);
@@ -115,7 +116,10 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
 
   List<MultiplayerPlayerState> get _availableRecipients => widget.players
       .where(
-        (player) => player.isActive && player.userId != null,
+        (player) =>
+            player.id != widget.myPlayerId &&
+            player.isActive &&
+            player.userId != null,
       )
       .toList(growable: false);
 
@@ -137,6 +141,8 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
   }
 
   void _toggleRecipient(int playerId) {
+    if (playerId == widget.myPlayerId) return;
+
     setState(() {
       if (_recipientIds.contains(playerId)) {
         _recipientIds.remove(playerId);
@@ -149,6 +155,11 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
   Future<void> _submit() async {
     final gift = _selectedGift;
     if (gift == null || _recipientIds.isEmpty || _isPreparingGift) return;
+
+    if (_recipientIds.contains(widget.myPlayerId)) {
+      _recipientIds.remove(widget.myPlayerId);
+      if (_recipientIds.isEmpty) return;
+    }
 
     final missing = _missingCount;
 
@@ -232,8 +243,8 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
             const SizedBox(height: 5),
             Text(
               _isAzerbaijani
-                  ? 'Bir və ya bir neçə oyunçu seçin. Özünüzü də seçə bilərsiniz.'
-                  : 'Выбери одного или нескольких игроков. Можно выбрать и самого себя.',
+                  ? 'Bir və ya bir neçə başqa oyunçu seçin.'
+                  : 'Выбери одного или нескольких других игроков.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall,
             ),
@@ -258,11 +269,7 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
                             : player.name.trim()[0].toUpperCase(),
                       ),
                     ),
-                    label: Text(
-                      player.id == widget.myPlayerId
-                          ? '${player.name} (${_isAzerbaijani ? 'Sən' : 'Ты'})'
-                          : player.name,
-                    ),
+                    label: Text(player.name),
                   ),
               ],
             ),

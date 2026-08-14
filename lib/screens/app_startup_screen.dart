@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../localization/app_localizations.dart';
 import '../models/multiplayer_game_state.dart';
 import '../models/restaurant.dart';
 import '../models/user_account.dart';
@@ -93,7 +94,10 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
 
       restaurant ??= Restaurant(
         id: room.restaurantId,
-        name: 'Ресторан #${room.restaurantId}',
+        name: context.tr(
+          'restaurant_fallback',
+          arguments: {'id': room.restaurantId},
+        ),
         players: 0,
         active: true,
       );
@@ -132,7 +136,7 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
         _savedSession = savedSession;
         _gameState = null;
         _restaurant = null;
-        _errorMessage = 'Не удалось проверить сохранённую игру.';
+        _errorMessage = context.tr('saved_game_check_failed');
         _isLoading = false;
       });
     }
@@ -186,7 +190,7 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
       if (!mounted) return;
       setState(() {
         _isLeaving = false;
-        _errorMessage = 'Не удалось выйти из сохранённой игры.';
+        _errorMessage = context.tr('saved_game_leave_failed');
       });
     }
   }
@@ -229,10 +233,10 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
                       size: 46,
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'Есть незавершённая игра',
+                    Text(
+                      context.tr('unfinished_game'),
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 23,
                         fontWeight: FontWeight.w900,
@@ -240,7 +244,7 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _restaurant?.name ?? 'Сохранённый стол',
+                      _restaurant?.name ?? context.tr('saved_table'),
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.white70,
@@ -250,7 +254,10 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Стол #${_savedSession!.roomId}',
+                      context.tr(
+                        'table_number',
+                        arguments: {'number': _savedSession!.roomId},
+                      ),
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.white54),
                     ),
@@ -263,8 +270,13 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
                           borderRadius: BorderRadius.circular(15),
                         ),
                         child: Text(
-                          'Игрок: ${_gameState!.myPlayer.name}  ·  '
-                          'Раунд ${_gameState!.roundNumber}',
+                          context.tr(
+                            'player_round',
+                            arguments: {
+                              'player': _gameState!.myPlayer.name,
+                              'round': _gameState!.roundNumber,
+                            },
+                          ),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: Colors.white70,
@@ -296,9 +308,9 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
                         child: FilledButton.icon(
                           onPressed: _isLeaving ? null : _resumeGame,
                           icon: const Icon(Icons.play_arrow_rounded),
-                          label: const Text(
-                            'Вернуться в игру',
-                            style: TextStyle(fontWeight: FontWeight.w900),
+                          label: Text(
+                            context.tr('return_to_game'),
+                            style: const TextStyle(fontWeight: FontWeight.w900),
                           ),
                         ),
                       )
@@ -308,9 +320,9 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
                         child: FilledButton.icon(
                           onPressed: _isLeaving ? null : _loadSavedGame,
                           icon: const Icon(Icons.refresh_rounded),
-                          label: const Text(
-                            'Проверить снова',
-                            style: TextStyle(fontWeight: FontWeight.w900),
+                          label: Text(
+                            context.tr('check_again'),
+                            style: const TextStyle(fontWeight: FontWeight.w900),
                           ),
                         ),
                       ),
@@ -325,7 +337,7 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
                             )
                           : const Icon(Icons.logout_rounded),
                       label: Text(
-                        _isLeaving ? 'Выходим...' : 'Выйти из этой игры',
+                        context.tr(_isLeaving ? 'leaving' : 'leave_game'),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -337,14 +349,13 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
                                 _skipRecoveryForThisLaunch = true;
                               });
                             },
-                      child: const Text('Открыть список ресторанов'),
+                      child: Text(context.tr('open_restaurants')),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      'Если открыть рестораны, сохранённая игра не удалится. '
-                      'Она снова будет предложена при следующем запуске приложения.',
+                    Text(
+                      context.tr('saved_game_note'),
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white38,
                         fontSize: 11,
                         height: 1.35,
@@ -366,17 +377,17 @@ class _StartupLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFF0D1B2A),
+    return Scaffold(
+      backgroundColor: const Color(0xFF0D1B2A),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: Colors.greenAccent),
-            SizedBox(height: 14),
+            const CircularProgressIndicator(color: Colors.greenAccent),
+            const SizedBox(height: 14),
             Text(
-              'Проверяем активную игру...',
-              style: TextStyle(color: Colors.white70),
+              context.tr('checking_active_game'),
+              style: const TextStyle(color: Colors.white70),
             ),
           ],
         ),

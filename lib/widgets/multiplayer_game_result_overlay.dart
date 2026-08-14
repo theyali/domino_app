@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../localization/app_localizations.dart';
+import '../localization/game_action_strings.dart';
 import '../models/multiplayer_game_state.dart';
 import '../theme/app_colors.dart';
 
@@ -30,6 +31,7 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
     final isMatchFinished = gameState.isMatchFinished;
     final reasonTitle = _reasonTitle(context, result.reason, isMatchFinished);
     final reasonSubtitle = _reasonSubtitle(context, result);
+    final surrendered = result.reason == 'surrender';
 
     return Material(
       color: Colors.black.withValues(alpha: 0.74),
@@ -52,19 +54,14 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                   ),
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(
-                    color: AppColors.lime.withValues(alpha: 0.58),
-                    width: 2,
+                    color: AppColors.brass.withValues(alpha: 0.76),
+                    width: 1.8,
                   ),
-                  boxShadow: [
-                    const BoxShadow(
+                  boxShadow: const [
+                    BoxShadow(
                       color: Colors.black87,
                       blurRadius: 34,
                       offset: Offset(0, 16),
-                    ),
-                    BoxShadow(
-                      color: AppColors.lime.withValues(alpha: 0.10),
-                      blurRadius: 24,
-                      spreadRadius: 2,
                     ),
                   ],
                 ),
@@ -77,40 +74,48 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                         width: 72,
                         height: 72,
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              AppColors.limeSoft,
-                              AppColors.lime,
-                              AppColors.limeDark,
-                            ],
-                          ),
+                          gradient: surrendered
+                              ? const LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Color(0xFF31485B),
+                                    AppColors.badge,
+                                  ],
+                                )
+                              : const LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    AppColors.limeSoft,
+                                    AppColors.lime,
+                                    AppColors.limeDark,
+                                  ],
+                                ),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: AppColors.ink,
+                            color: surrendered
+                                ? AppColors.brass
+                                : AppColors.ink,
                             width: 2.5,
                           ),
-                          boxShadow: [
-                            const BoxShadow(
+                          boxShadow: const [
+                            BoxShadow(
                               color: Colors.black54,
                               blurRadius: 10,
                               offset: Offset(0, 5),
                             ),
-                            BoxShadow(
-                              color: AppColors.lime.withValues(alpha: 0.24),
-                              blurRadius: 18,
-                              spreadRadius: 2,
-                            ),
                           ],
                         ),
                         child: Icon(
-                          isMatchFinished
-                              ? Icons.emoji_events_rounded
-                              : result.reason == 'fish'
-                                  ? Icons.water_rounded
-                                  : Icons.flag_rounded,
-                          color: Colors.black,
+                          surrendered
+                              ? Icons.outlined_flag_rounded
+                              : isMatchFinished
+                                  ? Icons.emoji_events_rounded
+                                  : result.reason == 'fish'
+                                      ? Icons.water_rounded
+                                      : Icons.flag_rounded,
+                          color: surrendered ? AppColors.cream : Colors.black,
                           size: 38,
                         ),
                       ),
@@ -197,7 +202,7 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
                             color: AppColors.badge.withValues(alpha: 0.78),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: AppColors.lime.withValues(alpha: 0.20),
+                              color: AppColors.brass.withValues(alpha: 0.28),
                             ),
                           ),
                           child: Text(
@@ -255,6 +260,9 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
     String reason,
     bool isMatchFinished,
   ) {
+    if (reason == 'surrender') {
+      return GameActionStrings.of(context).surrenderResultTitle;
+    }
     if (reason == 'player_left') {
       return context.tr('match_finished_title');
     }
@@ -268,6 +276,17 @@ class MultiplayerGameResultOverlay extends StatelessWidget {
   }
 
   String _reasonSubtitle(BuildContext context, MultiplayerRoundResult result) {
+    if (result.reason == 'surrender') {
+      final surrenderedId = result.matchLoserPlayerIds.isEmpty
+          ? null
+          : result.matchLoserPlayerIds.first;
+      final player = _playerById(surrenderedId);
+      final strings = GameActionStrings.of(context);
+      return player == null
+          ? strings.surrenderResultTitle
+          : strings.surrenderedPlayer(player.name);
+    }
+
     if (result.reason == 'player_left') {
       final player = _playerById(result.leftPlayerId);
       return player == null

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../localization/app_localizations.dart';
 import '../models/game_room.dart';
 
 class GameRoomCard extends StatelessWidget {
@@ -65,7 +66,10 @@ class GameRoomCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      'Создатель: ${room.ownerName}',
+                      context.tr(
+                        'creator',
+                        arguments: {'name': room.ownerName},
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium,
@@ -92,7 +96,7 @@ class GameRoomCard extends StatelessWidget {
                         ),
                         const Spacer(),
                         Text(
-                          room.isFull ? 'Заполнено' : 'Войти',
+                          context.tr(room.isFull ? 'full' : 'join'),
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             color: canJoin

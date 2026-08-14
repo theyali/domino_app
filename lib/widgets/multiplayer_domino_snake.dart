@@ -153,9 +153,9 @@ class _SnakeLayout {
 /// Backend остаётся источником истины по порядку и ориентации костей.
 /// Widget отвечает только за визуальную трассу, пунктиры и анимацию.
 ///
-/// В отличие от старого временного layout, здесь первая сыгранная кость
-/// остаётся визуальным центром. Ходы влево достраивают левую ветку, а ходы
-/// вправо — правую, поэтому существующая цепочка не прыгает при insert(0).
+/// Первая сыгранная кость остаётся визуальным центром. Ходы влево
+/// достраивают левую ветку, а ходы вправо — правую, поэтому существующая
+/// цепочка не прыгает при серверном insert(0).
 class MultiplayerDominoSnake extends StatelessWidget {
   static const double _trackGap = 0;
   static const int _horizontalTrackSquares = 11;
@@ -199,7 +199,11 @@ class MultiplayerDominoSnake extends StatelessWidget {
           constraints.maxWidth.isFinite ? constraints.maxWidth : 1,
           constraints.maxHeight.isFinite ? constraints.maxHeight : 1,
         );
-        final layout = _createLayout(boardSize);
+        final layout = _createLayout(
+          boardSize,
+          targetDomino: selectedDomino?.domino,
+          targetSides: playableSides,
+        );
 
         return SizedBox(
           width: layout.width,
@@ -220,7 +224,6 @@ class MultiplayerDominoSnake extends StatelessWidget {
                   side: _BranchSide.left,
                   domino: selectedDomino!.domino,
                   shortSide: layout.dominoShortSide,
-                  boardSize: boardSize,
                   onTap: () => onTargetTap!('left'),
                 ),
               if (selectedDomino != null &&
@@ -231,7 +234,6 @@ class MultiplayerDominoSnake extends StatelessWidget {
                   side: _BranchSide.right,
                   domino: selectedDomino!.domino,
                   shortSide: layout.dominoShortSide,
-                  boardSize: boardSize,
                   onTap: () => onTargetTap!('right'),
                 ),
             ],
@@ -498,7 +500,51 @@ class MultiplayerDominoSnake extends StatelessWidget {
     );
   }
 
-  _TrackLayoutDraft _buildLayoutDraft({required double shortSide}) {
+  void _includeRectInBounds({
+    required Rect rect,
+    required List<double> bounds,
+  }) {
+    bounds[0] = math.min(bounds[0], rect.left);
+    bounds[1] = math.max(bounds[1], rect.right);
+    bounds[2] = math.min(bounds[2], rect.top);
+    bounds[3] = math.max(bounds[3], rect.bottom);
+  }
+
+  Rect _targetRectFor({
+    required _BranchTrackState state,
+    required _BranchSide side,
+    required Domino domino,
+    required double shortSide,
+  }) {
+    final direction = _nextDirectionFor(
+      state: state,
+      side: side,
+      domino: domino,
+    );
+    final geometry = _placeTrackStep(
+      connectionPoint: state.connectionPoint,
+      direction: direction,
+      domino: domino,
+      shortSide: shortSide,
+    );
+    final size = _displaySizeFor(
+      domino: domino,
+      direction: direction,
+      shortSide: shortSide,
+    );
+
+    return Rect.fromCenter(
+      center: geometry.center,
+      width: size.width,
+      height: size.height,
+    );
+  }
+
+  _TrackLayoutDraft _buildLayoutDraft({
+    required double shortSide,
+    Domino? targetDomino,
+    Set<String> targetSides = const <String>{},
+  }) {
     final openingIndex = _openingIndex();
     final opening = dominoes[openingIndex];
     final openingDomino = opening.domino;
@@ -547,10 +593,12 @@ class MultiplayerDominoSnake extends StatelessWidget {
       ...rightBranch.placements,
     ];
 
-    var minX = double.infinity;
-    var maxX = double.negativeInfinity;
-    var minY = double.infinity;
-    var maxY = double.negativeInfinity;
+    final bounds = <double>[
+      double.infinity,
+      double.negativeInfinity,
+      double.infinity,
+      double.negativeInfinity,
+    ];
 
     for (final placement in placements) {
       final size = _displaySizeFor(
@@ -559,24 +607,58 @@ class MultiplayerDominoSnake extends StatelessWidget {
         shortSide: shortSide,
       );
 
-      minX = math.min(minX, placement.center.dx - size.width / 2);
-      maxX = math.max(maxX, placement.center.dx + size.width / 2);
-      minY = math.min(minY, placement.center.dy - size.height / 2);
-      maxY = math.max(maxY, placement.center.dy + size.height / 2);
+      _includeRectInBounds(
+        rect: Rect.fromCenter(
+          center: placement.center,
+          width: size.width,
+          height: size.height,
+        ),
+        bounds: bounds,
+      );
+    }
+
+    // Пунктир участвует в расчёте fit/shift. Поэтому мы не двигаем его
+    // отдельно к безопасному краю: он остаётся точно на будущей траектории.
+    if (targetDomino != null && targetSides.contains('left')) {
+      _includeRectInBounds(
+        rect: _targetRectFor(
+          state: leftBranch.state,
+          side: _BranchSide.left,
+          domino: targetDomino,
+          shortSide: shortSide,
+        ),
+        bounds: bounds,
+      );
+    }
+
+    if (targetDomino != null && targetSides.contains('right')) {
+      _includeRectInBounds(
+        rect: _targetRectFor(
+          state: rightBranch.state,
+          side: _BranchSide.right,
+          domino: targetDomino,
+          shortSide: shortSide,
+        ),
+        bounds: bounds,
+      );
     }
 
     return _TrackLayoutDraft(
       placements: placements,
       leftState: leftBranch.state,
       rightState: rightBranch.state,
-      minX: minX,
-      maxX: maxX,
-      minY: minY,
-      maxY: maxY,
+      minX: bounds[0],
+      maxX: bounds[1],
+      minY: bounds[2],
+      maxY: bounds[3],
     );
   }
 
-  _SnakeLayout _createLayout(Size boardSize) {
+  _SnakeLayout _createLayout(
+    Size boardSize, {
+    Domino? targetDomino,
+    Set<String> targetSides = const <String>{},
+  }) {
     final preferredShortSide = _preferredShortSideForBoard(boardSize);
     final availableWidth = math.max(
       1.0,
@@ -588,7 +670,11 @@ class MultiplayerDominoSnake extends StatelessWidget {
     );
 
     var shortSide = preferredShortSide;
-    var draft = _buildLayoutDraft(shortSide: shortSide);
+    var draft = _buildLayoutDraft(
+      shortSide: shortSide,
+      targetDomino: targetDomino,
+      targetSides: targetSides,
+    );
 
     for (var attempt = 0; attempt < 4; attempt++) {
       final widthScale = draft.contentWidth <= 0
@@ -608,7 +694,11 @@ class MultiplayerDominoSnake extends StatelessWidget {
         1.0,
         shortSide * fitScale * 0.985,
       );
-      draft = _buildLayoutDraft(shortSide: shortSide);
+      draft = _buildLayoutDraft(
+        shortSide: shortSide,
+        targetDomino: targetDomino,
+        targetSides: targetSides,
+      );
     }
 
     final contentCenterX = (draft.minX + draft.maxX) / 2;
@@ -656,7 +746,6 @@ class MultiplayerDominoSnake extends StatelessWidget {
     required _BranchSide side,
     required Domino domino,
     required double shortSide,
-    required Size boardSize,
     required VoidCallback onTap,
   }) {
     final direction = _nextDirectionFor(
@@ -676,24 +765,9 @@ class MultiplayerDominoSnake extends StatelessWidget {
       shortSide: shortSide,
     );
 
-    const targetMargin = 4.0;
-    final rawLeft = geometry.center.dx - size.width / 2;
-    final rawTop = geometry.center.dy - size.height / 2;
-    final maxLeft = math.max(
-      targetMargin,
-      boardSize.width - targetMargin - size.width,
-    );
-    final maxTop = math.max(
-      targetMargin,
-      boardSize.height - targetMargin - size.height,
-    );
-
-    final safeLeft = rawLeft.clamp(targetMargin, maxLeft).toDouble();
-    final safeTop = rawTop.clamp(targetMargin, maxTop).toDouble();
-
     return Positioned(
-      left: safeLeft,
-      top: safeTop,
+      left: geometry.center.dx - size.width / 2,
+      top: geometry.center.dy - size.height / 2,
       child: DominoPlacementTarget(
         width: size.width,
         height: size.height,

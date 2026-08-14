@@ -755,7 +755,14 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
           backgroundColor: AppColors.background,
           foregroundColor: Colors.white,
           elevation: 0,
-          title: Text(widget.restaurant.name),
+          toolbarHeight: 60,
+          title: Text(
+            widget.restaurant.name,
+            style: const TextStyle(
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.2,
+            ),
+          ),
           centerTitle: true,
           leading: IconButton(
             onPressed: _isLeavingGame ? null : _requestExitGame,
@@ -823,10 +830,10 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
           image: AssetImage('assets/texture/table.jpg'),
           fit: BoxFit.cover,
         ),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          color: AppColors.lime.withValues(alpha: 0.48),
-          width: 2,
+          color: AppColors.lime.withValues(alpha: 0.58),
+          width: 2.4,
         ),
         boxShadow: [
           BoxShadow(
@@ -835,9 +842,9 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
             spreadRadius: 1,
           ),
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.30),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.34),
+            blurRadius: 18,
+            offset: const Offset(0, 9),
           ),
         ],
       ),
@@ -852,9 +859,9 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withValues(alpha: 0.26),
-                      const Color(0xFF07131D).withValues(alpha: 0.16),
-                      Colors.black.withValues(alpha: 0.38),
+                      Colors.black.withValues(alpha: 0.22),
+                      const Color(0xFF07131D).withValues(alpha: 0.12),
+                      Colors.black.withValues(alpha: 0.34),
                     ],
                   ),
                 ),
@@ -864,14 +871,14 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
           ..._buildOpponentAvatars(),
           Positioned.fill(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(10, 110, 10, 105),
+              padding: const EdgeInsets.fromLTRB(10, 114, 10, 108),
               child: _buildTableCenter(),
             ),
           ),
           if (_gameState.boneyardCount > 0)
             Positioned(
-              right: 14,
-              bottom: 14,
+              right: 13,
+              bottom: 13,
               child: DominoBoneyardPile(
                 key: _boneyardKey,
                 count: _gameState.boneyardCount,
@@ -886,27 +893,37 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
               child: FilledButton.icon(
                 onPressed: _isSubmittingMove ? null : _passTurn,
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xCC102230),
-                  foregroundColor: AppColors.lime,
-                  side: const BorderSide(color: AppColors.lime, width: 2),
+                  backgroundColor: AppColors.lime,
+                  foregroundColor: Colors.black,
+                  disabledBackgroundColor: AppColors.badgeLight,
+                  disabledForegroundColor: Colors.white38,
+                  elevation: 7,
+                  shadowColor: Colors.black54,
+                  side: const BorderSide(
+                    color: AppColors.ink,
+                    width: 2,
+                  ),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
+                    horizontal: 15,
+                    vertical: 11,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(18),
                   ),
                 ),
-                icon: const Icon(Icons.skip_next_rounded, size: 20),
+                icon: const Icon(Icons.skip_next_rounded, size: 21),
                 label: Text(
                   context.tr('pass'),
-                  style: const TextStyle(fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.2,
+                  ),
                 ),
               ),
             ),
           Positioned(
-            left: 14,
-            bottom: 16,
+            left: 13,
+            bottom: 15,
             child: _RoundBadge(roundNumber: _gameState.roundNumber),
           ),
         ],
@@ -1099,11 +1116,52 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.only(top: 5, bottom: 8),
-      decoration: const BoxDecoration(color: AppColors.surface),
+      margin: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+      padding: const EdgeInsets.fromLTRB(6, 8, 6, 8),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.panelTop,
+            AppColors.panelBottom,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(
+          color: isMyCurrentTurn
+              ? AppColors.lime.withValues(alpha: 0.52)
+              : Colors.white.withValues(alpha: 0.10),
+          width: isMyCurrentTurn ? 1.8 : 1,
+        ),
+        boxShadow: [
+          const BoxShadow(
+            color: Colors.black45,
+            blurRadius: 14,
+            offset: Offset(0, 7),
+          ),
+          if (isMyCurrentTurn)
+            BoxShadow(
+              color: AppColors.lime.withValues(alpha: 0.08),
+              blurRadius: 16,
+              spreadRadius: 1,
+            ),
+        ],
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Container(
+            width: 42,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 3),
+            decoration: BoxDecoration(
+              color: isMyCurrentTurn
+                  ? AppColors.lime.withValues(alpha: 0.70)
+                  : Colors.white24,
+              borderRadius: BorderRadius.circular(99),
+            ),
+          ),
           PlayerAvatar(
             key: _playerAvatarKeyFor(me.id),
             player: _toPlayer(me, isMe: true),
@@ -1118,14 +1176,29 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
             giftPlacement: PlayerGiftPlacement.right,
             onTap: () {},
           ),
-          const SizedBox(height: 5),
-          SizedBox(
+          const SizedBox(height: 6),
+          Container(
             key: _handAreaKey,
-            height: 108,
+            height: 112,
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.22),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.08),
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 8,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
             child: ListView.separated(
               controller: _handScrollController,
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               itemCount: _gameState.myHand.length,
               separatorBuilder: (context, index) => const SizedBox(width: 6),
               itemBuilder: (context, index) {
@@ -1153,28 +1226,28 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
                     curve: Curves.easeOut,
                     transform: Matrix4.translationValues(
                       0,
-                      isSelected ? -8 : 0,
+                      isSelected ? -7 : 0,
                       0,
                     ),
                     padding: const EdgeInsets.all(3),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(11),
+                      borderRadius: BorderRadius.circular(13),
                       color: isSelected
-                          ? AppColors.lime.withValues(alpha: 0.10)
+                          ? AppColors.lime.withValues(alpha: 0.12)
                           : Colors.transparent,
                       border: Border.all(
                         color: isPlayable || isRequiredOpening
                             ? AppColors.lime
                             : Colors.transparent,
-                        width: isSelected ? 3.4 : 3,
+                        width: isSelected ? 3.2 : 2.8,
                       ),
                       boxShadow: isPlayable
                           ? [
                               BoxShadow(
                                 color: AppColors.lime.withValues(
-                                  alpha: isSelected ? 0.42 : 0.26,
+                                  alpha: isSelected ? 0.40 : 0.22,
                                 ),
-                                blurRadius: isSelected ? 18 : 12,
+                                blurRadius: isSelected ? 16 : 10,
                               ),
                             ]
                           : null,
@@ -1195,8 +1268,8 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
                           Positioned.fill(
                             child: Container(
                               decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.34),
-                                borderRadius: BorderRadius.circular(8),
+                                color: Colors.black.withValues(alpha: 0.38),
+                                borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Center(
                                 child: SizedBox(
@@ -1217,14 +1290,27 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(top: 1, bottom: 2),
+          const SizedBox(height: 5),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.badge.withValues(alpha: 0.72),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: _gameState.isMyTurn
+                    ? AppColors.lime.withValues(alpha: 0.24)
+                    : Colors.white10,
+              ),
+            ),
             child: Text(
               _handHintText(),
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: _gameState.isMyTurn ? Colors.white70 : Colors.white38,
-                fontSize: 11,
+                color: _gameState.isMyTurn
+                    ? AppColors.limeSoft
+                    : Colors.white38,
+                fontSize: 10.8,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -1367,24 +1453,66 @@ class _RoundBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: const EdgeInsets.fromLTRB(7, 5, 10, 5),
       decoration: BoxDecoration(
-        color: const Color(0xCC102230),
-        borderRadius: BorderRadius.circular(14),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.panelTop,
+            AppColors.panelBottom,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: AppColors.lime.withValues(alpha: 0.32),
+          color: AppColors.lime.withValues(alpha: 0.62),
+          width: 1.5,
         ),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black45,
+            blurRadius: 7,
+            offset: Offset(0, 3),
+          ),
+        ],
       ),
-      child: Text(
-        context.tr(
-          'round_number',
-          arguments: {'number': roundNumber},
-        ),
-        style: const TextStyle(
-          color: Colors.white70,
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 25,
+            height: 25,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.lime,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.ink,
+                width: 1.4,
+              ),
+            ),
+            child: Text(
+              '$roundNumber',
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            context.tr(
+              'round_number',
+              arguments: {'number': roundNumber},
+            ),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
       ),
     );
   }

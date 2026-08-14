@@ -191,4 +191,10 @@ class MultiplayerGameState {
     }
     return false;
   }
+
+  bool get canDrawFromBoneyard =>
+      isMyTurn && status == 'active' && !hasPlayableDomino && boneyardCount > 0;
+
+  bool get canPass =>
+      isMyTurn && status == 'active' && !hasPlayableDomino && boneyardCount == 0;
 }

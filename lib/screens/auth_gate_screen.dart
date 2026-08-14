@@ -64,6 +64,7 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
     } on ApiException catch (error) {
       if (error.statusCode == 401 || error.statusCode == 403) {
         await _authStore.clear();
+        await _gameSessionStore.clear();
         if (!mounted) return;
         setState(() {
           _token = null;
@@ -160,8 +161,11 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
                   TextButton(
                     onPressed: () async {
                       await _authStore.clear();
+                      await _gameSessionStore.clear();
                       if (!mounted) return;
                       setState(() {
+                        _token = null;
+                        _user = null;
                         _errorMessage = null;
                       });
                     },

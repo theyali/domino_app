@@ -426,8 +426,8 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 360),
                       reverseDuration: const Duration(milliseconds: 240),
-                      switchInCurve: Curves.easeOutBack,
-                      switchOutCurve: Curves.easeInCubic,
+                      switchInCurve: Curves.linear,
+                      switchOutCurve: Curves.linear,
                       transitionBuilder: (child, animation) {
                         final scaleAnimation = Tween<double>(
                           begin: 0.58,
@@ -436,6 +436,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                           CurvedAnimation(
                             parent: animation,
                             curve: Curves.easeOutBack,
+                            reverseCurve: Curves.easeInCubic,
                           ),
                         );
 

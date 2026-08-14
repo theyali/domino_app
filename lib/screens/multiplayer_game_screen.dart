@@ -77,12 +77,19 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
   int? _hiddenDrawnDominoId;
   int _boneyardAnimationId = 0;
 
+  Timer? _turnTicker;
+  Duration _serverClockOffset = Duration.zero;
+  bool _isCheckingTurnTimeout = false;
+  DateTime? _nextTurnTimeoutCheckAt;
+
   static const bool _soundEnabled = true;
+  static const Duration _turnTickInterval = Duration(milliseconds: 200);
 
   @override
   void initState() {
     super.initState();
     _gameState = widget.initialGameState;
+    _syncServerClock(_gameState);
     _socketService = GameSocketService();
 
     _messageSubscription = _socketService.messages.listen(_handleSocketMessage);
@@ -99,10 +106,13 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
         playerId: _gameState.myPlayerId,
       ),
     );
+
+    _restartTurnTicker();
   }
 
   @override
   void dispose() {
+    _turnTicker?.cancel();
     unawaited(_messageSubscription?.cancel());
     unawaited(_statusSubscription?.cancel());
     unawaited(_socketService.dispose());
@@ -134,6 +144,115 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     return renderObject.localToGlobal(
       renderObject.size.center(Offset.zero),
     );
+  }
+
+  void _syncServerClock(MultiplayerGameState state) {
+    final serverTime = state.serverTime?.toUtc();
+    if (serverTime == null) {
+      return;
+    }
+
+    _serverClockOffset = serverTime.difference(DateTime.now().toUtc());
+  }
+
+  DateTime get _serverNow =>
+      DateTime.now().toUtc().add(_serverClockOffset);
+
+  int? get _turnSecondsLeft {
+    if (!_gameState.isActive) {
+      return null;
+    }
+
+    final deadline = _gameState.turnDeadlineAt?.toUtc();
+    if (deadline == null) {
+      return null;
+    }
+
+    final milliseconds = deadline.difference(_serverNow).inMilliseconds;
+    if (milliseconds <= 0) {
+      return 0;
+    }
+
+    return (milliseconds / 1000).ceil();
+  }
+
+  double get _turnProgress {
+    if (!_gameState.isActive) {
+      return 0;
+    }
+
+    final startedAt = _gameState.turnStartedAt?.toUtc();
+    final deadline = _gameState.turnDeadlineAt?.toUtc();
+    if (startedAt == null || deadline == null) {
+      return 0;
+    }
+
+    final totalMilliseconds = deadline.difference(startedAt).inMilliseconds;
+    if (totalMilliseconds <= 0) {
+      return 0;
+    }
+
+    final remainingMilliseconds = deadline.difference(_serverNow).inMilliseconds;
+    return (remainingMilliseconds / totalMilliseconds).clamp(0.0, 1.0);
+  }
+
+  void _restartTurnTicker() {
+    _turnTicker?.cancel();
+    _turnTicker = null;
+    _nextTurnTimeoutCheckAt = null;
+
+    if (!_gameState.isActive || _gameState.turnDeadlineAt == null) {
+      return;
+    }
+
+    _turnTicker = Timer.periodic(_turnTickInterval, _handleTurnTick);
+  }
+
+  void _handleTurnTick(Timer timer) {
+    if (!mounted) {
+      timer.cancel();
+      return;
+    }
+
+    setState(() {});
+
+    final deadline = _gameState.turnDeadlineAt?.toUtc();
+    if (!_gameState.isActive || deadline == null || _serverNow.isBefore(deadline)) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final nextCheckAt = _nextTurnTimeoutCheckAt;
+    if (_isCheckingTurnTimeout ||
+        (nextCheckAt != null && now.isBefore(nextCheckAt))) {
+      return;
+    }
+
+    _nextTurnTimeoutCheckAt = now.add(const Duration(seconds: 1));
+    unawaited(_refreshExpiredTurn());
+  }
+
+  Future<void> _refreshExpiredTurn() async {
+    if (_isCheckingTurnTimeout || !_gameState.isActive) {
+      return;
+    }
+
+    _isCheckingTurnTimeout = true;
+
+    try {
+      final state = await _apiService.fetchGameState(
+        roomId: _gameState.roomId,
+        playerId: _gameState.myPlayerId,
+      );
+
+      if (!mounted) return;
+      _applyGameState(state);
+    } catch (_) {
+      // Heartbeat/reconnect will retry server recovery. Do not show a snackbar
+      // every second while the network is temporarily unavailable.
+    } finally {
+      _isCheckingTurnTimeout = false;
+    }
   }
 
   ServerDomino? get _selectedDomino {
@@ -253,11 +372,20 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
       }
     }
 
-    final drawSource = _pendingBoneyardSourceGlobalCenter;
-    final drawTarget = _pendingBoneyardTargetGlobalCenter;
+    final drawSource =
+        _pendingBoneyardSourceGlobalCenter ?? _globalCenterForKey(_boneyardKey);
+    final drawTarget = _pendingBoneyardTargetGlobalCenter ??
+        _globalCenterForKey(_handAreaKey) ??
+        _globalCenterForKey(_playerAvatarKeys[state.myPlayerId]);
+
+    final serverTime = state.serverTime?.toUtc();
+    final nextClockOffset = serverTime == null
+        ? _serverClockOffset
+        : serverTime.difference(DateTime.now().toUtc());
 
     setState(() {
       _gameState = state;
+      _serverClockOffset = nextClockOffset;
 
       if (isNewRound) {
         _animatedMoveNumber = null;
@@ -315,6 +443,8 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
         _isStartingNextRound = false;
       }
     });
+
+    _restartTurnTicker();
   }
 
   Future<void> _onDominoTap(ServerDomino domino) async {
@@ -729,13 +859,16 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     for (final opponent in opponents) {
       final relativeSeat =
           (opponent.seatIndex - mySeat + playerCount) % playerCount;
+      final isCurrentTurn = _gameState.isActive &&
+          opponent.isActive &&
+          opponent.id == _gameState.currentPlayerId;
       final avatar = PlayerAvatar(
         key: _playerAvatarKeyFor(opponent.id),
         player: _toPlayer(opponent, isMe: false),
         dominoCount: opponent.dominoCount,
-        isActive: _gameState.isActive &&
-            opponent.isActive &&
-            opponent.id == _gameState.currentPlayerId,
+        isActive: isCurrentTurn,
+        turnSecondsLeft: isCurrentTurn ? _turnSecondsLeft : null,
+        turnProgress: isCurrentTurn ? _turnProgress : 0,
         onTap: () {},
       );
 
@@ -891,6 +1024,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
 
   Widget _buildMyPanel() {
     final me = _gameState.myPlayer;
+    final isMyCurrentTurn = _gameState.isActive && _gameState.isMyTurn;
 
     return Container(
       width: double.infinity,
@@ -903,7 +1037,9 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
             key: _playerAvatarKeyFor(me.id),
             player: _toPlayer(me, isMe: true),
             dominoCount: _gameState.myHand.length,
-            isActive: _gameState.isActive && _gameState.isMyTurn,
+            isActive: isMyCurrentTurn,
+            turnSecondsLeft: isMyCurrentTurn ? _turnSecondsLeft : null,
+            turnProgress: isMyCurrentTurn ? _turnProgress : 0,
             onTap: () {},
           ),
           const SizedBox(height: 5),

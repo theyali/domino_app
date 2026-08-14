@@ -7,11 +7,27 @@ import '../models/player.dart';
 import '../models/restaurant.dart';
 import '../services/api_service.dart';
 import '../services/game_socket_service.dart';
+import '../widgets/domino_boneyard_draw_animation.dart';
 import '../widgets/domino_boneyard_pile.dart';
 import '../widgets/domino_placement_target.dart';
 import '../widgets/domino_tile.dart';
 import '../widgets/multiplayer_domino_snake.dart';
+import '../widgets/multiplayer_game_result_overlay.dart';
 import '../widgets/player_avatar.dart';
+
+class _BoneyardDrawFlight {
+  final int id;
+  final ServerDomino domino;
+  final Offset sourceGlobalCenter;
+  final Offset targetGlobalCenter;
+
+  const _BoneyardDrawFlight({
+    required this.id,
+    required this.domino,
+    required this.sourceGlobalCenter,
+    required this.targetGlobalCenter,
+  });
+}
 
 class MultiplayerGameScreen extends StatefulWidget {
   final Restaurant restaurant;
@@ -40,14 +56,28 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
 
   final Map<int, GlobalKey> _playerAvatarKeys = <int, GlobalKey>{};
   final Map<int, GlobalKey> _handDominoKeys = <int, GlobalKey>{};
+  final GlobalKey _boneyardKey = GlobalKey(debugLabel: 'multiplayer-boneyard');
+  final GlobalKey _handAreaKey = GlobalKey(debugLabel: 'multiplayer-hand-area');
 
   bool _isSubmittingMove = false;
+  bool _isStartingNextRound = false;
+  bool _isLeavingGame = false;
+  bool _allowPop = false;
+
   int? _pendingDominoId;
   int? _selectedDominoId;
 
   Offset? _pendingMoveSourceGlobalCenter;
   int? _animatedMoveNumber;
   Offset? _animationSourceGlobalCenter;
+
+  Offset? _pendingBoneyardSourceGlobalCenter;
+  Offset? _pendingBoneyardTargetGlobalCenter;
+  _BoneyardDrawFlight? _boneyardDrawFlight;
+  int? _hiddenDrawnDominoId;
+  int _boneyardAnimationId = 0;
+
+  static const bool _soundEnabled = true;
 
   @override
   void initState() {
@@ -121,6 +151,12 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
 
   void _handleSocketMessage(Map<String, dynamic> message) {
     final type = message['type'];
+
+    if (type == 'room_deleted') {
+      unawaited(_handleRoomDeleted());
+      return;
+    }
+
     if (type != 'game_started' && type != 'game_state') {
       return;
     }
@@ -133,6 +169,20 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     );
 
     _applyGameState(state);
+  }
+
+  Future<void> _handleRoomDeleted() async {
+    if (!mounted || _isLeavingGame || _allowPop) return;
+
+    await _socketService.disconnect();
+    if (!mounted) return;
+
+    setState(() {
+      _allowPop = true;
+    });
+
+    _showMessage('Стол закрыт: все игроки вышли.');
+    Navigator.of(context).pop();
   }
 
   ServerDomino? _findNewMove(
@@ -152,13 +202,25 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
         continue;
       }
 
-      if (newest == null ||
-          moveNumber > (newest.moveNumber ?? -1)) {
+      if (newest == null || moveNumber > (newest.moveNumber ?? -1)) {
         newest = domino;
       }
     }
 
     return newest;
+  }
+
+  ServerDomino? _findNewHandDomino(
+    MultiplayerGameState previous,
+    MultiplayerGameState next,
+  ) {
+    final previousIds = previous.myHand.map((domino) => domino.id).toSet();
+    for (final domino in next.myHand.reversed) {
+      if (!previousIds.contains(domino.id)) {
+        return domino;
+      }
+    }
+    return null;
   }
 
   void _applyGameState(MultiplayerGameState state) {
@@ -168,8 +230,13 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
 
     final previousState = _gameState;
     final isNewVersion = state.version > previousState.version;
-    final newMove = isNewVersion
-        ? _findNewMove(previousState, state)
+    final isNewRound = state.roundNumber != previousState.roundNumber;
+
+    final newMove = isNewVersion ? _findNewMove(previousState, state) : null;
+    final newDraw = isNewVersion &&
+            state.boneyardCount < previousState.boneyardCount &&
+            state.myHand.length > previousState.myHand.length
+        ? _findNewHandDomino(previousState, state)
         : null;
 
     Offset? moveSource;
@@ -186,14 +253,36 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
       }
     }
 
+    final drawSource = _pendingBoneyardSourceGlobalCenter;
+    final drawTarget = _pendingBoneyardTargetGlobalCenter;
+
     setState(() {
       _gameState = state;
+
+      if (isNewRound) {
+        _animatedMoveNumber = null;
+        _animationSourceGlobalCenter = null;
+        _selectedDominoId = null;
+        _boneyardDrawFlight = null;
+        _hiddenDrawnDominoId = null;
+      }
 
       if (newMove != null &&
           newMove.moveNumber != null &&
           moveSource != null) {
         _animatedMoveNumber = newMove.moveNumber;
         _animationSourceGlobalCenter = moveSource;
+      }
+
+      if (newDraw != null && drawSource != null && drawTarget != null) {
+        _boneyardAnimationId += 1;
+        _hiddenDrawnDominoId = newDraw.id;
+        _boneyardDrawFlight = _BoneyardDrawFlight(
+          id: _boneyardAnimationId,
+          domino: newDraw,
+          sourceGlobalCenter: drawSource,
+          targetGlobalCenter: drawTarget,
+        );
       }
 
       if (_selectedDominoId != null &&
@@ -203,7 +292,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
         _selectedDominoId = null;
       }
 
-      if (!_gameState.isMyTurn) {
+      if (!_gameState.isMyTurn || !_gameState.isActive) {
         _selectedDominoId = null;
       }
 
@@ -211,6 +300,8 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
         _isSubmittingMove = false;
         _pendingDominoId = null;
         _pendingMoveSourceGlobalCenter = null;
+        _pendingBoneyardSourceGlobalCenter = null;
+        _pendingBoneyardTargetGlobalCenter = null;
       } else if (_pendingDominoId != null &&
           !_gameState.myHand.any(
             (domino) => domino.id == _pendingDominoId,
@@ -219,11 +310,15 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
         _isSubmittingMove = false;
         _pendingMoveSourceGlobalCenter = null;
       }
+
+      if (_gameState.isActive) {
+        _isStartingNextRound = false;
+      }
     });
   }
 
   Future<void> _onDominoTap(ServerDomino domino) async {
-    if (_isSubmittingMove) {
+    if (_isSubmittingMove || !_gameState.isActive) {
       return;
     }
 
@@ -239,14 +334,12 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     }
 
     setState(() {
-      _selectedDominoId = _selectedDominoId == domino.id
-          ? null
-          : domino.id;
+      _selectedDominoId = _selectedDominoId == domino.id ? null : domino.id;
     });
   }
 
   Future<void> _playSelectedSide(String side) async {
-    if (_isSubmittingMove) return;
+    if (_isSubmittingMove || !_gameState.isActive) return;
 
     final domino = _selectedDomino;
     if (domino == null) {
@@ -269,7 +362,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     required ServerDomino domino,
     required String side,
   }) async {
-    if (_isSubmittingMove) return;
+    if (_isSubmittingMove || !_gameState.isActive) return;
 
     final sourceCenter =
         _globalCenterForKey(_handDominoKeys[domino.id]) ??
@@ -303,11 +396,17 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
       return;
     }
 
+    final sourceCenter = _globalCenterForKey(_boneyardKey);
+    final targetCenter = _globalCenterForKey(_handAreaKey) ??
+        _globalCenterForKey(_playerAvatarKeys[_gameState.myPlayerId]);
+
     setState(() {
       _isSubmittingMove = true;
       _pendingDominoId = null;
       _selectedDominoId = null;
       _pendingMoveSourceGlobalCenter = null;
+      _pendingBoneyardSourceGlobalCenter = sourceCenter;
+      _pendingBoneyardTargetGlobalCenter = targetCenter;
     });
 
     try {
@@ -323,6 +422,14 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     } catch (_) {
       _finishSubmittingWithError('Не удалось взять костяшку из базара.');
     }
+  }
+
+  void _finishBoneyardDrawAnimation() {
+    if (!mounted) return;
+    setState(() {
+      _boneyardDrawFlight = null;
+      _hiddenDrawnDominoId = null;
+    });
   }
 
   Future<void> _passTurn() async {
@@ -352,12 +459,112 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     }
   }
 
+  Future<void> _startNextRound() async {
+    if (_isStartingNextRound ||
+        _isLeavingGame ||
+        !_gameState.isRoundFinished ||
+        !_gameState.myPlayer.isOwner) {
+      return;
+    }
+
+    setState(() {
+      _isStartingNextRound = true;
+    });
+
+    try {
+      final state = await _apiService.startNextRound(
+        roomId: _gameState.roomId,
+        playerId: _gameState.myPlayerId,
+      );
+
+      if (!mounted) return;
+      _applyGameState(state);
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isStartingNextRound = false;
+      });
+      _showMessage(error.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isStartingNextRound = false;
+      });
+      _showMessage('Не удалось запустить следующий раунд.');
+    }
+  }
+
+  Future<void> _requestExitGame() async {
+    if (_isLeavingGame || _allowPop) return;
+
+    final activeMatch = _gameState.isActive;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Выйти из игры?'),
+          content: Text(
+            activeMatch
+                ? 'Если выйти сейчас, текущий матч завершится для остальных игроков.'
+                : 'Ты покинешь этот стол. Когда выйдет последний игрок, стол удалится автоматически.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Остаться'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Выйти'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _isLeavingGame = true;
+    });
+
+    try {
+      await _apiService.leaveRoom(
+        roomId: _gameState.roomId,
+        playerId: _gameState.myPlayerId,
+      );
+
+      await _socketService.disconnect();
+      if (!mounted) return;
+
+      setState(() {
+        _allowPop = true;
+      });
+
+      Navigator.of(context).pop();
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isLeavingGame = false;
+      });
+      _showMessage(error.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLeavingGame = false;
+      });
+      _showMessage('Не удалось выйти из игры.');
+    }
+  }
+
   void _finishSubmittingWithError(String message) {
     if (!mounted) return;
     setState(() {
       _isSubmittingMove = false;
       _pendingDominoId = null;
       _pendingMoveSourceGlobalCenter = null;
+      _pendingBoneyardSourceGlobalCenter = null;
+      _pendingBoneyardTargetGlobalCenter = null;
     });
     _showMessage(message);
   }
@@ -369,19 +576,13 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _showExitMessage() {
-    _showMessage(
-      'Игра уже запущена. Безопасный выход и reconnect добавим отдельным этапом.',
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return PopScope<Object?>(
-      canPop: false,
+      canPop: _allowPop,
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop) {
-          _showExitMessage();
+          unawaited(_requestExitGame());
         }
       },
       child: Scaffold(
@@ -394,7 +595,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
           title: Text(widget.restaurant.name),
           centerTitle: true,
           leading: IconButton(
-            onPressed: _showExitMessage,
+            onPressed: _isLeavingGame ? null : _requestExitGame,
             icon: const Icon(Icons.arrow_back_ios_new_rounded),
           ),
           actions: [
@@ -405,10 +606,41 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
           ],
         ),
         body: SafeArea(
-          child: Column(
+          child: Stack(
             children: [
-              Expanded(child: _buildGameArea()),
-              _buildMyPanel(),
+              Column(
+                children: [
+                  Expanded(child: _buildGameArea()),
+                  _buildMyPanel(),
+                ],
+              ),
+              if (_boneyardDrawFlight != null)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: DominoBoneyardDrawAnimation(
+                      key: ValueKey(
+                        'multiplayer-boneyard-draw-${_boneyardDrawFlight!.id}',
+                      ),
+                      domino: _boneyardDrawFlight!.domino.domino,
+                      sourceGlobalCenter:
+                          _boneyardDrawFlight!.sourceGlobalCenter,
+                      targetGlobalCenter:
+                          _boneyardDrawFlight!.targetGlobalCenter,
+                      soundEnabled: _soundEnabled,
+                      onCompleted: _finishBoneyardDrawAnimation,
+                    ),
+                  ),
+                ),
+              if (!_gameState.isActive && _gameState.roundResult != null)
+                Positioned.fill(
+                  child: MultiplayerGameResultOverlay(
+                    gameState: _gameState,
+                    isStartingNextRound: _isStartingNextRound,
+                    isLeaving: _isLeavingGame,
+                    onNextRound: _startNextRound,
+                    onExit: _requestExitGame,
+                  ),
+                ),
             ],
           ),
         ),
@@ -447,6 +679,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
               right: 14,
               bottom: 14,
               child: DominoBoneyardPile(
+                key: _boneyardKey,
                 count: _gameState.boneyardCount,
                 enabled: _gameState.canDrawFromBoneyard && !_isSubmittingMove,
                 onTap: _drawDomino,
@@ -500,7 +733,9 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
         key: _playerAvatarKeyFor(opponent.id),
         player: _toPlayer(opponent, isMe: false),
         dominoCount: opponent.dominoCount,
-        isActive: opponent.id == _gameState.currentPlayerId,
+        isActive: _gameState.isActive &&
+            opponent.isActive &&
+            opponent.id == _gameState.currentPlayerId,
         onTap: () {},
       );
 
@@ -566,7 +801,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
               onTargetTap: _playSelectedSide,
               animatedMoveNumber: _animatedMoveNumber,
               animationSourceGlobalCenter: _animationSourceGlobalCenter,
-              soundEnabled: true,
+              soundEnabled: _soundEnabled,
             ),
           ),
           const SizedBox(height: 6),
@@ -580,8 +815,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     final selectedSides = selected == null
         ? const <String>{}
         : _gameState.playableSidesFor(selected);
-    final canPlaceOpening = selected != null &&
-        selectedSides.contains('center');
+    final canPlaceOpening = selected != null && selectedSides.contains('center');
 
     if (canPlaceOpening) {
       final isDouble = selected.domino.left == selected.domino.right;
@@ -669,11 +903,12 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
             key: _playerAvatarKeyFor(me.id),
             player: _toPlayer(me, isMe: true),
             dominoCount: _gameState.myHand.length,
-            isActive: _gameState.isMyTurn,
+            isActive: _gameState.isActive && _gameState.isMyTurn,
             onTap: () {},
           ),
           const SizedBox(height: 5),
           SizedBox(
+            key: _handAreaKey,
             height: 108,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
@@ -686,14 +921,19 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
                 final isPlayable = playableSides.isNotEmpty;
                 final isPending = _pendingDominoId == serverDomino.id;
                 final isSelected = _selectedDominoId == serverDomino.id;
-                final isRequiredOpening =
-                    _gameState.table.isEmpty &&
+                final isHiddenByDraw =
+                    _hiddenDrawnDominoId == serverDomino.id;
+                final isRequiredOpening = _gameState.table.isEmpty &&
                     _gameState.isMyTurn &&
                     serverDomino.id == _gameState.openingDominoId;
 
                 return AnimatedOpacity(
                   duration: const Duration(milliseconds: 160),
-                  opacity: _gameState.isMyTurn && !isPlayable ? 0.55 : 1,
+                  opacity: isHiddenByDraw
+                      ? 0
+                      : _gameState.isMyTurn && !isPlayable
+                          ? 0.55
+                          : 1,
                   child: AnimatedContainer(
                     key: _handDominoKeyFor(serverDomino.id),
                     duration: const Duration(milliseconds: 180),
@@ -734,7 +974,9 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
                           width: 48,
                           height: 84,
                           dotSize: 6.2,
-                          onTap: () => _onDominoTap(serverDomino),
+                          onTap: isHiddenByDraw
+                              ? null
+                              : () => _onDominoTap(serverDomino),
                         ),
                         if (isPending)
                           Positioned.fill(
@@ -779,6 +1021,14 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
   }
 
   String _handHintText() {
+    if (_gameState.isRoundFinished) {
+      return 'Раунд завершён.';
+    }
+
+    if (_gameState.isMatchFinished) {
+      return 'Матч завершён.';
+    }
+
     if (_isSubmittingMove) {
       return 'Сервер проверяет действие...';
     }
@@ -826,6 +1076,10 @@ class _TableStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!gameState.isActive) {
+      return const SizedBox.shrink();
+    }
+
     final isMyTurn = gameState.isMyTurn;
 
     return Container(

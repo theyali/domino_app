@@ -1,3 +1,4 @@
+import '../config/api_config.dart';
 import 'domino.dart';
 import 'gift.dart';
 
@@ -40,6 +41,7 @@ class MultiplayerPlayerState {
   final int id;
   final int? userId;
   final String name;
+  final String? avatarUrl;
   final int seatIndex;
   final bool isOwner;
   final bool isActive;
@@ -53,6 +55,7 @@ class MultiplayerPlayerState {
     required this.id,
     required this.userId,
     required this.name,
+    required this.avatarUrl,
     required this.seatIndex,
     required this.isOwner,
     required this.isActive,
@@ -70,6 +73,7 @@ class MultiplayerPlayerState {
       id: json['id'] as int,
       userId: json['user_id'] as int?,
       name: json['name'] as String,
+      avatarUrl: ApiConfig.resolveUrl(json['avatar_url'] as String?),
       seatIndex: json['seat_index'] as int,
       isOwner: json['is_owner'] as bool? ?? false,
       isActive: json['is_active'] as bool? ?? true,

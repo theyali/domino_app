@@ -18,7 +18,6 @@ import 'player_emotion_overlay.dart';
 class PlayerAvatar extends StatefulWidget {
   final Player player;
   final VoidCallback onTap;
-
   final bool isActive;
   final int? turnSecondsLeft;
   final double turnProgress;
@@ -137,12 +136,10 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
 
   Future<void> _showEmotionPicker() async {
     final emotionAsset = await EmotionPickerSheet.show(context);
-    if (emotionAsset == null || !mounted) {
-      return;
-    }
+    if (emotionAsset == null || !mounted) return;
 
-    // The event is sent after the bottom sheet has visually left the screen,
-    // otherwise the local player would not see their own avatar animation.
+    // Сначала полностью закрываем sheet, затем отправляем realtime-событие.
+    // Благодаря этому отправитель видит свою же анимацию возле аватара.
     await Future<void>.delayed(const Duration(milliseconds: 170));
     if (!mounted) return;
 
@@ -187,13 +184,9 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
         recipientPlayerIds: request.recipientPlayerIds,
       );
     } on ApiException catch (error) {
-      if (mounted) {
-        _showMessage(error.message);
-      }
+      if (mounted) _showMessage(error.message);
     } catch (_) {
-      if (mounted) {
-        _showMessage('Не удалось отправить подарок.');
-      }
+      if (mounted) _showMessage('Не удалось отправить подарок.');
     } finally {
       _isOpeningGiftMenu = false;
     }
@@ -206,7 +199,11 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
       return;
     }
 
-    _pendingGiftEventId = event.id;
+    // Новый подарок сразу скрывает старый badge. Новый badge появится только
+    // после завершения полёта.
+    setState(() {
+      _pendingGiftEventId = event.id;
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _pendingGiftEventId != event.id) return;
@@ -220,6 +217,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
       }
 
       _flightOverlay?.remove();
+      _flightOverlay = null;
 
       late final OverlayEntry entry;
       entry = OverlayEntry(
@@ -250,9 +248,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   }
 
   void _finishGiftLanding(GiftRealtimeEvent event) {
-    if (!mounted || _pendingGiftEventId != event.id) {
-      return;
-    }
+    if (!mounted || _pendingGiftEventId != event.id) return;
 
     _giftRealtime.setActiveGiftAfterLanding(widget.player.id, event.gift);
     setState(() {
@@ -271,20 +267,16 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   @override
   Widget build(BuildContext context) {
     final player = widget.player;
-    final avatarBorderColor =
-        widget.isActive
+    final avatarBorderColor = widget.isActive
+        ? Colors.greenAccent
+        : player.isMe
+            ? Colors.green
+            : Colors.white;
+    final nameColor = widget.isActive
+        ? Colors.greenAccent
+        : player.isMe
             ? Colors.greenAccent
-            : player.isMe
-                ? Colors.green
-                : Colors.white;
-
-    final nameColor =
-        widget.isActive
-            ? Colors.greenAccent
-            : player.isMe
-                ? Colors.greenAccent
-                : Colors.white;
-
+            : Colors.white;
     final avatarLetter = player.name.trim().isEmpty
         ? '?'
         : player.name.trim().substring(0, 1).toUpperCase();
@@ -323,14 +315,10 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                             width: 68,
                             height: 68,
                             child: CircularProgressIndicator(
-                              value: widget.turnProgress
-                                  .clamp(0.0, 1.0)
-                                  .toDouble(),
+                              value: widget.turnProgress.clamp(0.0, 1.0).toDouble(),
                               strokeWidth: 4,
-                              backgroundColor:
-                                  Colors.black.withValues(alpha: 0.30),
-                              valueColor:
-                                  const AlwaysStoppedAnimation<Color>(
+                              backgroundColor: Colors.black.withValues(alpha: 0.30),
+                              valueColor: const AlwaysStoppedAnimation<Color>(
                                 Colors.greenAccent,
                               ),
                             ),
@@ -347,9 +335,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                             boxShadow: widget.isActive
                                 ? [
                                     BoxShadow(
-                                      color: Colors.greenAccent.withValues(
-                                        alpha: 0.28,
-                                      ),
+                                      color: Colors.greenAccent.withValues(alpha: 0.28),
                                       blurRadius: 12,
                                       spreadRadius: 1,
                                     ),
@@ -402,40 +388,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                 Positioned(
                   right: 0,
                   bottom: 0,
-                  child: Container(
-                    height: 24,
-                    padding: const EdgeInsets.symmetric(horizontal: 7),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF15283A),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.78),
-                        width: 1.4,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.28),
-                          blurRadius: 5,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const _MiniDominoIcon(),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${widget.dominoCount}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  child: _DominoCountBadge(count: widget.dominoCount),
                 ),
                 if (hasActiveGift && _pendingGiftEventId == null)
                   Positioned(
@@ -472,10 +425,7 @@ class _ActiveGiftBadge extends StatelessWidget {
   final String? imageUrl;
   final String? name;
 
-  const _ActiveGiftBadge({
-    required this.imageUrl,
-    required this.name,
-  });
+  const _ActiveGiftBadge({required this.imageUrl, required this.name});
 
   @override
   Widget build(BuildContext context) {
@@ -529,21 +479,61 @@ class _PresenceDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = isOnline ? Colors.greenAccent : Colors.blueGrey.shade300;
-
     return Container(
       width: 15,
       height: 15,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: color,
-        border: Border.all(
-          color: const Color(0xFF0D1B2A),
-          width: 2.5,
-        ),
+        border: Border.all(color: const Color(0xFF0D1B2A), width: 2.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.35),
             blurRadius: 4,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DominoCountBadge extends StatelessWidget {
+  final int count;
+
+  const _DominoCountBadge({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 24,
+      padding: const EdgeInsets.symmetric(horizontal: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xFF15283A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.78),
+          width: 1.4,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.28),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const _MiniDominoIcon(),
+          const SizedBox(width: 4),
+          Text(
+            '$count',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),

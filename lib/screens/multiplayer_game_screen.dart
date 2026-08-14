@@ -760,12 +760,6 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
             onPressed: _isLeavingGame ? null : _requestExitGame,
             icon: const Icon(Icons.arrow_back_ios_new_rounded),
           ),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: _SocketDot(status: _socketStatus),
-            ),
-          ],
         ),
         body: SafeArea(
           child: Stack(
@@ -970,22 +964,14 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
           ? const <String>{}
           : _gameState.playableSidesFor(selected);
 
-      return Column(
-        children: [
-          Expanded(
-            child: MultiplayerDominoSnake(
-              dominoes: _gameState.table,
-              selectedDomino: selected,
-              playableSides: selectedSides,
-              onTargetTap: _playSelectedSide,
-              animatedMoveNumber: _animatedMoveNumber,
-              animationSourceGlobalCenter: _animationSourceGlobalCenter,
-              soundEnabled: _soundEnabled,
-            ),
-          ),
-          const SizedBox(height: 6),
-          _TableStatus(gameState: _gameState),
-        ],
+      return MultiplayerDominoSnake(
+        dominoes: _gameState.table,
+        selectedDomino: selected,
+        playableSides: selectedSides,
+        onTargetTap: _playSelectedSide,
+        animatedMoveNumber: _animatedMoveNumber,
+        animationSourceGlobalCenter: _animationSourceGlobalCenter,
+        soundEnabled: _soundEnabled,
       );
     }
 
@@ -1261,91 +1247,6 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
       name: player.name,
       score: player.score,
       isMe: isMe,
-    );
-  }
-}
-
-class _TableStatus extends StatelessWidget {
-  final MultiplayerGameState gameState;
-
-  const _TableStatus({required this.gameState});
-
-  @override
-  Widget build(BuildContext context) {
-    if (!gameState.isActive) {
-      return const SizedBox.shrink();
-    }
-
-    final isMyTurn = gameState.isMyTurn;
-    final turnText = isMyTurn
-        ? context.tr('your_turn')
-        : context.tr(
-            'turn_player',
-            arguments: {'player': gameState.currentPlayer.name},
-          );
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.24),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Text(
-        '$turnText  ·  ${gameState.leftEnd} ← ${context.tr('chain')} → ${gameState.rightEnd}',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: isMyTurn ? Colors.greenAccent : Colors.white70,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-class _SocketDot extends StatelessWidget {
-  final SocketConnectionStatus status;
-
-  const _SocketDot({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final (color, message) = switch (status) {
-      SocketConnectionStatus.connected => (
-          Colors.greenAccent,
-          context.tr('realtime_connected'),
-        ),
-      SocketConnectionStatus.connecting => (
-          Colors.orangeAccent,
-          context.tr('realtime_connecting'),
-        ),
-      SocketConnectionStatus.reconnecting => (
-          Colors.orangeAccent,
-          context.tr('realtime_reconnecting'),
-        ),
-      SocketConnectionStatus.disconnected => (
-          Colors.blueGrey,
-          context.tr('realtime_disconnected'),
-        ),
-    };
-
-    return Tooltip(
-      message: message,
-      child: Container(
-        width: 12,
-        height: 12,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.35),
-              blurRadius: 7,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

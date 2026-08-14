@@ -64,6 +64,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   String? _pendingGiftEventId;
   OverlayEntry? _flightOverlay;
   bool _isOpeningGiftMenu = false;
+  int _activeGiftVisualRevision = 0;
 
   bool get _isMultiplayerAvatar => widget.isOnline != null;
 
@@ -78,6 +79,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
       if (!mounted || _pendingGiftEventId != null) return;
       setState(() {
         _activeGift = _giftRealtime.activeGiftFor(widget.player.id);
+        _activeGiftVisualRevision += 1;
       });
     });
     _registerAnchorAfterFrame();
@@ -93,6 +95,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
         owner: this,
       );
       _activeGift = _giftRealtime.activeGiftFor(widget.player.id);
+      _activeGiftVisualRevision = 0;
     }
 
     _registerAnchorAfterFrame();
@@ -278,6 +281,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
     setState(() {
       _pendingGiftEventId = null;
       _activeGift = event.gift;
+      _activeGiftVisualRevision += 1;
     });
   }
 
@@ -408,23 +412,58 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                   bottom: 0,
                   child: _DominoCountBadge(count: widget.dominoCount),
                 ),
-                if (hasActiveGift && _pendingGiftEventId == null)
-                  Positioned(
-                    left: widget.giftPlacement == PlayerGiftPlacement.left
-                        ? -2
-                        : null,
-                    right: widget.giftPlacement == PlayerGiftPlacement.right
-                        ? -2
-                        : null,
-                    top: 23,
-                    child: _ActiveGiftImage(
-                      key: ValueKey(
-                        '${activeGiftImageUrl ?? ''}|${activeGiftName ?? ''}',
-                      ),
-                      imageUrl: activeGiftImageUrl,
-                      name: activeGiftName,
+                Positioned(
+                  left: widget.giftPlacement == PlayerGiftPlacement.left
+                      ? -6
+                      : null,
+                  right: widget.giftPlacement == PlayerGiftPlacement.right
+                      ? -6
+                      : null,
+                  top: 19,
+                  child: SizedBox(
+                    width: 42,
+                    height: 42,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 360),
+                      reverseDuration: const Duration(milliseconds: 240),
+                      switchInCurve: Curves.easeOutBack,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, animation) {
+                        final scaleAnimation = Tween<double>(
+                          begin: 0.58,
+                          end: 1,
+                        ).animate(
+                          CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOutBack,
+                          ),
+                        );
+
+                        return FadeTransition(
+                          opacity: animation,
+                          child: ScaleTransition(
+                            scale: scaleAnimation,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: hasActiveGift
+                          ? Center(
+                              key: ValueKey(
+                                'gift-${widget.player.id}-$_activeGiftVisualRevision-'
+                                '${activeGiftImageUrl ?? ''}|${activeGiftName ?? ''}',
+                              ),
+                              child: _ActiveGiftImage(
+                                imageUrl: activeGiftImageUrl,
+                                name: activeGiftName,
+                              ),
+                            )
+                          : const SizedBox.shrink(
+                              key: ValueKey('no-active-gift'),
+                            ),
                     ),
                   ),
+                ),
                 if (widget.isOnline != null)
                   Positioned.fill(
                     child: PlayerEmotionOverlay(playerId: player.id),

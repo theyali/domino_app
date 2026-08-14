@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../localization/app_localizations.dart';
+
 class EmotionPickerSheet extends StatefulWidget {
   const EmotionPickerSheet({super.key});
 
@@ -46,6 +48,8 @@ class _EmotionPickerSheetState extends State<EmotionPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isAzerbaijani = context.appLanguage.code == 'az';
+
     return FractionallySizedBox(
       heightFactor: 0.48,
       child: Padding(
@@ -53,17 +57,19 @@ class _EmotionPickerSheetState extends State<EmotionPickerSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Эмоции',
+            Text(
+              isAzerbaijani ? 'Emosiyalar' : 'Эмоции',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              'Выбери эмоцию — меню закроется и эффект появится у аватара.',
+              isAzerbaijani
+                  ? 'Emosiyanı seçin — menyu bağlanacaq və effekt avatarın yanında görünəcək.'
+                  : 'Выбери эмоцию — меню закроется и эффект появится у аватара.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall,
             ),
@@ -78,12 +84,13 @@ class _EmotionPickerSheetState extends State<EmotionPickerSheet> {
 
                   final assets = snapshot.data ?? const <String>[];
                   if (assets.isEmpty) {
-                    return const Center(
+                    return Center(
                       child: Padding(
-                        padding: EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(24),
                         child: Text(
-                          'В assets/emotions пока нет изображений.\n'
-                          'Добавь PNG, JPG, WEBP или GIF — меню подхватит их автоматически.',
+                          isAzerbaijani
+                              ? 'assets/emotions qovluğunda hələ şəkil yoxdur.\nPNG, JPG, WEBP və ya GIF əlavə edin — menyu onları avtomatik göstərəcək.'
+                              : 'В assets/emotions пока нет изображений.\nДобавь PNG, JPG, WEBP или GIF — меню подхватит их автоматически.',
                           textAlign: TextAlign.center,
                         ),
                       ),

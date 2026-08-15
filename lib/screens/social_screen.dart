@@ -198,9 +198,9 @@ class _SocialScreenState extends State<SocialScreen> {
 
   Widget _buildBody() {
     if (_loading && _overview == null) {
-      return const ListView(
-        physics: AlwaysScrollableScrollPhysics(),
-        children: [
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [
           SizedBox(height: 240),
           Center(child: CircularProgressIndicator(color: _SocialPalette.ink)),
         ],

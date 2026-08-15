@@ -223,15 +223,11 @@ class _ReceivedGiftCardState extends State<_ReceivedGiftCard> {
         duration: const Duration(milliseconds: 110),
         curve: Curves.easeOut,
         child: Container(
-          constraints: const BoxConstraints(minHeight: 154),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF23382E),
-                Color(0xFF151F1B),
-              ],
+              colors: [Color(0xFF23382E), Color(0xFF151F1B)],
             ),
             borderRadius: BorderRadius.circular(25),
             border: Border.all(
@@ -255,21 +251,21 @@ class _ReceivedGiftCardState extends State<_ReceivedGiftCard> {
                   left: -24,
                   child: _SoftCardDecoration(),
                 ),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(15, 17, 10, 17),
-                      child: _GiftShowcase(
-                        imageUrl: gift.imageUrl,
-                        size: 92,
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 14, right: 10),
+                        child: _GiftShowcase(
+                          imageUrl: gift.imageUrl,
+                          size: 88,
+                        ),
                       ),
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(3, 19, 9, 17),
+                      Expanded(
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
@@ -306,7 +302,7 @@ class _ReceivedGiftCardState extends State<_ReceivedGiftCard> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 11),
+                            const SizedBox(height: 10),
                             Text(
                               context.tr(
                                 'gift_from',
@@ -316,7 +312,7 @@ class _ReceivedGiftCardState extends State<_ReceivedGiftCard> {
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 13.5,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
@@ -327,15 +323,19 @@ class _ReceivedGiftCardState extends State<_ReceivedGiftCard> {
                           ],
                         ),
                       ),
-                    ),
-                    _VoucherStub(
-                      status: context.tr(
-                        redeemed ? 'gift_redeemed' : 'gift_available',
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        height: 122,
+                        child: _VoucherStub(
+                          status: context.tr(
+                            redeemed ? 'gift_redeemed' : 'gift_available',
+                          ),
+                          accent: accent,
+                          redeemed: redeemed,
+                        ),
                       ),
-                      accent: accent,
-                      redeemed: redeemed,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -360,7 +360,7 @@ class _VoucherStub extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 78,
+      width: 76,
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.18),
         border: const Border(
@@ -371,12 +371,12 @@ class _VoucherStub extends StatelessWidget {
         children: [
           Positioned(
             left: -4,
-            top: 13,
-            bottom: 13,
+            top: 10,
+            bottom: 10,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: List.generate(
-                10,
+                8,
                 (index) => Container(
                   width: 2,
                   height: 5,
@@ -386,20 +386,17 @@ class _VoucherStub extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 17),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 12),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 48,
-                  height: 48,
+                  width: 45,
+                  height: 45,
                   decoration: BoxDecoration(
                     color: AppColors.cream,
-                    borderRadius: BorderRadius.circular(13),
-                    border: Border.all(
-                      color: AppColors.brass,
-                      width: 1.5,
-                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.brass, width: 1.5),
                     boxShadow: const [
                       BoxShadow(
                         color: Colors.black38,
@@ -414,29 +411,29 @@ class _VoucherStub extends StatelessWidget {
                         ? Icons.check_circle_rounded
                         : Icons.qr_code_2_rounded,
                     color: AppColors.ink,
-                    size: 31,
+                    size: 29,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Container(
+                  constraints: const BoxConstraints(maxWidth: 62),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 7,
-                    vertical: 5,
+                    horizontal: 6,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
                     color: accent.withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(99),
-                    border: Border.all(
-                      color: accent.withValues(alpha: 0.6),
-                    ),
+                    border: Border.all(color: accent.withValues(alpha: 0.6)),
                   ),
                   child: Text(
                     status,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       color: accent,
-                      fontSize: 10.5,
+                      fontSize: 9.5,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -493,10 +490,7 @@ class _InventoryGiftDetails extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(22, 18, 22, 28),
                   child: Column(
                     children: [
-                      _GiftShowcase(
-                        imageUrl: gift.imageUrl,
-                        size: 126,
-                      ),
+                      _GiftShowcase(imageUrl: gift.imageUrl, size: 126),
                       const SizedBox(height: 16),
                       Text(
                         gift.name,
@@ -572,10 +566,7 @@ class _InventoryGiftDetails extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      _QrVoucher(
-                        qrCode: item.qrCode,
-                        redeemed: redeemed,
-                      ),
+                      _QrVoucher(qrCode: item.qrCode, redeemed: redeemed),
                       const SizedBox(height: 14),
                       Text(
                         context.tr(
@@ -629,26 +620,26 @@ class _QrVoucher extends StatelessWidget {
       child: Column(
         children: [
           Row(
-            children: [
-              const _VoucherHole(),
-              const Expanded(
+            children: const [
+              _VoucherHole(),
+              Expanded(
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8),
                   child: Divider(color: AppColors.brass, thickness: 1),
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.confirmation_number_rounded,
                 color: AppColors.brassDark,
                 size: 20,
               ),
-              const Expanded(
+              Expanded(
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8),
                   child: Divider(color: AppColors.brass, thickness: 1),
                 ),
               ),
-              const _VoucherHole(),
+              _VoucherHole(),
             ],
           ),
           const SizedBox(height: 10),
@@ -696,10 +687,7 @@ class _GiftShowcase extends StatelessWidget {
               gradient: const RadialGradient(
                 colors: [Color(0xFFFFE7A0), AppColors.brassDark],
               ),
-              border: Border.all(
-                color: AppColors.brassLight,
-                width: 1.6,
-              ),
+              border: Border.all(color: AppColors.brassLight, width: 1.6),
               boxShadow: const [
                 BoxShadow(
                   color: Colors.black38,
@@ -824,7 +812,11 @@ class _InventoryMessageIcon extends StatelessWidget {
           color: AppColors.surfaceRaised,
           border: Border.all(color: AppColors.brass, width: 2),
           boxShadow: const [
-            BoxShadow(color: Colors.black38, blurRadius: 13, offset: Offset(0, 7)),
+            BoxShadow(
+              color: Colors.black38,
+              blurRadius: 13,
+              offset: Offset(0, 7),
+            ),
           ],
         ),
         child: Icon(icon, color: accent, size: 42),
@@ -852,10 +844,15 @@ class _CartoonActionButton extends StatelessWidget {
         backgroundColor: AppColors.lime,
         foregroundColor: AppColors.ink,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
       ),
       icon: Icon(icon),
-      label: Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
+      label: Text(
+        label,
+        style: const TextStyle(fontWeight: FontWeight.w900),
+      ),
     );
   }
 }

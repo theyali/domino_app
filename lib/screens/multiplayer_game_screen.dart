@@ -951,11 +951,6 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
                 ),
               ),
             ),
-          Positioned(
-            left: 12,
-            bottom: 12,
-            child: _RoundBadge(roundNumber: _gameState.roundNumber),
-          ),
         ],
       ),
     );
@@ -1295,6 +1290,11 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
                   ),
                 ),
               ),
+            ),
+            Positioned(
+              left: 8,
+              top: 4,
+              child: _RoundBadge(roundNumber: _gameState.roundNumber),
             ),
             Positioned(
               top: 0,

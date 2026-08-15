@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
 import '../models/user_account.dart';
+import '../models/user_gender.dart';
 import 'api_service.dart';
 
 class AuthResult {
@@ -19,6 +20,7 @@ class AuthService {
   Future<AuthResult> register({
     required String username,
     required String email,
+    required UserGender gender,
     required String password,
     required String passwordConfirm,
   }) async {
@@ -28,6 +30,7 @@ class AuthService {
       body: jsonEncode({
         'username': username.trim(),
         'email': email.trim(),
+        'gender': gender.apiValue,
         'password': password,
         'password_confirm': passwordConfirm,
       }),
@@ -66,6 +69,7 @@ class AuthService {
     required String username,
     required String email,
     required String firstName,
+    required UserGender gender,
     String? avatarPath,
   }) async {
     final request = http.MultipartRequest(
@@ -77,6 +81,7 @@ class AuthService {
       'username': username.trim(),
       'email': email.trim(),
       'first_name': firstName.trim(),
+      'gender': gender.apiValue,
     });
 
     if (avatarPath != null && avatarPath.trim().isNotEmpty) {

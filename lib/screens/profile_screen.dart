@@ -207,9 +207,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
+  InputDecoration _cartoonFieldDecoration({
+    required String label,
+    required IconData icon,
+  }) {
+    const border = OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(18)),
+      borderSide: BorderSide(color: _ProfilePalette.ink, width: 2.6),
+    );
+
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(
+        color: _ProfilePalette.inkSoft,
+        fontWeight: FontWeight.w700,
+      ),
+      prefixIcon: Icon(icon, color: _ProfilePalette.ink),
+      filled: true,
+      fillColor: _ProfilePalette.cream,
+      enabledBorder: border,
+      focusedBorder: border.copyWith(
+        borderSide: const BorderSide(
+          color: _ProfilePalette.ink,
+          width: 3.2,
+        ),
+      ),
+      disabledBorder: border,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final languageController = LanguageScope.of(context);
     final strings = ProfileStrings.of(context);
 
@@ -219,26 +248,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: SafeArea(
           bottom: false,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 30),
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 34),
             children: [
               _buildProfileHeader(strings),
-              const SizedBox(height: 18),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceRaised,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(
-                    color: AppColors.brass.withValues(alpha: 0.28),
-                  ),
-                ),
+              const SizedBox(height: 20),
+              _CartoonPanel(
+                color: _ProfilePalette.skyBlue,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
                       strings.editProfile,
                       style: const TextStyle(
-                        fontSize: 18,
+                        color: _ProfilePalette.ink,
+                        fontSize: 20,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -247,136 +270,197 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       controller: _firstNameController,
                       enabled: !_isSaving,
                       textInputAction: TextInputAction.next,
-                      decoration: InputDecoration(
-                        labelText: strings.displayName,
-                        prefixIcon: const Icon(Icons.badge_outlined),
+                      style: const TextStyle(
+                        color: _ProfilePalette.ink,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      decoration: _cartoonFieldDecoration(
+                        label: strings.displayName,
+                        icon: Icons.badge_outlined,
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 11),
                     TextField(
                       controller: _usernameController,
                       enabled: !_isSaving,
                       textInputAction: TextInputAction.next,
                       autocorrect: false,
-                      decoration: InputDecoration(
-                        labelText: strings.username,
-                        prefixIcon: const Icon(Icons.alternate_email_rounded),
+                      style: const TextStyle(
+                        color: _ProfilePalette.ink,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      decoration: _cartoonFieldDecoration(
+                        label: strings.username,
+                        icon: Icons.alternate_email_rounded,
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 11),
                     TextField(
                       controller: _emailController,
                       enabled: !_isSaving,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.done,
                       autocorrect: false,
-                      decoration: InputDecoration(
-                        labelText: strings.email,
-                        prefixIcon: const Icon(Icons.mail_outline_rounded),
+                      style: const TextStyle(
+                        color: _ProfilePalette.ink,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      decoration: _cartoonFieldDecoration(
+                        label: strings.email,
+                        icon: Icons.mail_outline_rounded,
                       ),
                       onSubmitted: (_) => _saveProfile(),
                     ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      height: 50,
-                      child: FilledButton.icon(
-                        onPressed: _isSaving ? null : _saveProfile,
-                        icon: _isSaving
-                            ? const SizedBox(
-                                width: 19,
-                                height: 19,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.3,
-                                  color: Colors.black,
+                    const SizedBox(height: 15),
+                    _CartoonActionButton(
+                      color: _ProfilePalette.lime,
+                      onPressed: _isSaving ? null : _saveProfile,
+                      child: _isSaving
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const SizedBox(
+                                  width: 19,
+                                  height: 19,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.3,
+                                    color: _ProfilePalette.ink,
+                                  ),
                                 ),
-                              )
-                            : const Icon(Icons.check_rounded),
-                        label: Text(
-                          _isSaving ? strings.saving : strings.save,
+                                const SizedBox(width: 10),
+                                Text(strings.saving),
+                              ],
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.check_rounded, size: 22),
+                                const SizedBox(width: 8),
+                                Text(strings.save),
+                              ],
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              _CartoonPanel(
+                color: _ProfilePalette.yellow,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const _CartoonIconBadge(
+                          icon: Icons.language_rounded,
+                          color: _ProfilePalette.mint,
                         ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                context.tr('language'),
+                                style: const TextStyle(
+                                  color: _ProfilePalette.ink,
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                context.tr('language_description'),
+                                style: const TextStyle(
+                                  color: _ProfilePalette.inkSoft,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 15),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _LanguageChoiceButton(
+                            language: AppLanguage.az,
+                            selected:
+                                languageController.language == AppLanguage.az,
+                            onPressed: () => languageController.setLanguage(
+                              AppLanguage.az,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _LanguageChoiceButton(
+                            language: AppLanguage.ru,
+                            selected:
+                                languageController.language == AppLanguage.ru,
+                            onPressed: () => languageController.setLanguage(
+                              AppLanguage.ru,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              _CartoonPanel(
+                color: _ProfilePalette.mint,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(
+                  children: [
+                    const _CartoonIconBadge(
+                      icon: Icons.card_giftcard_rounded,
+                      color: _ProfilePalette.coral,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.tr('my_gifts'),
+                            style: const TextStyle(
+                              color: _ProfilePalette.ink,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            context.tr('inventory_bottom_menu'),
+                            style: const TextStyle(
+                              color: _ProfilePalette.inkSoft,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.language_rounded),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  context.tr('language'),
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  context.tr('language_description'),
-                                  style: TextStyle(
-                                    color: colorScheme.onSurfaceVariant,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _LanguageChoiceButton(
-                              language: AppLanguage.az,
-                              selected:
-                                  languageController.language == AppLanguage.az,
-                              onPressed: () => languageController.setLanguage(
-                                AppLanguage.az,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _LanguageChoiceButton(
-                              language: AppLanguage.ru,
-                              selected:
-                                  languageController.language == AppLanguage.ru,
-                              onPressed: () => languageController.setLanguage(
-                                AppLanguage.ru,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.card_giftcard_rounded),
-                  title: Text(context.tr('my_gifts')),
-                  subtitle: Text(context.tr('inventory_bottom_menu')),
-                ),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
+              const SizedBox(height: 16),
+              _CartoonActionButton(
+                color: _ProfilePalette.coral,
                 onPressed: _isSaving ? null : widget.onLogout,
-                icon: const Icon(Icons.logout_rounded),
-                label: Text(context.tr('logout')),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.logout_rounded, size: 22),
+                    const SizedBox(width: 8),
+                    Text(context.tr('logout')),
+                  ],
+                ),
               ),
             ],
           ),
@@ -426,57 +510,230 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: avatarContent,
             ),
             Positioned(
-              right: 1,
-              bottom: 6,
-              child: Material(
-                color: AppColors.lime,
-                shape: const CircleBorder(),
-                elevation: 4,
-                shadowColor: Colors.black54,
-                child: InkWell(
-                  onTap: _isSaving ? null : _pickAvatar,
-                  customBorder: const CircleBorder(),
-                  child: const SizedBox(
-                    width: 38,
-                    height: 38,
-                    child: Icon(
-                      Icons.photo_camera_rounded,
-                      color: Colors.black,
-                      size: 20,
+              right: -1,
+              bottom: 5,
+              child: GestureDetector(
+                onTap: _isSaving ? null : _pickAvatar,
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: _ProfilePalette.lime,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: _ProfilePalette.ink,
+                      width: 2.8,
                     ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: _ProfilePalette.ink,
+                        blurRadius: 0,
+                        offset: Offset(3, 3),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.photo_camera_rounded,
+                    color: _ProfilePalette.ink,
+                    size: 21,
                   ),
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        TextButton.icon(
-          onPressed: _isSaving ? null : _pickAvatar,
-          icon: const Icon(Icons.photo_library_outlined, size: 18),
-          label: Text(strings.chooseFromGallery),
-        ),
-        Text(
-          strings.avatarHint,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white38,
-            fontSize: 11,
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: _isSaving ? null : _pickAvatar,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: _ProfilePalette.cream,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: _ProfilePalette.ink, width: 2.5),
+              boxShadow: const [
+                BoxShadow(
+                  color: _ProfilePalette.ink,
+                  blurRadius: 0,
+                  offset: Offset(2, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.photo_library_outlined,
+                  size: 18,
+                  color: _ProfilePalette.ink,
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  strings.chooseFromGallery,
+                  style: const TextStyle(
+                    color: _ProfilePalette.ink,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 10),
         Text(
+          strings.avatarHint,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            shadows: [
+              Shadow(
+                color: Colors.black87,
+                offset: Offset(1, 2),
+                blurRadius: 0,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
           _user.displayName,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 25,
+            fontWeight: FontWeight.w900,
+            shadows: [
+              Shadow(
+                color: Colors.black87,
+                offset: Offset(2, 3),
+                blurRadius: 0,
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 3),
-        Text(
-          '@${_user.username}',
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.white54),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          decoration: BoxDecoration(
+            color: _ProfilePalette.cream,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: _ProfilePalette.ink, width: 2.2),
+          ),
+          child: Text(
+            '@${_user.username}',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: _ProfilePalette.ink,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ),
       ],
+    );
+  }
+}
+
+class _CartoonPanel extends StatelessWidget {
+  final Color color;
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+
+  const _CartoonPanel({
+    required this.color,
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: _ProfilePalette.ink, width: 3),
+        boxShadow: const [
+          BoxShadow(
+            color: _ProfilePalette.ink,
+            blurRadius: 0,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _CartoonActionButton extends StatelessWidget {
+  final Color color;
+  final VoidCallback? onPressed;
+  final Widget child;
+
+  const _CartoonActionButton({
+    required this.color,
+    required this.onPressed,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null;
+    return GestureDetector(
+      onTap: onPressed,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.55,
+        child: Container(
+          height: 52,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: _ProfilePalette.ink, width: 3),
+            boxShadow: const [
+              BoxShadow(
+                color: _ProfilePalette.ink,
+                blurRadius: 0,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: DefaultTextStyle(
+            style: const TextStyle(
+              color: _ProfilePalette.ink,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+            child: IconTheme(
+              data: const IconThemeData(color: _ProfilePalette.ink),
+              child: child,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CartoonIconBadge extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+
+  const _CartoonIconBadge({required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 46,
+      height: 46,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _ProfilePalette.ink, width: 2.6),
+      ),
+      child: Icon(icon, color: _ProfilePalette.ink, size: 24),
     );
   }
 }
@@ -516,36 +773,66 @@ class _LanguageChoiceButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final child = Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(language.flag, style: const TextStyle(fontSize: 20)),
-        const SizedBox(width: 7),
-        Flexible(
-          child: Text(
-            language.label,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
+    return GestureDetector(
+      onTap: () {
+        onPressed();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 140),
+        height: 50,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: selected ? _ProfilePalette.lime : _ProfilePalette.cream,
+          borderRadius: BorderRadius.circular(17),
+          border: Border.all(color: _ProfilePalette.ink, width: 2.7),
+          boxShadow: selected
+              ? const [
+                  BoxShadow(
+                    color: _ProfilePalette.ink,
+                    blurRadius: 0,
+                    offset: Offset(2, 3),
+                  ),
+                ]
+              : null,
         ),
-        if (selected) ...[
-          const SizedBox(width: 5),
-          const Icon(Icons.check_rounded, size: 18),
-        ],
-      ],
-    );
-
-    if (selected) {
-      return FilledButton.tonal(
-        onPressed: onPressed,
-        child: child,
-      );
-    }
-
-    return OutlinedButton(
-      onPressed: onPressed,
-      child: child,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(language.flag, style: const TextStyle(fontSize: 20)),
+            const SizedBox(width: 7),
+            Flexible(
+              child: Text(
+                language.label,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _ProfilePalette.ink,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            if (selected) ...[
+              const SizedBox(width: 5),
+              const Icon(
+                Icons.check_rounded,
+                size: 18,
+                color: _ProfilePalette.ink,
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
+}
+
+class _ProfilePalette {
+  static const Color ink = Color(0xFF111111);
+  static const Color inkSoft = Color(0xFF4A4037);
+  static const Color cream = Color(0xFFFFF5D9);
+  static const Color skyBlue = Color(0xFF79CDF1);
+  static const Color yellow = Color(0xFFFFD65C);
+  static const Color mint = Color(0xFF8CDD79);
+  static const Color coral = Color(0xFFFF7E70);
+  static const Color lime = Color(0xFF7CFC00);
 }

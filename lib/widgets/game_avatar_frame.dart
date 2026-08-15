@@ -14,12 +14,14 @@ class GameAvatarFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The PNG frame has a relatively thin transparent opening. Some screens
-    // previously passed large paddings (for example 15px on a 126px avatar),
-    // which made the actual photo look noticeably smaller than the circle.
-    // Cap the inset proportionally so the photo always fills the visible hole.
-    final maxFrameInset = size * 0.06;
-    final effectiveInset = innerPadding.clamp(0.0, maxFrameInset).toDouble();
+    // avatar_frame.png has a fixed circular opening. The previous implementation
+    // let every screen use a different inset and then capped it too aggressively,
+    // so the photo could extend underneath the coloured artwork.
+    //
+    // Keep one proportional safe area for every avatar size. About 9% on each
+    // side leaves the image visually full while keeping it inside the inner edge
+    // of the illustrated frame on profile, statistics and future usages.
+    final frameSafeInset = size * 0.09;
 
     return SizedBox(
       width: size,
@@ -29,10 +31,19 @@ class GameAvatarFrame extends StatelessWidget {
         children: [
           Positioned.fill(
             child: Padding(
-              padding: EdgeInsets.all(effectiveInset),
+              padding: EdgeInsets.all(frameSafeInset),
               child: ClipOval(
+                clipBehavior: Clip.antiAlias,
                 child: SizedBox.expand(
-                  child: child,
+                  child: FittedBox(
+                    fit: BoxFit.cover,
+                    clipBehavior: Clip.hardEdge,
+                    child: SizedBox(
+                      width: size,
+                      height: size,
+                      child: child,
+                    ),
+                  ),
                 ),
               ),
             ),

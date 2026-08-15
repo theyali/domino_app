@@ -31,12 +31,8 @@ class GameTableDecorations extends StatelessWidget {
           ),
           const Positioned(left: 13, top: 13, child: _BrassFastener()),
           const Positioned(right: 13, top: 13, child: _BrassFastener()),
-
-          // Нижние HUD-кнопки занимают сами углы. Шурупы сдвинуты немного
-          // к центру стола, чтобы они не прятались под раундом и базаром.
-          const Positioned(left: 88, bottom: 13, child: _BrassFastener()),
-          const Positioned(right: 88, bottom: 13, child: _BrassFastener()),
-
+          const Positioned(left: 13, bottom: 13, child: _BrassFastener()),
+          const Positioned(right: 13, bottom: 13, child: _BrassFastener()),
           Center(
             child: Opacity(
               opacity: 0.07,

@@ -58,6 +58,22 @@ class GiftService {
     return rawCount;
   }
 
+  Future<GiftPurchaseSummary> fetchPurchaseSummary() async {
+    final response = await http.get(
+      ApiConfig.uri('/api/gifts/purchases/'),
+      headers: await _authHeaders(),
+    );
+    final data = _decodeResponse(response);
+
+    if (data is! Map) {
+      throw const ApiException('Сервер вернул неверную историю покупок.');
+    }
+
+    return GiftPurchaseSummary.fromJson(
+      Map<String, dynamic>.from(data),
+    );
+  }
+
   Future<List<InventoryGift>> fetchInventory() async {
     final response = await http.get(
       ApiConfig.uri('/api/inventory/gifts/'),

@@ -7,6 +7,7 @@ import '../models/social.dart';
 import '../models/user_account.dart';
 import '../services/api_service.dart';
 import '../services/social_service.dart';
+import '../theme/gender_style.dart';
 import '../widgets/cartoon_page_background.dart';
 import 'chat_screen.dart';
 import 'room_lobby_screen.dart';
@@ -179,8 +180,11 @@ class _SocialScreenState extends State<SocialScreen> {
               Text(
                 user.displayName,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: _SocialPalette.inkSoft,
+                style: TextStyle(
+                  color: GenderStyle.colorFor(
+                    user.gender,
+                    fallback: _SocialPalette.inkSoft,
+                  ),
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -681,6 +685,10 @@ class _ConversationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final nameColor = GenderStyle.colorFor(
+      chat.user.gender,
+      fallback: _SocialPalette.ink,
+    );
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -710,8 +718,8 @@ class _ConversationCard extends StatelessWidget {
                     chat.user.displayName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: _SocialPalette.ink,
+                    style: TextStyle(
+                      color: nameColor,
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
                     ),
@@ -776,6 +784,10 @@ class _InvitationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final nameColor = GenderStyle.colorFor(
+      item.sender.gender,
+      fallback: _SocialPalette.ink,
+    );
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -802,8 +814,8 @@ class _InvitationCard extends StatelessWidget {
                   children: [
                     Text(
                       item.sender.displayName,
-                      style: const TextStyle(
-                        color: _SocialPalette.ink,
+                      style: TextStyle(
+                        color: nameColor,
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
                       ),
@@ -863,6 +875,10 @@ class _UserText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final genderColor = GenderStyle.colorFor(
+      user.gender,
+      fallback: _SocialPalette.ink,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -873,8 +889,8 @@ class _UserText extends StatelessWidget {
                 user.displayName,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: _SocialPalette.ink,
+                style: TextStyle(
+                  color: genderColor,
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
                 ),
@@ -898,10 +914,10 @@ class _UserText extends StatelessWidget {
           '@${user.username}',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: _SocialPalette.inkSoft,
+          style: TextStyle(
+            color: genderColor,
             fontSize: 12,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ],
@@ -917,6 +933,10 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final letterColor = GenderStyle.colorFor(
+      user.gender,
+      fallback: _SocialPalette.ink,
+    );
     final letter = user.displayName.trim().isEmpty
         ? '?'
         : user.displayName.trim().substring(0, 1).toUpperCase();
@@ -934,9 +954,10 @@ class _Avatar extends StatelessWidget {
             ? Image.network(
                 user.avatarUrl!,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _AvatarLetter(letter: letter),
+                errorBuilder: (_, __, ___) =>
+                    _AvatarLetter(letter: letter, color: letterColor),
               )
-            : _AvatarLetter(letter: letter),
+            : _AvatarLetter(letter: letter, color: letterColor),
       ),
     );
   }
@@ -944,8 +965,9 @@ class _Avatar extends StatelessWidget {
 
 class _AvatarLetter extends StatelessWidget {
   final String letter;
+  final Color color;
 
-  const _AvatarLetter({required this.letter});
+  const _AvatarLetter({required this.letter, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -954,8 +976,8 @@ class _AvatarLetter extends StatelessWidget {
       child: Center(
         child: Text(
           letter,
-          style: const TextStyle(
-            color: _SocialPalette.ink,
+          style: TextStyle(
+            color: color,
             fontSize: 20,
             fontWeight: FontWeight.w900,
           ),

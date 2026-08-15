@@ -4,6 +4,7 @@ import '../localization/app_localizations.dart';
 import '../models/social.dart';
 import '../services/api_service.dart';
 import '../services/social_service.dart';
+import '../theme/gender_style.dart';
 
 class InvitePlayersSheet extends StatefulWidget {
   final int roomId;
@@ -276,6 +277,10 @@ class _InvitePlayersSheetState extends State<InvitePlayersSheet> {
       itemBuilder: (context, index) {
         final user = _users[index];
         final selected = _selected.contains(user.id);
+        final genderColor = GenderStyle.colorFor(
+          user.gender,
+          fallback: _InvitePalette.ink,
+        );
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () {
@@ -323,8 +328,8 @@ class _InvitePlayersSheetState extends State<InvitePlayersSheet> {
                         user.displayName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _InvitePalette.ink,
+                        style: TextStyle(
+                          color: genderColor,
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
                         ),
@@ -333,10 +338,10 @@ class _InvitePlayersSheetState extends State<InvitePlayersSheet> {
                         '@${user.username}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _InvitePalette.inkSoft,
+                        style: TextStyle(
+                          color: genderColor,
                           fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ],
@@ -387,6 +392,10 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final letterColor = GenderStyle.colorFor(
+      user.gender,
+      fallback: _InvitePalette.ink,
+    );
     final letter = user.displayName.trim().isEmpty
         ? '?'
         : user.displayName.trim().substring(0, 1).toUpperCase();
@@ -404,9 +413,10 @@ class _Avatar extends StatelessWidget {
             ? Image.network(
                 user.avatarUrl!,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _AvatarLetter(letter: letter),
+                errorBuilder: (_, __, ___) =>
+                    _AvatarLetter(letter: letter, color: letterColor),
               )
-            : _AvatarLetter(letter: letter),
+            : _AvatarLetter(letter: letter, color: letterColor),
       ),
     );
   }
@@ -414,8 +424,9 @@ class _Avatar extends StatelessWidget {
 
 class _AvatarLetter extends StatelessWidget {
   final String letter;
+  final Color color;
 
-  const _AvatarLetter({required this.letter});
+  const _AvatarLetter({required this.letter, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -424,8 +435,8 @@ class _AvatarLetter extends StatelessWidget {
       child: Center(
         child: Text(
           letter,
-          style: const TextStyle(
-            color: _InvitePalette.ink,
+          style: TextStyle(
+            color: color,
             fontSize: 20,
             fontWeight: FontWeight.w900,
           ),

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../localization/app_localizations.dart';
 import '../localization/game_action_strings.dart';
 import '../models/multiplayer_game_state.dart';
+import '../services/sound_effects_service.dart';
 
 enum _ResultPresentationPhase {
   waitingForLastDomino,
@@ -38,7 +39,9 @@ class MultiplayerGameResultOverlay extends StatefulWidget {
 class _MultiplayerGameResultOverlayState
     extends State<MultiplayerGameResultOverlay> {
   static const Duration _lastDominoWait = Duration(milliseconds: 920);
-  static const Duration _outcomeDuration = Duration(milliseconds: 820);
+  static const Duration _otherResultWait = Duration(milliseconds: 280);
+  static const Duration _roundOutcomeDuration = Duration(milliseconds: 3600);
+  static const Duration _matchOutcomeDuration = Duration(milliseconds: 4800);
 
   Timer? _phaseTimer;
   late _ResultPresentationPhase _phase;
@@ -58,6 +61,7 @@ class _MultiplayerGameResultOverlayState
     final oldResult = oldWidget.gameState.roundResult;
     final newResult = widget.gameState.roundResult;
     if (oldWidget.gameState.roundNumber != widget.gameState.roundNumber ||
+        oldWidget.gameState.status != widget.gameState.status ||
         oldResult?.reason != newResult?.reason) {
       _startPresentation();
     }
@@ -69,17 +73,27 @@ class _MultiplayerGameResultOverlayState
     super.dispose();
   }
 
+  bool _isLocalWinner(MultiplayerRoundResult result) {
+    if (gameState.isMatchFinished && result.matchWinnerPlayerIds.isNotEmpty) {
+      return result.matchWinnerPlayerIds.contains(gameState.myPlayerId);
+    }
+    return result.winnerPlayerIds.contains(gameState.myPlayerId);
+  }
+
   void _startPresentation() {
     _phaseTimer?.cancel();
 
     final result = gameState.roundResult;
-    if (result == null || result.reason != 'domino') {
+    if (result == null) {
       _phase = _ResultPresentationPhase.menu;
       return;
     }
 
     _phase = _ResultPresentationPhase.waitingForLastDomino;
-    _phaseTimer = Timer(_lastDominoWait, _showOutcome);
+    _phaseTimer = Timer(
+      result.reason == 'domino' ? _lastDominoWait : _otherResultWait,
+      _showOutcome,
+    );
   }
 
   void _showOutcome() {
@@ -93,23 +107,30 @@ class _MultiplayerGameResultOverlayState
       return;
     }
 
-    final isWinner = result.winnerPlayerIds.contains(gameState.myPlayerId);
+    final isWinner = _isLocalWinner(result);
     if (isWinner) {
-      unawaited(HapticFeedback.mediumImpact());
+      SoundEffectsService.victory();
+      unawaited(HapticFeedback.heavyImpact());
     } else {
-      unawaited(HapticFeedback.lightImpact());
+      SoundEffectsService.defeat();
+      unawaited(HapticFeedback.mediumImpact());
     }
 
     setState(() {
       _phase = _ResultPresentationPhase.outcome;
     });
 
-    _phaseTimer = Timer(_outcomeDuration, () {
-      if (!mounted) return;
-      setState(() {
-        _phase = _ResultPresentationPhase.menu;
-      });
-    });
+    _phaseTimer = Timer(
+      gameState.isMatchFinished
+          ? _matchOutcomeDuration
+          : _roundOutcomeDuration,
+      () {
+        if (!mounted) return;
+        setState(() {
+          _phase = _ResultPresentationPhase.menu;
+        });
+      },
+    );
   }
 
   @override
@@ -119,21 +140,34 @@ class _MultiplayerGameResultOverlayState
       return const SizedBox.shrink();
     }
 
+    Widget child;
     if (_phase == _ResultPresentationPhase.waitingForLastDomino) {
-      return const IgnorePointer(child: SizedBox.expand());
-    }
-
-    if (_phase == _ResultPresentationPhase.outcome) {
-      final isWinner = result.winnerPlayerIds.contains(gameState.myPlayerId);
+      child = const IgnorePointer(
+        key: ValueKey('result-waiting'),
+        child: SizedBox.expand(),
+      );
+    } else if (_phase == _ResultPresentationPhase.outcome) {
+      final isWinner = _isLocalWinner(result);
       final winner = _firstRoundWinner(result);
-
-      return _RoundOutcomeFlash(
+      child = _RoundOutcomeFlash(
+        key: const ValueKey('result-outcome'),
         isWinner: isWinner,
+        isMatchFinished: gameState.isMatchFinished,
         winnerName: winner?.name,
+      );
+    } else {
+      child = KeyedSubtree(
+        key: const ValueKey('result-menu'),
+        child: _buildResultMenu(context, result),
       );
     }
 
-    return _buildResultMenu(context, result);
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 320),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      child: child,
+    );
   }
 
   Widget _buildResultMenu(
@@ -458,8 +492,11 @@ class _MultiplayerGameResultOverlayState
   }
 
   MultiplayerPlayerState? _firstRoundWinner(MultiplayerRoundResult result) {
-    if (result.winnerPlayerIds.isEmpty) return null;
-    return _playerById(result.winnerPlayerIds.first);
+    final ids = gameState.isMatchFinished && result.matchWinnerPlayerIds.isNotEmpty
+        ? result.matchWinnerPlayerIds
+        : result.winnerPlayerIds;
+    if (ids.isEmpty) return null;
+    return _playerById(ids.first);
   }
 
   MultiplayerPlayerState? _playerById(int? playerId) {
@@ -473,48 +510,81 @@ class _MultiplayerGameResultOverlayState
 
 class _RoundOutcomeFlash extends StatelessWidget {
   final bool isWinner;
+  final bool isMatchFinished;
   final String? winnerName;
 
   const _RoundOutcomeFlash({
+    super.key,
     required this.isWinner,
+    required this.isMatchFinished,
     required this.winnerName,
   });
 
   @override
   Widget build(BuildContext context) {
     final isAzerbaijani = context.appLanguage.code == 'az';
-    final title = isWinner
-        ? (isAzerbaijani ? 'Əla! Raund sənindir!' : 'Отлично! Раунд твой!')
-        : (isAzerbaijani ? 'Raund uduzuldu' : 'Раунд проигран');
-    final subtitle = isWinner
-        ? (isAzerbaijani
-            ? 'Son daşı birinci siz qoydunuz.'
-            : 'Ты первым выложил последнюю костяшку.')
-        : winnerName == null
+
+    final title = isMatchFinished
+        ? isWinner
+            ? (isAzerbaijani ? 'QƏLƏBƏ!' : 'ПОБЕДА!')
+            : (isAzerbaijani ? 'MƏĞLUBİYYƏT' : 'ПОРАЖЕНИЕ')
+        : isWinner
+            ? (isAzerbaijani ? 'RAUND SƏNİNDİR!' : 'РАУНД ТВОЙ!')
+            : (isAzerbaijani ? 'RAUND UDUZULDU' : 'РАУНД ПРОИГРАН');
+
+    final subtitle = isMatchFinished
+        ? isWinner
             ? (isAzerbaijani
-                ? 'Rəqib raundu birinci bitirdi.'
-                : 'Соперник первым закончил раунд.')
-            : (isAzerbaijani
-                ? '$winnerName raundu birinci bitirdi.'
-                : '$winnerName первым закончил раунд.');
+                ? 'Matçı qazandın. Nəticə yadda saxlanıldı.'
+                : 'Ты выиграл матч. Результат сохранён.')
+            : winnerName == null
+                ? (isAzerbaijani
+                    ? 'Bu dəfə rəqib qalib gəldi.'
+                    : 'В этот раз победил соперник.')
+                : (isAzerbaijani
+                    ? '$winnerName matçı qazandı.'
+                    : '$winnerName выиграл матч.')
+        : isWinner
+            ? (isAzerbaijani
+                ? 'Son daşı birinci sən qoydun.'
+                : 'Ты первым выложил последнюю костяшку.')
+            : winnerName == null
+                ? (isAzerbaijani
+                    ? 'Rəqib raundu birinci bitirdi.'
+                    : 'Соперник первым закончил раунд.')
+                : (isAzerbaijani
+                    ? '$winnerName raundu birinci bitirdi.'
+                    : '$winnerName первым закончил раунд.');
+
+    final badge = isMatchFinished
+        ? (isAzerbaijani ? 'MATÇ BAŞA ÇATDI' : 'МАТЧ ЗАВЕРШЁН')
+        : (isAzerbaijani ? 'RAUND BAŞA ÇATDI' : 'РАУНД ЗАВЕРШЁН');
 
     final accent = isWinner ? _ResultPalette.lime : _ResultPalette.coral;
     final secondaryAccent =
         isWinner ? _ResultPalette.yellow : _ResultPalette.skyBlue;
 
     return Material(
-      color: Colors.black.withValues(alpha: 0.42),
+      color: Colors.black.withValues(alpha: 0.58),
       child: IgnorePointer(
         child: Center(
           child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.72, end: 1.0),
-            duration: const Duration(milliseconds: 430),
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 1050),
             curve: Curves.easeOutBack,
-            builder: (context, value, child) {
-              final safeOpacity = value > 1.0 ? 1.0 : value;
-              return Transform.scale(
-                scale: value,
-                child: Opacity(opacity: safeOpacity, child: child),
+            builder: (context, progress, child) {
+              final entry = progress.clamp(0.0, 1.0);
+              final shake = isWinner
+                  ? 0.0
+                  : math.sin(progress * math.pi * 8) *
+                      (1 - entry) *
+                      12;
+              return Transform.translate(
+                offset: Offset(shake, 0),
+                child: Transform.scale(
+                  scale: 0.62 + (entry * 0.38),
+                  child: Opacity(opacity: entry, child: child),
+                ),
               );
             },
             child: Stack(
@@ -523,13 +593,20 @@ class _RoundOutcomeFlash extends StatelessWidget {
               children: [
                 if (isWinner)
                   const Positioned.fill(child: _OutcomeBurst()),
+                Positioned(
+                  top: -70,
+                  child: _ResultPulseRing(
+                    color: accent,
+                    isWinner: isWinner,
+                  ),
+                ),
                 Container(
-                  constraints: const BoxConstraints(maxWidth: 350),
-                  margin: const EdgeInsets.symmetric(horizontal: 24),
-                  padding: const EdgeInsets.fromLTRB(22, 58, 22, 24),
+                  constraints: const BoxConstraints(maxWidth: 370),
+                  margin: const EdgeInsets.symmetric(horizontal: 22),
+                  padding: const EdgeInsets.fromLTRB(22, 70, 22, 26),
                   decoration: BoxDecoration(
                     color: _ResultPalette.cream,
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(32),
                     border: Border.all(
                       color: _ResultPalette.ink,
                       width: 3,
@@ -538,33 +615,67 @@ class _RoundOutcomeFlash extends StatelessWidget {
                       BoxShadow(
                         color: _ResultPalette.ink,
                         blurRadius: 0,
-                        offset: Offset(6, 8),
+                        offset: Offset(7, 9),
                       ),
                     ],
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        title,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: _ResultPalette.ink,
-                          fontSize: 27,
-                          height: 1.05,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
+                          horizontal: 12,
+                          vertical: 6,
                         ),
                         decoration: BoxDecoration(
                           color: secondaryAccent,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(13),
+                          border: Border.all(
+                            color: _ResultPalette.ink,
+                            width: 2.1,
+                          ),
+                        ),
+                        child: Text(
+                          badge,
+                          style: const TextStyle(
+                            color: _ResultPalette.ink,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: isWinner
+                              ? const Color(0xFF3B7A00)
+                              : const Color(0xFFC43832),
+                          fontSize: isMatchFinished ? 36 : 30,
+                          height: 0.98,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.8,
+                          shadows: const [
+                            Shadow(
+                              color: Colors.black12,
+                              offset: Offset(2, 2),
+                              blurRadius: 0,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: secondaryAccent,
+                          borderRadius: BorderRadius.circular(17),
                           border: Border.all(
                             color: _ResultPalette.ink,
                             width: 2.2,
@@ -575,34 +686,71 @@ class _RoundOutcomeFlash extends StatelessWidget {
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: _ResultPalette.ink,
-                            fontSize: 13,
+                            fontSize: 13.5,
                             height: 1.3,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
                       ),
+                      const SizedBox(height: 14),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            isWinner
+                                ? Icons.auto_awesome_rounded
+                                : Icons.info_outline_rounded,
+                            color: _ResultPalette.inkSoft,
+                            size: 17,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              isAzerbaijani
+                                  ? 'Nəticələr bir neçə saniyədən sonra göstəriləcək.'
+                                  : 'Через несколько секунд покажем результаты.',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: _ResultPalette.inkSoft,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
                 Positioned(
-                  top: -36,
-                  child: Transform.rotate(
-                    angle: isWinner ? 0.06 : -0.06,
+                  top: -43,
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    duration: const Duration(milliseconds: 1450),
+                    curve: Curves.elasticOut,
+                    builder: (context, value, child) => Transform.rotate(
+                      angle: (isWinner ? 0.06 : -0.06) +
+                          math.sin(value * math.pi * 3) * 0.045,
+                      child: Transform.scale(
+                        scale: 0.8 + value.clamp(0.0, 1.0) * 0.2,
+                        child: child,
+                      ),
+                    ),
                     child: Container(
-                      width: 82,
-                      height: 82,
+                      width: 94,
+                      height: 94,
                       decoration: BoxDecoration(
                         color: accent,
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: _ResultPalette.ink,
-                          width: 3,
+                          width: 3.2,
                         ),
                         boxShadow: const [
                           BoxShadow(
                             color: _ResultPalette.ink,
                             blurRadius: 0,
-                            offset: Offset(4, 5),
+                            offset: Offset(5, 6),
                           ),
                         ],
                       ),
@@ -611,7 +759,7 @@ class _RoundOutcomeFlash extends StatelessWidget {
                             ? Icons.emoji_events_rounded
                             : Icons.sentiment_dissatisfied_rounded,
                         color: _ResultPalette.ink,
-                        size: 43,
+                        size: 50,
                       ),
                     ),
                   ),
@@ -625,6 +773,38 @@ class _RoundOutcomeFlash extends StatelessWidget {
   }
 }
 
+class _ResultPulseRing extends StatelessWidget {
+  final Color color;
+  final bool isWinner;
+
+  const _ResultPulseRing({
+    required this.color,
+    required this.isWinner,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 1700),
+      curve: Curves.easeOutCubic,
+      builder: (context, progress, child) {
+        return Container(
+          width: 118 + 42 * progress,
+          height: 118 + 42 * progress,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: color.withValues(alpha: (1 - progress) * 0.75),
+              width: isWinner ? 8 : 5,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _OutcomeBurst extends StatelessWidget {
   const _OutcomeBurst();
 
@@ -632,29 +812,35 @@ class _OutcomeBurst extends StatelessWidget {
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 720),
+      duration: const Duration(milliseconds: 1800),
       curve: Curves.easeOutCubic,
       builder: (context, progress, child) {
         return Stack(
           clipBehavior: Clip.none,
           alignment: Alignment.center,
           children: [
-            for (var index = 0; index < 12; index++)
+            for (var index = 0; index < 20; index++)
               Transform.translate(
                 offset: Offset(
-                  math.cos((math.pi * 2 / 12) * index) * 118 * progress,
-                  math.sin((math.pi * 2 / 12) * index) * 94 * progress,
+                  math.cos((math.pi * 2 / 20) * index) * 148 * progress,
+                  math.sin((math.pi * 2 / 20) * index) * 120 * progress,
                 ),
                 child: Opacity(
-                  opacity: 1.0 - progress * 0.5,
+                  opacity: (1.0 - progress * 0.7).clamp(0.0, 1.0),
                   child: Transform.rotate(
-                    angle: progress * (index.isEven ? 1.2 : -1.2),
+                    angle: progress * (index.isEven ? 1.8 : -1.8),
                     child: Icon(
-                      index.isEven ? Icons.star_rounded : Icons.circle,
-                      size: index.isEven ? 20 : 11,
-                      color: index % 3 == 0
-                          ? _ResultPalette.yellow
-                          : _ResultPalette.lime,
+                      index % 3 == 0
+                          ? Icons.star_rounded
+                          : index.isEven
+                              ? Icons.circle
+                              : Icons.auto_awesome_rounded,
+                      size: index % 3 == 0 ? 24 : 13,
+                      color: index % 4 == 0
+                          ? _ResultPalette.coral
+                          : index % 3 == 0
+                              ? _ResultPalette.yellow
+                              : _ResultPalette.lime,
                     ),
                   ),
                 ),

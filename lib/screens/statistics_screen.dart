@@ -5,6 +5,9 @@ import '../models/league_statistics.dart';
 import '../services/api_service.dart';
 import '../services/statistics_service.dart';
 import '../theme/app_colors.dart';
+import '../widgets/cartoon_page_background.dart';
+import '../widgets/game_avatar_frame.dart';
+import '../widgets/league_badge.dart';
 
 class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({super.key});
@@ -72,7 +75,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     final strings = StatisticsStrings.of(context);
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
+        backgroundColor: AppColors.background,
+        surfaceTintColor: Colors.transparent,
         title: Text(strings.title),
         actions: [
           IconButton(
@@ -81,9 +87,13 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: _buildBody(strings),
+      body: CartoonPageBackground(
+        child: RefreshIndicator(
+          color: AppColors.lime,
+          backgroundColor: AppColors.surfaceRaised,
+          onRefresh: _load,
+          child: _buildBody(strings),
+        ),
       ),
     );
   }
@@ -96,7 +106,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         children: const [
           SizedBox(height: 280),
-          Center(child: CircularProgressIndicator()),
+          Center(child: CircularProgressIndicator(color: AppColors.lime)),
         ],
       );
     }
@@ -150,7 +160,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         ),
         const SizedBox(height: 11),
         SizedBox(
-          height: 46,
+          height: 58,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: statistics.leagues.length,
@@ -243,8 +253,8 @@ class _MyLeagueCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _LeagueMedal(roman: me.leagueRoman, size: 72),
-              const SizedBox(width: 15),
+              LeagueBadge(league: me.league, size: 78),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -408,23 +418,33 @@ class _LeagueChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 15),
+        padding: const EdgeInsets.fromLTRB(8, 4, 13, 4),
         decoration: BoxDecoration(
-          color: selected ? AppColors.lime : AppColors.surfaceRaised,
-          borderRadius: BorderRadius.circular(16),
+          color: selected
+              ? AppColors.lime.withValues(alpha: 0.10)
+              : AppColors.surfaceRaised,
+          borderRadius: BorderRadius.circular(17),
           border: Border.all(
             color: selected
-                ? AppColors.ink
+                ? AppColors.lime.withValues(alpha: 0.72)
                 : AppColors.brass.withValues(alpha: 0.30),
+            width: selected ? 1.5 : 1,
           ),
         ),
         alignment: Alignment.center,
-        child: Text(
-          '${league.roman}  ·  ${league.players.length}',
-          style: TextStyle(
-            color: selected ? Colors.black : Colors.white,
-            fontWeight: FontWeight.w900,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            LeagueBadge(league: league.number, size: 36),
+            const SizedBox(width: 6),
+            Text(
+              '${league.roman} · ${league.players.length}',
+              style: TextStyle(
+                color: selected ? AppColors.limeSoft : Colors.white,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -537,24 +557,19 @@ class _StatsAvatar extends StatelessWidget {
         ? (player.username.isEmpty ? '?' : player.username[0].toUpperCase())
         : player.name.trim()[0].toUpperCase();
 
-    return Container(
-      width: 42,
-      height: 42,
-      padding: const EdgeInsets.all(2),
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.brass,
-      ),
-      child: ClipOval(
-        child: player.avatarUrl?.isNotEmpty == true
-            ? Image.network(
-                player.avatarUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    _AvatarLetter(letter: letter),
-              )
-            : _AvatarLetter(letter: letter),
-      ),
+    final avatar = player.avatarUrl?.isNotEmpty == true
+        ? Image.network(
+            player.avatarUrl!,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) =>
+                _AvatarLetter(letter: letter),
+          )
+        : _AvatarLetter(letter: letter);
+
+    return GameAvatarFrame(
+      size: 46,
+      innerPadding: 7,
+      child: avatar,
     );
   }
 }
@@ -574,50 +589,6 @@ class _AvatarLetter extends StatelessWidget {
         style: const TextStyle(
           color: AppColors.ink,
           fontSize: 17,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-    );
-  }
-}
-
-class _LeagueMedal extends StatelessWidget {
-  final String roman;
-  final double size;
-
-  const _LeagueMedal({required this.roman, required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.brassLight,
-            AppColors.brass,
-            AppColors.brassDark,
-          ],
-        ),
-        border: Border.all(color: AppColors.cream, width: 2),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black45,
-            blurRadius: 9,
-            offset: Offset(0, 5),
-          ),
-        ],
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        roman,
-        style: TextStyle(
-          color: AppColors.ink,
-          fontSize: size * 0.34,
           fontWeight: FontWeight.w900,
         ),
       ),

@@ -111,19 +111,29 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
           scrolledUnderElevation: 0,
           title: Text(
             navigationStrings.play,
-            style: const TextStyle(fontWeight: FontWeight.w900),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              shadows: [
+                Shadow(
+                  color: Colors.black87,
+                  offset: Offset(2, 2),
+                  blurRadius: 0,
+                ),
+              ],
+            ),
           ),
           actions: [
             IconButton(
               onPressed: _isLoading ? null : () => _loadRestaurants(),
               tooltip: context.tr('refresh'),
-              icon: const Icon(Icons.refresh_rounded),
+              icon: const Icon(Icons.refresh_rounded, color: Colors.white),
             ),
           ],
         ),
         body: RefreshIndicator(
           color: AppColors.lime,
-          backgroundColor: AppColors.surfaceRaised,
+          backgroundColor: Colors.white,
           onRefresh: () => _loadRestaurants(),
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -222,21 +232,17 @@ class _PlayLobbyHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 15, 14, 14),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1E3528), Color(0xFF101D18)],
-        ),
-        borderRadius: BorderRadius.circular(26),
+        color: const Color(0xFFFFC93C),
+        borderRadius: BorderRadius.circular(25),
         border: Border.all(
-          color: AppColors.brass.withValues(alpha: 0.46),
-          width: 1.35,
+          color: Colors.black,
+          width: 3,
         ),
         boxShadow: const [
           BoxShadow(
-            color: Colors.black38,
-            blurRadius: 14,
-            offset: Offset(0, 7),
+            color: Colors.black54,
+            blurRadius: 0,
+            offset: Offset(5, 6),
           ),
         ],
       ),
@@ -248,16 +254,13 @@ class _PlayLobbyHeader extends StatelessWidget {
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(17),
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [AppColors.brassLight, AppColors.brassDark],
-                  ),
+                  color: const Color(0xFFFF6B6B),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.black, width: 2.5),
                 ),
                 child: const Icon(
                   Icons.sports_esports_rounded,
-                  color: AppColors.ink,
+                  color: Colors.black,
                   size: 28,
                 ),
               ),
@@ -270,17 +273,14 @@ class _PlayLobbyHeader extends StatelessWidget {
                     _LobbyCounter(
                       icon: Icons.restaurant_rounded,
                       value: '$restaurantsCount',
-                      color: AppColors.brassLight,
                     ),
                     _LobbyCounter(
                       icon: Icons.table_restaurant_rounded,
                       value: '$openTables',
-                      color: AppColors.brass,
                     ),
                     _LobbyCounter(
                       icon: Icons.groups_rounded,
                       value: '$onlinePlayers',
-                      color: AppColors.lime,
                     ),
                   ],
                 ),
@@ -293,12 +293,11 @@ class _PlayLobbyHeader extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.19),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: onlyActive
-                      ? AppColors.lime.withValues(alpha: 0.42)
-                      : AppColors.brass.withValues(alpha: 0.18),
+                  color: Colors.black,
+                  width: 2.4,
                 ),
               ),
               child: Row(
@@ -310,18 +309,18 @@ class _PlayLobbyHeader extends StatelessWidget {
                         Text(
                           context.tr('only_active_restaurants'),
                           style: const TextStyle(
-                            color: AppColors.cream,
+                            color: Colors.black,
                             fontSize: 13.5,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           context.tr('only_available_rooms'),
                           style: const TextStyle(
-                            color: Colors.white54,
+                            color: Colors.black54,
                             fontSize: 10.5,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ],
@@ -329,18 +328,17 @@ class _PlayLobbyHeader extends StatelessWidget {
                   ),
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 170),
-                    width: 48,
-                    height: 28,
+                    width: 50,
+                    height: 29,
                     padding: const EdgeInsets.all(3),
                     decoration: BoxDecoration(
                       color: onlyActive
-                          ? AppColors.lime
-                          : const Color(0xFF293229),
+                          ? const Color(0xFF7CFC00)
+                          : const Color(0xFFE8E8E8),
                       borderRadius: BorderRadius.circular(99),
                       border: Border.all(
-                        color: onlyActive
-                            ? AppColors.limeDark
-                            : AppColors.brass.withValues(alpha: 0.34),
+                        color: Colors.black,
+                        width: 2,
                       ),
                     ),
                     child: AnimatedAlign(
@@ -349,11 +347,11 @@ class _PlayLobbyHeader extends StatelessWidget {
                           ? Alignment.centerRight
                           : Alignment.centerLeft,
                       child: Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
+                        width: 19,
+                        height: 19,
+                        decoration: const BoxDecoration(
                           shape: BoxShape.circle,
-                          color: onlyActive ? AppColors.ink : Colors.white54,
+                          color: Colors.black,
                         ),
                       ),
                     ),
@@ -371,12 +369,10 @@ class _PlayLobbyHeader extends StatelessWidget {
 class _LobbyCounter extends StatelessWidget {
   final IconData icon;
   final String value;
-  final Color color;
 
   const _LobbyCounter({
     required this.icon,
     required this.value,
-    required this.color,
   });
 
   @override
@@ -384,18 +380,19 @@ class _LobbyCounter extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.20),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.black, width: 2),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 15, color: color),
+          Icon(icon, size: 15, color: Colors.black),
           const SizedBox(width: 5),
           Text(
             value,
             style: const TextStyle(
-              color: Colors.white,
+              color: Colors.black,
               fontSize: 12,
               fontWeight: FontWeight.w900,
             ),
@@ -422,25 +419,21 @@ class _PlayEmptyState extends StatelessWidget {
             width: 92,
             height: 72,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [AppColors.rackWoodLight, AppColors.rackWoodDark],
-              ),
+              color: const Color(0xFF62C7F3),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.brass, width: 2),
+              border: Border.all(color: Colors.black, width: 3),
               boxShadow: const [
                 BoxShadow(
-                  color: Colors.black38,
-                  blurRadius: 12,
-                  offset: Offset(0, 7),
+                  color: Colors.black54,
+                  blurRadius: 0,
+                  offset: Offset(4, 5),
                 ),
               ],
             ),
             child: const Icon(
               Icons.table_restaurant_rounded,
               size: 43,
-              color: AppColors.brassLight,
+              color: Colors.black,
             ),
           ),
           const SizedBox(height: 18),
@@ -448,9 +441,16 @@ class _PlayEmptyState extends StatelessWidget {
             message,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: AppColors.cream,
+              color: Colors.white,
               fontSize: 19,
               fontWeight: FontWeight.w900,
+              shadows: [
+                Shadow(
+                  color: Colors.black,
+                  offset: Offset(2, 2),
+                  blurRadius: 0,
+                ),
+              ],
             ),
           ),
         ],
@@ -480,42 +480,60 @@ class _RestaurantsError extends StatelessWidget {
             height: 78,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.surfaceRaised,
-              border: Border.all(color: AppColors.brass, width: 2),
+              color: const Color(0xFFFF6B6B),
+              border: Border.all(color: Colors.black, width: 3),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black54,
+                  blurRadius: 0,
+                  offset: Offset(4, 5),
+                ),
+              ],
             ),
             child: const Icon(
               Icons.cloud_off_rounded,
               size: 40,
-              color: Color(0xFFFF655B),
+              color: Colors.black,
             ),
           ),
           const SizedBox(height: 16),
           Text(
             context.tr('backend_unavailable'),
             style: const TextStyle(
-              color: AppColors.cream,
+              color: Colors.white,
               fontSize: 22,
               fontWeight: FontWeight.w900,
+              shadows: [
+                Shadow(
+                  color: Colors.black,
+                  offset: Offset(2, 2),
+                  blurRadius: 0,
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 8),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white60),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
             ApiConfig.baseUrl,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white38, fontSize: 11),
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
           ),
           const SizedBox(height: 20),
           FilledButton.icon(
             onPressed: onRetry,
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.lime,
-              foregroundColor: AppColors.ink,
+              backgroundColor: const Color(0xFF7CFC00),
+              foregroundColor: Colors.black,
+              side: const BorderSide(color: Colors.black, width: 2.5),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),

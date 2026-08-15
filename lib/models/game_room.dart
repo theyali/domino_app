@@ -7,6 +7,9 @@ class GameRoom {
   final String displayName;
   final String ownerName;
   final int maxPlayers;
+  final String gameMode;
+  final String gameModeLabel;
+  final int targetScore;
   final int currentPlayers;
   final bool isLocked;
   final bool isFull;
@@ -21,6 +24,9 @@ class GameRoom {
     required this.displayName,
     required this.ownerName,
     required this.maxPlayers,
+    required this.gameMode,
+    required this.gameModeLabel,
+    required this.targetScore,
     required this.currentPlayers,
     required this.isLocked,
     required this.isFull,
@@ -31,6 +37,7 @@ class GameRoom {
 
   factory GameRoom.fromJson(Map<String, dynamic> json) {
     final playersJson = json['players'] as List<dynamic>? ?? const [];
+    final mode = json['game_mode'] as String? ?? '101';
 
     return GameRoom(
       id: json['id'] as int,
@@ -39,6 +46,10 @@ class GameRoom {
       displayName: json['display_name'] as String? ?? 'Стол #${json['id']}',
       ownerName: json['owner_name'] as String,
       maxPlayers: json['max_players'] as int,
+      gameMode: mode,
+      gameModeLabel: json['game_mode_label'] as String? ??
+          (mode == 'phone' ? 'Телефон' : '101'),
+      targetScore: json['target_score'] as int? ?? (mode == 'phone' ? 72 : 101),
       currentPlayers: json['current_players'] as int? ?? playersJson.length,
       isLocked: json['is_locked'] as bool? ?? false,
       isFull: json['is_full'] as bool? ?? false,
@@ -51,4 +62,7 @@ class GameRoom {
       createdAt: DateTime.tryParse(json['created_at'] as String? ?? ''),
     );
   }
+
+  bool get isPhone => gameMode == 'phone';
+  bool get isClassic101 => gameMode == '101';
 }

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../localization/app_localizations.dart';
 import '../localization/statistics_strings.dart';
 import '../models/league_statistics.dart';
+import '../models/social.dart';
 import '../services/api_service.dart';
+import '../services/social_service.dart';
 import '../services/statistics_service.dart';
 import '../widgets/cartoon_page_background.dart';
 import '../widgets/game_avatar_frame.dart';
@@ -17,11 +20,14 @@ class StatisticsScreen extends StatefulWidget {
 
 class _StatisticsScreenState extends State<StatisticsScreen> {
   static const StatisticsService _statisticsService = StatisticsService();
+  static const SocialService _socialService = SocialService();
 
   LeagueStatistics? _statistics;
   int? _selectedLeague;
   bool _isLoading = true;
   String? _errorMessage;
+
+  bool get _isAz => context.appLanguage.code == 'az';
 
   @override
   void initState() {
@@ -67,6 +73,64 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       if (league.number == selected) return league;
     }
     return statistics.leagues.isEmpty ? null : statistics.leagues.first;
+  }
+
+  Future<void> _openPlayerMenu(LeaguePlayerStats player) async {
+    final statistics = _statistics;
+    if (statistics == null || player.userId == statistics.me.userId) return;
+
+    try {
+      final results = await _socialService.searchUsers(player.username);
+      if (!mounted) return;
+
+      SocialUser? user;
+      for (final item in results) {
+        if (item.id == player.userId) {
+          user = item;
+          break;
+        }
+      }
+
+      if (user == null) {
+        _showMessage(
+          _isAz
+              ? 'Bu oyunçu hazırda sosial menyuda əlçatan deyil.'
+              : 'Этот игрок сейчас недоступен в социальном меню.',
+        );
+        return;
+      }
+
+      final changed = await showModalBottomSheet<bool>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        barrierColor: Colors.black54,
+        builder: (context) => _LeaguePlayerActionSheet(
+          player: player,
+          user: user!,
+          isAz: _isAz,
+        ),
+      );
+
+      if (!mounted || changed != true) return;
+      _showMessage(_isAz ? 'Dostluq məlumatı yeniləndi.' : 'Данные дружбы обновлены.');
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      _showMessage(error.message);
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage(
+        _isAz
+            ? 'Oyunçunun menyusunu açmaq mümkün olmadı.'
+            : 'Не удалось открыть меню игрока.',
+      );
+    }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -211,15 +275,21 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           for (var index = 0;
               index < selectedStanding.players.length;
               index++)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 11),
-              child: _LeaderboardPlayer(
-                player: selectedStanding.players[index],
-                isMe: selectedStanding.players[index].userId ==
-                    statistics.me.userId,
-                strings: strings,
-                colorIndex: index,
-              ),
+            Builder(
+              builder: (context) {
+                final player = selectedStanding.players[index];
+                final isMe = player.userId == statistics.me.userId;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 11),
+                  child: _LeaderboardPlayer(
+                    player: player,
+                    isMe: isMe,
+                    strings: strings,
+                    colorIndex: index,
+                    onTap: isMe ? null : () => _openPlayerMenu(player),
+                  ),
+                );
+              },
             ),
       ],
     );
@@ -589,12 +659,14 @@ class _LeaderboardPlayer extends StatelessWidget {
   final bool isMe;
   final StatisticsStrings strings;
   final int colorIndex;
+  final VoidCallback? onTap;
 
   const _LeaderboardPlayer({
     required this.player,
     required this.isMe,
     required this.strings,
     required this.colorIndex,
+    required this.onTap,
   });
 
   Color get _cardColor {
@@ -614,93 +686,314 @@ class _LeaderboardPlayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: _cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _StatsPalette.ink, width: 3),
-        boxShadow: const [
-          BoxShadow(
-            color: _StatsPalette.ink,
-            blurRadius: 0,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 36,
-            child: Text(
-              '#${player.rank ?? '-'}',
-              style: const TextStyle(
-                color: _StatsPalette.ink,
-                fontSize: 15,
-                fontWeight: FontWeight.w900,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: _cardColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _StatsPalette.ink, width: 3),
+          boxShadow: const [
+            BoxShadow(
+              color: _StatsPalette.ink,
+              blurRadius: 0,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 36,
+              child: Text(
+                '#${player.rank ?? '-'}',
+                style: const TextStyle(
+                  color: _StatsPalette.ink,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
-          ),
-          _StatsAvatar(player: player),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  player.name.isEmpty ? player.username : player.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _StatsPalette.ink,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
+            _StatsAvatar(player: player),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    player.name.isEmpty ? player.username : player.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _StatsPalette.ink,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${player.wins} ${strings.wins.toLowerCase()} · '
-                  '${player.losses} ${strings.losses.toLowerCase()}',
-                  style: const TextStyle(
-                    color: _StatsPalette.inkSoft,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
+                  const SizedBox(height: 2),
+                  Text(
+                    '${player.wins} ${strings.wins.toLowerCase()} · '
+                    '${player.losses} ${strings.losses.toLowerCase()}',
+                    style: const TextStyle(
+                      color: _StatsPalette.inkSoft,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _StatsPalette.ink, width: 2.5),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${player.leaguePoints}',
+                    style: const TextStyle(
+                      color: _StatsPalette.green,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    strings.points,
+                    style: const TextStyle(
+                      color: _StatsPalette.inkSoft,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (!isMe) ...[
+              const SizedBox(width: 7),
+              const Icon(
+                Icons.more_horiz_rounded,
+                color: _StatsPalette.ink,
+                size: 22,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LeaguePlayerActionSheet extends StatefulWidget {
+  final LeaguePlayerStats player;
+  final SocialUser user;
+  final bool isAz;
+
+  const _LeaguePlayerActionSheet({
+    required this.player,
+    required this.user,
+    required this.isAz,
+  });
+
+  @override
+  State<_LeaguePlayerActionSheet> createState() =>
+      _LeaguePlayerActionSheetState();
+}
+
+class _LeaguePlayerActionSheetState extends State<_LeaguePlayerActionSheet> {
+  static const SocialService _service = SocialService();
+  bool _busy = false;
+  String? _error;
+
+  Future<void> _runFriendAction() async {
+    final user = widget.user;
+    if (_busy || user.isFriend || user.requestOutgoing) return;
+
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+
+    try {
+      if (user.requestIncoming && user.friendshipId != null) {
+        await _service.acceptFriendRequest(user.friendshipId!);
+      } else {
+        await _service.sendFriendRequest(user.id);
+      }
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _error = error.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = widget.isAz
+            ? 'Dostluq əməliyyatı alınmadı.'
+            : 'Не удалось выполнить действие с друзьями.';
+      });
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  String get _actionLabel {
+    final user = widget.user;
+    if (user.isFriend) return widget.isAz ? 'Artıq dostsunuz' : 'Уже в друзьях';
+    if (user.requestOutgoing) {
+      return widget.isAz ? 'Sorğu göndərilib' : 'Заявка отправлена';
+    }
+    if (user.requestIncoming) {
+      return widget.isAz ? 'Sorğunu qəbul et' : 'Принять заявку';
+    }
+    return widget.isAz ? 'Dostlara əlavə et' : 'Добавить в друзья';
+  }
+
+  IconData get _actionIcon {
+    final user = widget.user;
+    if (user.isFriend) return Icons.people_alt_rounded;
+    if (user.requestOutgoing) return Icons.schedule_rounded;
+    if (user.requestIncoming) return Icons.person_add_alt_1_rounded;
+    return Icons.person_add_alt_1_rounded;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final disabled = widget.user.isFriend || widget.user.requestOutgoing;
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+        decoration: BoxDecoration(
+          color: _StatsPalette.cream,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: _StatsPalette.ink, width: 3),
+          boxShadow: const [
+            BoxShadow(
+              color: _StatsPalette.ink,
+              blurRadius: 0,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 46,
+              height: 5,
+              decoration: BoxDecoration(
+                color: _StatsPalette.inkSoft,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+            const SizedBox(height: 15),
+            Row(
+              children: [
+                _StatsAvatar(player: widget.player),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.player.name.isEmpty
+                            ? widget.player.username
+                            : widget.player.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _StatsPalette.ink,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      Text(
+                        '@${widget.player.username}',
+                        style: const TextStyle(
+                          color: _StatsPalette.inkSoft,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _StatsPalette.ink, width: 2.5),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${player.leaguePoints}',
-                  style: const TextStyle(
-                    color: _StatsPalette.green,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFFB3261E),
+                  fontWeight: FontWeight.w800,
                 ),
-                Text(
-                  strings.points,
-                  style: const TextStyle(
-                    color: _StatsPalette.inkSoft,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
+              ),
+            ],
+            const SizedBox(height: 18),
+            GestureDetector(
+              onTap: disabled || _busy ? null : _runFriendAction,
+              child: Opacity(
+                opacity: disabled ? 0.72 : 1,
+                child: Container(
+                  width: double.infinity,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: disabled ? _StatsPalette.yellowSoft : _StatsPalette.lime,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: _StatsPalette.ink, width: 3),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: _StatsPalette.ink,
+                        blurRadius: 0,
+                        offset: Offset(3, 4),
+                      ),
+                    ],
                   ),
+                  child: _busy
+                      ? const Center(
+                          child: SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.6,
+                              color: _StatsPalette.ink,
+                            ),
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _actionIcon,
+                              color: _StatsPalette.ink,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 9),
+                            Text(
+                              _actionLabel,
+                              style: const TextStyle(
+                                color: _StatsPalette.ink,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

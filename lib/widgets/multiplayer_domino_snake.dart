@@ -403,11 +403,18 @@ class MultiplayerDominoSnake extends StatelessWidget {
     required _BranchSide side,
     required Domino domino,
   }) {
-    final requiredSquares = domino.left == domino.right ? 1 : 2;
-    final wouldOverflow =
-        state.rowUsedSquares + requiredSquares > _rowLimit(state);
+    final isDouble = domino.left == domino.right;
+    final requiredSquares = isDouble ? 1 : 2;
+    final rowLimit = _rowLimit(state);
+    final wouldOverflow = state.rowUsedSquares + requiredSquares > rowLimit;
+    final doubleWouldEndRow = isDouble &&
+        state.rowUsedSquares > 0 &&
+        state.rowUsedSquares + requiredSquares >= rowLimit;
 
-    if (state.needsTurn || wouldOverflow) {
+    // Дубль не оставляем последним квадратом горизонтального ряда.
+    // Иначе следующая вертикальная костяшка выходит из центра поперечного
+    // дубля и визуально накладывается на него. Сам дубль становится поворотом.
+    if (state.needsTurn || wouldOverflow || doubleWouldEndRow) {
       return _verticalDirectionFor(side);
     }
 
@@ -440,7 +447,11 @@ class MultiplayerDominoSnake extends StatelessWidget {
           : _horizontalTrackSquares;
       final wouldOverflow =
           rowUsedSquares + requiredSquares > rowLimit;
-      final shouldTurnBeforeDomino = needsTurn || wouldOverflow;
+      final doubleWouldEndRow = isDouble &&
+          rowUsedSquares > 0 &&
+          rowUsedSquares + requiredSquares >= rowLimit;
+      final shouldTurnBeforeDomino =
+          needsTurn || wouldOverflow || doubleWouldEndRow;
 
       late final _ChainDirection direction;
 

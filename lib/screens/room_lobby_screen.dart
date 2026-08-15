@@ -9,6 +9,7 @@ import '../models/restaurant.dart';
 import '../models/room_player.dart';
 import '../services/api_service.dart';
 import '../services/game_socket_service.dart';
+import '../theme/gender_style.dart';
 import '../widgets/invite_players_sheet.dart';
 import 'multiplayer_game_screen.dart';
 
@@ -804,6 +805,10 @@ class _LobbySeat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMe = player?.id == localPlayerId;
+    final nameColor = GenderStyle.colorFor(
+      player?.gender,
+      fallback: _LobbyPalette.ink,
+    );
 
     return Container(
       padding: const EdgeInsets.all(13),
@@ -831,8 +836,8 @@ class _LobbySeat extends StatelessWidget {
                   player?.name ?? context.tr('empty_seat'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _LobbyPalette.ink,
+                  style: TextStyle(
+                    color: nameColor,
                     fontSize: 17,
                     fontWeight: FontWeight.w900,
                   ),
@@ -895,6 +900,10 @@ class _LobbyAvatar extends StatelessWidget {
       );
     }
 
+    final letterColor = GenderStyle.colorFor(
+      current.gender,
+      fallback: _LobbyPalette.ink,
+    );
     final letter = current.name.isEmpty
         ? '?'
         : current.name.substring(0, 1).toUpperCase();
@@ -916,9 +925,9 @@ class _LobbyAvatar extends StatelessWidget {
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.high,
                 errorBuilder: (context, error, stackTrace) =>
-                    _LobbyAvatarLetter(letter: letter),
+                    _LobbyAvatarLetter(letter: letter, color: letterColor),
               )
-            : _LobbyAvatarLetter(letter: letter),
+            : _LobbyAvatarLetter(letter: letter, color: letterColor),
       ),
     );
   }
@@ -926,8 +935,9 @@ class _LobbyAvatar extends StatelessWidget {
 
 class _LobbyAvatarLetter extends StatelessWidget {
   final String letter;
+  final Color color;
 
-  const _LobbyAvatarLetter({required this.letter});
+  const _LobbyAvatarLetter({required this.letter, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -936,8 +946,8 @@ class _LobbyAvatarLetter extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         letter,
-        style: const TextStyle(
-          color: _LobbyPalette.ink,
+        style: TextStyle(
+          color: color,
           fontSize: 19,
           fontWeight: FontWeight.w900,
         ),

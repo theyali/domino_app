@@ -27,12 +27,14 @@ class SocialUser {
   });
 
   factory SocialUser.fromJson(Map<String, dynamic> json) {
+    final username = json['username'] as String? ?? '';
+    final displayName = json['display_name'] as String?;
     return SocialUser(
       id: json['id'] as int,
-      username: json['username'] as String? ?? '',
-      displayName: json['display_name'] as String? ??
-          json['username'] as String? ??
-          'Игрок',
+      username: username,
+      displayName: displayName?.trim().isNotEmpty == true
+          ? displayName!
+          : (username.isNotEmpty ? username : 'Игрок'),
       avatarUrl: ApiConfig.resolveUrl(json['avatar_url'] as String?),
       isOnline: json['is_online'] as bool? ?? false,
       lastSeenAt: _parseDate(json['last_seen_at']),
@@ -242,7 +244,7 @@ DateTime? _parseDate(dynamic value) {
 }
 
 List<T> _parseList<T>(dynamic raw, T Function(Map<String, dynamic>) parser) {
-  if (raw is! List) return const [];
+  if (raw is! List) return <T>[];
   return raw
       .whereType<Map>()
       .map((item) => parser(Map<String, dynamic>.from(item)))

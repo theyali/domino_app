@@ -68,6 +68,8 @@ class ApiService {
   Future<GameRoom> createRoom({
     required int restaurantId,
     required int maxPlayers,
+    required String gameMode,
+    required int targetScore,
     String password = '',
     String name = '',
   }) async {
@@ -76,6 +78,8 @@ class ApiService {
       headers: await _authorizedJsonHeaders(),
       body: jsonEncode({
         'max_players': maxPlayers,
+        'game_mode': gameMode,
+        'target_score': targetScore,
         'password': password,
         'name': name.trim(),
       }),

@@ -13,6 +13,8 @@ class SocialUser {
   final String friendshipStatus;
   final int? friendshipId;
   final DateTime? lastPlayedAt;
+  final bool isBlocked;
+  final bool blockedByUser;
 
   const SocialUser({
     required this.id,
@@ -24,6 +26,8 @@ class SocialUser {
     required this.friendshipStatus,
     required this.friendshipId,
     required this.lastPlayedAt,
+    this.isBlocked = false,
+    this.blockedByUser = false,
   });
 
   factory SocialUser.fromJson(Map<String, dynamic> json) {
@@ -41,6 +45,8 @@ class SocialUser {
       friendshipStatus: json['friendship_status'] as String? ?? 'none',
       friendshipId: json['friendship_id'] as int?,
       lastPlayedAt: _parseDate(json['last_played_at']),
+      isBlocked: json['is_blocked'] as bool? ?? false,
+      blockedByUser: json['blocked_by_user'] as bool? ?? false,
     );
   }
 
@@ -165,6 +171,50 @@ class SocialOverview {
         0,
         (total, item) => total + item.unreadCount,
       );
+}
+
+class NotificationPreferences {
+  final bool enabled;
+  final bool friendRequests;
+  final bool roomInvites;
+  final bool directMessages;
+
+  const NotificationPreferences({
+    required this.enabled,
+    required this.friendRequests,
+    required this.roomInvites,
+    required this.directMessages,
+  });
+
+  factory NotificationPreferences.fromJson(Map<String, dynamic> json) {
+    return NotificationPreferences(
+      enabled: json['push_notifications_enabled'] as bool? ?? true,
+      friendRequests: json['notify_friend_requests'] as bool? ?? true,
+      roomInvites: json['notify_room_invites'] as bool? ?? true,
+      directMessages: json['notify_direct_messages'] as bool? ?? true,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'push_notifications_enabled': enabled,
+        'notify_friend_requests': friendRequests,
+        'notify_room_invites': roomInvites,
+        'notify_direct_messages': directMessages,
+      };
+
+  NotificationPreferences copyWith({
+    bool? enabled,
+    bool? friendRequests,
+    bool? roomInvites,
+    bool? directMessages,
+  }) {
+    return NotificationPreferences(
+      enabled: enabled ?? this.enabled,
+      friendRequests: friendRequests ?? this.friendRequests,
+      roomInvites: roomInvites ?? this.roomInvites,
+      directMessages: directMessages ?? this.directMessages,
+    );
+  }
 }
 
 class DirectMessageItem {

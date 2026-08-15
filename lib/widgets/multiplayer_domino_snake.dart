@@ -402,6 +402,16 @@ class MultiplayerDominoSnake extends StatelessWidget {
         : _ChainDirection.down;
   }
 
+  bool _doubleContinuesVerticalTurn({
+    required _ChainDirection previousDirection,
+    required _ChainDirection rowDirection,
+    required Domino domino,
+  }) {
+    return domino.left == domino.right &&
+        !_directionIsHorizontal(previousDirection) &&
+        _directionIsHorizontal(rowDirection);
+  }
+
   _ChainDirection _nextDirectionFor({
     required _BranchTrackState state,
     required _BranchSide side,
@@ -413,6 +423,14 @@ class MultiplayerDominoSnake extends StatelessWidget {
 
     if (state.needsTurn || wouldOverflow) {
       return _verticalDirectionFor(side);
+    }
+
+    if (_doubleContinuesVerticalTurn(
+      previousDirection: state.previousDirection,
+      rowDirection: state.rowDirection,
+      domino: domino,
+    )) {
+      return state.previousDirection;
     }
 
     return state.rowDirection;
@@ -470,6 +488,15 @@ class MultiplayerDominoSnake extends StatelessWidget {
         initialRow = false;
         rowUsedSquares = isDouble ? 2 : 1;
         needsTurn = rowUsedSquares >= _horizontalTrackSquares;
+      } else if (_doubleContinuesVerticalTurn(
+        previousDirection: previousDirection,
+        rowDirection: rowDirection,
+        domino: domino,
+      )) {
+        // Если сразу после вертикальной костяшки-поворота идёт дубль,
+        // он остаётся на вертикальной оси и визуально ложится поперёк неё.
+        // Следующая обычная кость уже продолжит новый горизонтальный ряд.
+        direction = previousDirection;
       } else {
         direction = rowDirection;
       }

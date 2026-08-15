@@ -48,23 +48,21 @@ class SocialService {
         .toList(growable: false);
   }
 
-  Future<SocialUser> sendFriendRequest(int userId) async {
+  Future<void> sendFriendRequest(int userId) async {
     final response = await http.post(
       ApiConfig.uri('/api/social/friends/request/'),
       headers: await _authJsonHeaders(),
       body: jsonEncode({'user_id': userId}),
     );
-    final data = _decode(response);
-    return SocialUser.fromJson(Map<String, dynamic>.from(data as Map));
+    _decode(response);
   }
 
-  Future<SocialUser> acceptFriendRequest(int friendshipId) async {
+  Future<void> acceptFriendRequest(int friendshipId) async {
     final response = await http.post(
       ApiConfig.uri('/api/social/friends/$friendshipId/accept/'),
       headers: await _authJsonHeaders(),
     );
-    final data = _decode(response);
-    return SocialUser.fromJson(Map<String, dynamic>.from(data as Map));
+    _decode(response);
   }
 
   Future<void> removeFriendship(int friendshipId) async {

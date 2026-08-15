@@ -5,11 +5,15 @@ import '../localization/app_localizations.dart';
 class CreateRoomRequest {
   final String roomName;
   final int maxPlayers;
+  final String gameMode;
+  final int targetScore;
   final String password;
 
   const CreateRoomRequest({
     required this.roomName,
     required this.maxPlayers,
+    required this.gameMode,
+    required this.targetScore,
     required this.password,
   });
 }
@@ -26,8 +30,13 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
   final TextEditingController _roomNameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  String _gameMode = '101';
   int _maxPlayers = 2;
+  int _targetScore = 101;
   bool _obscurePassword = true;
+
+  bool get _isAz => context.appLanguage.code == 'az';
+  bool get _isPhone => _gameMode == 'phone';
 
   @override
   void dispose() {
@@ -36,11 +45,25 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
     super.dispose();
   }
 
+  void _selectMode(String mode) {
+    setState(() {
+      _gameMode = mode;
+      if (mode == '101') {
+        _maxPlayers = 2;
+        _targetScore = 101;
+      } else if (_targetScore == 101) {
+        _targetScore = 72;
+      }
+    });
+  }
+
   void _submit() {
     Navigator.of(context).pop(
       CreateRoomRequest(
         roomName: _roomNameController.text.trim(),
         maxPlayers: _maxPlayers,
+        gameMode: _gameMode,
+        targetScore: _gameMode == '101' ? 101 : _targetScore,
         password: _passwordController.text,
       ),
     );
@@ -87,29 +110,10 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
                   children: [
                     Transform.rotate(
                       angle: -0.07,
-                      child: Container(
-                        width: 54,
-                        height: 54,
-                        decoration: BoxDecoration(
-                          color: _CreateRoomPalette.yellow,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: _CreateRoomPalette.ink,
-                            width: 3,
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: _CreateRoomPalette.ink,
-                              blurRadius: 0,
-                              offset: Offset(3, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.table_restaurant_rounded,
-                          color: _CreateRoomPalette.ink,
-                          size: 28,
-                        ),
+                      child: _CartoonIconBox(
+                        color: _CreateRoomPalette.yellow,
+                        icon: Icons.table_restaurant_rounded,
+                        size: 54,
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -142,7 +146,7 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 22),
                 _CartoonTextField(
                   controller: _roomNameController,
                   maxLength: 80,
@@ -152,55 +156,94 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
                   accentColor: _CreateRoomPalette.skyBlue,
                 ),
                 const SizedBox(height: 22),
+                _LabelRow(
+                  icon: Icons.rule_rounded,
+                  color: _CreateRoomPalette.yellow,
+                  label: _isAz ? 'Oyun qaydası' : 'Правила игры',
+                ),
+                const SizedBox(height: 11),
                 Row(
                   children: [
-                    Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
+                    Expanded(
+                      child: _RuleButton(
+                        title: '101',
+                        subtitle: _isAz ? 'Cərimə xalları' : 'Штрафные очки',
+                        icon: Icons.looks_one_rounded,
                         color: _CreateRoomPalette.coral,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: _CreateRoomPalette.ink,
-                          width: 2.4,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.groups_rounded,
-                        color: _CreateRoomPalette.ink,
-                        size: 19,
+                        selected: _gameMode == '101',
+                        onTap: () => _selectMode('101'),
                       ),
                     ),
-                    const SizedBox(width: 9),
-                    Text(
-                      context.tr('player_count'),
-                      style: const TextStyle(
-                        color: _CreateRoomPalette.ink,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _RuleButton(
+                        title: _isAz ? 'Telefon' : 'Телефон',
+                        subtitle: _isAz ? '4 tərəf · ×5' : '4 стороны · ×5',
+                        icon: Icons.add_rounded,
+                        color: _CreateRoomPalette.skyBlue,
+                        selected: _gameMode == 'phone',
+                        onTap: () => _selectMode('phone'),
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 10),
+                _RuleDescription(
+                  color: _isPhone
+                      ? _CreateRoomPalette.skyBlue
+                      : _CreateRoomPalette.coral,
+                  text: _isPhone
+                      ? (_isAz
+                          ? 'İlk dubl mərkəzdədir. Oyun 4 tərəfə gedir. Açıq ucların cəmi 5-ə bölünəndə aktiv xal qazanırsan.'
+                          : 'Первый дубль становится центром креста. Игра идёт в 4 стороны. Если сумма открытых концов кратна 5 — получаешь активные очки.')
+                      : (_isAz
+                          ? '2 oyunçu. Raundun sonunda əlində qalan bütün nöqtələr cərimədir. 101 xal toplayan uduzur.'
+                          : '2 игрока. В конце раунда все точки на оставшихся костяшках идут в штраф. Набравший 101 проигрывает.'),
+                ),
+                const SizedBox(height: 22),
+                _LabelRow(
+                  icon: Icons.groups_rounded,
+                  color: _CreateRoomPalette.coral,
+                  label: context.tr('player_count'),
+                ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    for (final count in const [2, 3, 4]) ...[
+                    for (final count in (_isPhone ? const [2, 3, 4] : const [2])) ...[
                       if (count != 2) const SizedBox(width: 10),
                       Expanded(
                         child: _PlayerCountButton(
                           count: count,
                           selected: _maxPlayers == count,
-                          onTap: () {
-                            setState(() {
-                              _maxPlayers = count;
-                            });
-                          },
+                          onTap: () => setState(() => _maxPlayers = count),
                         ),
                       ),
                     ],
                   ],
                 ),
+                if (_isPhone) ...[
+                  const SizedBox(height: 22),
+                  _LabelRow(
+                    icon: Icons.emoji_events_rounded,
+                    color: _CreateRoomPalette.mint,
+                    label: _isAz ? 'Qələbə xalı' : 'Очков для победы',
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      for (final target in const [72, 101]) ...[
+                        if (target != 72) const SizedBox(width: 10),
+                        Expanded(
+                          child: _TargetScoreButton(
+                            value: target,
+                            selected: _targetScore == target,
+                            onTap: () => setState(() => _targetScore = target),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 22),
                 _CartoonTextField(
                   controller: _passwordController,
@@ -211,11 +254,8 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
                   icon: Icons.lock_rounded,
                   accentColor: _CreateRoomPalette.mint,
                   suffix: IconButton(
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
                     color: _CreateRoomPalette.ink,
                     splashRadius: 22,
                     icon: Icon(
@@ -236,6 +276,219 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _LabelRow extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+
+  const _LabelRow({required this.icon, required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(color: _CreateRoomPalette.ink, width: 2.4),
+          ),
+          child: Icon(icon, color: _CreateRoomPalette.ink, size: 19),
+        ),
+        const SizedBox(width: 9),
+        Text(
+          label,
+          style: const TextStyle(
+            color: _CreateRoomPalette.ink,
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RuleDescription extends StatelessWidget {
+  final Color color;
+  final String text;
+
+  const _RuleDescription({required this.color, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.38),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _CreateRoomPalette.ink, width: 2.3),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: _CreateRoomPalette.inkSoft,
+          height: 1.3,
+          fontSize: 12.5,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _RuleButton extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _RuleButton({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.all(11),
+        decoration: BoxDecoration(
+          color: selected ? color : _CreateRoomPalette.paper,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: _CreateRoomPalette.ink,
+            width: selected ? 3.2 : 2.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: _CreateRoomPalette.ink,
+              blurRadius: 0,
+              offset: Offset(0, selected ? 6 : 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: _CreateRoomPalette.ink, size: 22),
+                const SizedBox(width: 6),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: _CreateRoomPalette.ink,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                if (selected) ...[
+                  const SizedBox(width: 5),
+                  const Icon(Icons.check_circle_rounded, size: 18),
+                ],
+              ],
+            ),
+            const SizedBox(height: 3),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: _CreateRoomPalette.inkSoft,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TargetScoreButton extends StatelessWidget {
+  final int value;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _TargetScoreButton({
+    required this.value,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 52,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? _CreateRoomPalette.lime : _CreateRoomPalette.paper,
+          borderRadius: BorderRadius.circular(17),
+          border: Border.all(color: _CreateRoomPalette.ink, width: 2.7),
+          boxShadow: const [
+            BoxShadow(
+              color: _CreateRoomPalette.ink,
+              blurRadius: 0,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Text(
+          '$value',
+          style: const TextStyle(
+            color: _CreateRoomPalette.ink,
+            fontSize: 19,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CartoonIconBox extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+  final double size;
+
+  const _CartoonIconBox({required this.color, required this.icon, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _CreateRoomPalette.ink, width: 3),
+        boxShadow: const [
+          BoxShadow(
+            color: _CreateRoomPalette.ink,
+            blurRadius: 0,
+            offset: Offset(3, 4),
+          ),
+        ],
+      ),
+      child: Icon(icon, color: _CreateRoomPalette.ink, size: 28),
     );
   }
 }
@@ -267,10 +520,7 @@ class _CartoonTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(19),
-      borderSide: const BorderSide(
-        color: _CreateRoomPalette.ink,
-        width: 2.8,
-      ),
+      borderSide: const BorderSide(color: _CreateRoomPalette.ink, width: 2.8),
     );
 
     return Container(
@@ -305,14 +555,8 @@ class _CartoonTextField extends StatelessWidget {
           counterText: '',
           filled: true,
           fillColor: _CreateRoomPalette.paper,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 17,
-          ),
-          prefixIconConstraints: const BoxConstraints(
-            minWidth: 62,
-            minHeight: 58,
-          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 17),
+          prefixIconConstraints: const BoxConstraints(minWidth: 62, minHeight: 58),
           prefixIcon: Padding(
             padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
             child: Container(
@@ -321,26 +565,16 @@ class _CartoonTextField extends StatelessWidget {
               decoration: BoxDecoration(
                 color: accentColor,
                 borderRadius: BorderRadius.circular(13),
-                border: Border.all(
-                  color: _CreateRoomPalette.ink,
-                  width: 2.2,
-                ),
+                border: Border.all(color: _CreateRoomPalette.ink, width: 2.2),
               ),
-              child: Icon(
-                icon,
-                color: _CreateRoomPalette.ink,
-                size: 22,
-              ),
+              child: Icon(icon, color: _CreateRoomPalette.ink, size: 22),
             ),
           ),
           suffixIcon: suffix,
           border: border,
           enabledBorder: border,
           focusedBorder: border.copyWith(
-            borderSide: const BorderSide(
-              color: _CreateRoomPalette.ink,
-              width: 3.4,
-            ),
+            borderSide: const BorderSide(color: _CreateRoomPalette.ink, width: 3.4),
           ),
         ),
       ),
@@ -370,9 +604,7 @@ class _PlayerCountButton extends StatelessWidget {
         height: 58,
         transform: Matrix4.translationValues(0, selected ? -2 : 0, 0),
         decoration: BoxDecoration(
-          color: selected
-              ? _CreateRoomPalette.lime
-              : _CreateRoomPalette.paper,
+          color: selected ? _CreateRoomPalette.lime : _CreateRoomPalette.paper,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: _CreateRoomPalette.ink,
@@ -390,11 +622,7 @@ class _PlayerCountButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (selected) ...[
-              const Icon(
-                Icons.check_circle_rounded,
-                color: _CreateRoomPalette.ink,
-                size: 20,
-              ),
+              const Icon(Icons.check_circle_rounded, color: _CreateRoomPalette.ink, size: 20),
               const SizedBox(width: 5),
             ],
             Text(
@@ -416,10 +644,7 @@ class _CreateButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  const _CreateButton({
-    required this.label,
-    required this.onTap,
-  });
+  const _CreateButton({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -432,10 +657,7 @@ class _CreateButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: _CreateRoomPalette.lime,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: _CreateRoomPalette.ink,
-            width: 3,
-          ),
+          border: Border.all(color: _CreateRoomPalette.ink, width: 3),
           boxShadow: const [
             BoxShadow(
               color: _CreateRoomPalette.ink,
@@ -447,11 +669,7 @@ class _CreateButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.add_circle_rounded,
-              color: _CreateRoomPalette.ink,
-              size: 25,
-            ),
+            const Icon(Icons.add_circle_rounded, color: _CreateRoomPalette.ink, size: 25),
             const SizedBox(width: 9),
             Flexible(
               child: Text(

@@ -18,13 +18,6 @@ class GameAvatarFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Старый avatar_frame.png выглядел как Instagram-градиент и выбивался
-    // из нового cartoon UI. Рамка теперь полностью рисуется Flutter-ом:
-    // толстый чёрный контур, жёсткая тень и яркий игровой акцент.
-    //
-    // innerPadding оставляем частью API виджета, но ограничиваем его
-    // пропорционально размеру, чтобы маленькие аватары в рейтинге не
-    // становились слишком тесными.
     final ringThickness = innerPadding
         .clamp(
           math.max(4.0, size * 0.07),
@@ -80,49 +73,7 @@ class GameAvatarFrame extends StatelessWidget {
               ),
             ),
           ),
-          Positioned(
-            left: size * 0.08,
-            top: size * 0.14,
-            child: _CartoonFrameDot(
-              size: math.max(6.0, size * 0.075).toDouble(),
-              color: AppColors.cartoonCoral,
-            ),
-          ),
-          Positioned(
-            right: size * 0.08,
-            bottom: shadowOffset + size * 0.13,
-            child: _CartoonFrameDot(
-              size: math.max(6.0, size * 0.065).toDouble(),
-              color: AppColors.cartoonMint,
-            ),
-          ),
         ],
-      ),
-    );
-  }
-}
-
-class _CartoonFrameDot extends StatelessWidget {
-  final double size;
-  final Color color;
-
-  const _CartoonFrameDot({
-    required this.size,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: AppColors.ink,
-          width: math.max(1.2, size * 0.18).toDouble(),
-        ),
       ),
     );
   }

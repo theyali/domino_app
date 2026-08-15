@@ -2,6 +2,7 @@ import '../config/api_config.dart';
 import 'domino.dart';
 import 'gift.dart';
 import 'player.dart';
+import 'user_gender.dart';
 
 class ServerDomino {
   final int id;
@@ -47,6 +48,7 @@ class MultiplayerPlayerState {
   final int? userId;
   final String name;
   final String? avatarUrl;
+  final UserGender? gender;
   final int seatIndex;
   final bool isOwner;
   final bool isActive;
@@ -61,6 +63,7 @@ class MultiplayerPlayerState {
     required this.userId,
     required this.name,
     required this.avatarUrl,
+    required this.gender,
     required this.seatIndex,
     required this.isOwner,
     required this.isActive,
@@ -83,6 +86,7 @@ class MultiplayerPlayerState {
       userId: json['user_id'] as int?,
       name: json['name'] as String,
       avatarUrl: avatarUrl,
+      gender: UserGender.fromApi(json['gender']),
       seatIndex: json['seat_index'] as int,
       isOwner: json['is_owner'] as bool? ?? false,
       isActive: json['is_active'] as bool? ?? true,

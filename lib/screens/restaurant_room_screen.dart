@@ -143,6 +143,8 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
       final room = await _apiService.createRoom(
         restaurantId: widget.restaurant.id,
         maxPlayers: request.maxPlayers,
+        gameMode: request.gameMode,
+        targetScore: request.targetScore,
         password: request.password,
         name: request.roomName,
       );

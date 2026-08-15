@@ -12,34 +12,87 @@ enum _PhoneDirection { top, right, bottom, left }
 
 class _PlacedPhoneDomino {
   final ServerDomino domino;
-  final Offset center;
+  final Offset centerUnits;
   final _PhoneDirection direction;
 
   const _PlacedPhoneDomino({
     required this.domino,
-    required this.center,
+    required this.centerUnits,
     required this.direction,
   });
 }
 
-class _PhoneBranchEnd {
-  final Offset connection;
+class _PhoneBranchState {
+  final Offset connectionUnits;
+  final _PhoneDirection baseDirection;
+  final _PhoneDirection driftDirection;
   final _PhoneDirection direction;
+  final _PhoneDirection previousDirection;
+  final bool onDrift;
+  final bool axisForward;
+  final bool previousWasDouble;
+  final double usedUnits;
 
-  const _PhoneBranchEnd({
-    required this.connection,
+  const _PhoneBranchState({
+    required this.connectionUnits,
+    required this.baseDirection,
+    required this.driftDirection,
     required this.direction,
+    required this.previousDirection,
+    required this.onDrift,
+    required this.axisForward,
+    required this.previousWasDouble,
+    required this.usedUnits,
   });
+}
+
+class _PhoneBranchBuildResult {
+  final List<_PlacedPhoneDomino> placements;
+  final _PhoneBranchState state;
+
+  const _PhoneBranchBuildResult({
+    required this.placements,
+    required this.state,
+  });
+}
+
+class _PhoneLayoutDraft {
+  final List<_PlacedPhoneDomino> placements;
+  final Map<String, _PhoneBranchState> branchStates;
+  final double minX;
+  final double maxX;
+  final double minY;
+  final double maxY;
+
+  const _PhoneLayoutDraft({
+    required this.placements,
+    required this.branchStates,
+    required this.minX,
+    required this.maxX,
+    required this.minY,
+    required this.maxY,
+  });
+
+  double get widthUnits => maxX - minX;
+  double get heightUnits => maxY - minY;
 }
 
 /// Игровое поле режима «Телефон».
 ///
-/// Сервер хранит четыре независимые ветки в поле `side` (`top/right/bottom/left`)
-/// и остаётся источником истины для допустимых ходов. Этот widget отвечает
-/// только за геометрию креста, пунктирные цели и анимацию приземления.
+/// Сервер по-прежнему хранит четыре независимые логические ветки
+/// (`top/right/bottom/left`) и остаётся источником истины для допустимых ходов.
+/// Визуально каждая ветка теперь после выхода от центрального дубля сворачивает
+/// в собственную змейку. Поэтому длинные ветки больше не тянутся прямой линией
+/// через весь экран и не пересекают соседние ветки.
 class MultiplayerPhoneCross extends StatelessWidget {
   static const double _safeMargin = 14;
   static const double _preferredShortSide = 29;
+
+  // Каждая ветка занимает свой сектор вокруг центрального дубля.
+  // По основной оси она ходит туда-обратно на 5 квадратов, а между рядами
+  // сдвигается на 3 квадрата. Это оставляет место и для поперечных дублей.
+  static const double _axisRunUnits = 5;
+  static const double _driftRunUnits = 3;
 
   final List<ServerDomino> dominoes;
   final ServerDomino? selectedDomino;
@@ -68,78 +121,34 @@ class MultiplayerPhoneCross extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final size = Size(
+        final boardSize = Size(
           constraints.maxWidth.isFinite ? constraints.maxWidth : 1,
           constraints.maxHeight.isFinite ? constraints.maxHeight : 1,
         );
-        final shortSide = _shortSideFor(size);
-        final center = Offset(size.width / 2, size.height / 2);
-        final opening = _openingDomino;
-        final placements = <_PlacedPhoneDomino>[];
-        final branchEnds = <String, _PhoneBranchEnd>{};
-
-        final openingSize = Size(shortSide, shortSide * 2);
-        placements.add(
-          _PlacedPhoneDomino(
-            domino: opening,
-            center: center,
-            direction: _PhoneDirection.bottom,
-          ),
-        );
-
-        for (final side in const ['top', 'right', 'bottom', 'left']) {
-          final direction = _directionFor(side);
-          var connection = _openingConnection(
-            center: center,
-            openingSize: openingSize,
-            direction: direction,
-          );
-
-          final branch = dominoes
-              .where((item) => item.side == side)
-              .toList(growable: false)
-            ..sort(
-              (a, b) => (a.moveNumber ?? 0).compareTo(b.moveNumber ?? 0),
-            );
-
-          for (final domino in branch) {
-            final geometry = _step(
-              connection: connection,
-              domino: domino.domino,
-              direction: direction,
-              shortSide: shortSide,
-            );
-            placements.add(
-              _PlacedPhoneDomino(
-                domino: domino,
-                center: geometry.$1,
-                direction: direction,
-              ),
-            );
-            connection = geometry.$2;
-          }
-
-          branchEnds[side] = _PhoneBranchEnd(
-            connection: connection,
-            direction: direction,
-          );
-        }
+        final draft = _buildDraft();
+        final shortSide = _shortSideFor(boardSize, draft);
+        final shift = _shiftFor(boardSize, draft, shortSide);
 
         return SizedBox(
-          width: size.width,
-          height: size.height,
+          width: boardSize.width,
+          height: boardSize.height,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              for (final placement in placements)
-                _buildPlacedDomino(placement, shortSide: shortSide),
+              for (final placement in draft.placements)
+                _buildPlacedDomino(
+                  placement,
+                  shortSide: shortSide,
+                  shift: shift,
+                ),
               if (selectedDomino != null && onTargetTap != null)
                 for (final side in const ['top', 'right', 'bottom', 'left'])
                   if (playableSides.contains(side))
                     _buildTarget(
-                      end: branchEnds[side]!,
+                      state: draft.branchStates[side]!,
                       domino: selectedDomino!.domino,
                       shortSide: shortSide,
+                      shift: shift,
                       onTap: () => onTargetTap!(side),
                     ),
             ],
@@ -156,33 +165,27 @@ class MultiplayerPhoneCross extends StatelessWidget {
     return dominoes.first;
   }
 
-  double _shortSideFor(Size boardSize) {
-    int units(String side) {
-      var value = 0;
-      for (final domino in dominoes) {
-        if (domino.side != side) continue;
-        value += domino.isDouble ? 1 : 2;
-      }
-      if (selectedDomino != null && playableSides.contains(side)) {
-        value += selectedDomino!.isDouble ? 1 : 2;
-      }
-      return value;
-    }
-
-    final horizontalUnits = units('left') + units('right') + 1;
-    final verticalUnits = units('top') + units('bottom') + 2;
-    final availableWidth = math.max(1.0, boardSize.width - _safeMargin * 2);
-    final availableHeight = math.max(1.0, boardSize.height - _safeMargin * 2);
-    final byWidth = availableWidth / math.max(1, horizontalUnits);
-    final byHeight = availableHeight / math.max(1, verticalUnits);
-    return math.max(10.0, math.min(_preferredShortSide, math.min(byWidth, byHeight)));
-  }
-
   _PhoneDirection _directionFor(String side) => switch (side) {
         'top' => _PhoneDirection.top,
         'right' => _PhoneDirection.right,
         'bottom' => _PhoneDirection.bottom,
         _ => _PhoneDirection.left,
+      };
+
+  _PhoneDirection _driftDirectionFor(String side) => switch (side) {
+        // Ветки специально расходятся по четырём разным секторам:
+        // top -> вправо, right -> вниз, bottom -> влево, left -> вверх.
+        'top' => _PhoneDirection.right,
+        'right' => _PhoneDirection.bottom,
+        'bottom' => _PhoneDirection.left,
+        _ => _PhoneDirection.top,
+      };
+
+  _PhoneDirection _opposite(_PhoneDirection direction) => switch (direction) {
+        _PhoneDirection.top => _PhoneDirection.bottom,
+        _PhoneDirection.right => _PhoneDirection.left,
+        _PhoneDirection.bottom => _PhoneDirection.top,
+        _PhoneDirection.left => _PhoneDirection.right,
       };
 
   Offset _vector(_PhoneDirection direction) => switch (direction) {
@@ -195,44 +198,149 @@ class MultiplayerPhoneCross extends StatelessWidget {
   bool _horizontal(_PhoneDirection direction) =>
       direction == _PhoneDirection.left || direction == _PhoneDirection.right;
 
-  Offset _openingConnection({
-    required Offset center,
-    required Size openingSize,
-    required _PhoneDirection direction,
-  }) {
+  double _pathUnits(Domino domino) => domino.left == domino.right ? 1 : 2;
+
+  Offset _openingConnectionUnits(_PhoneDirection direction) {
+    // Центральный дубль всегда занимает 1 x 2 условных квадрата.
     return switch (direction) {
-      _PhoneDirection.top => center - Offset(0, openingSize.height / 2),
-      _PhoneDirection.bottom => center + Offset(0, openingSize.height / 2),
-      _PhoneDirection.left => center - Offset(openingSize.width / 2, 0),
-      _PhoneDirection.right => center + Offset(openingSize.width / 2, 0),
+      _PhoneDirection.top => const Offset(0, -1),
+      _PhoneDirection.bottom => const Offset(0, 1),
+      _PhoneDirection.left => const Offset(-0.5, 0),
+      _PhoneDirection.right => const Offset(0.5, 0),
     };
   }
 
-  (Offset, Offset) _step({
-    required Offset connection,
+  _PhoneBranchState _initialBranchState(String side) {
+    final baseDirection = _directionFor(side);
+    return _PhoneBranchState(
+      connectionUnits: _openingConnectionUnits(baseDirection),
+      baseDirection: baseDirection,
+      driftDirection: _driftDirectionFor(side),
+      direction: baseDirection,
+      previousDirection: baseDirection,
+      onDrift: false,
+      axisForward: true,
+      previousWasDouble: false,
+      usedUnits: 0,
+    );
+  }
+
+  _PhoneBranchState _prepareForDomino(
+    _PhoneBranchState state,
+    Domino domino,
+  ) {
+    final requiredUnits = _pathUnits(domino);
+    var connectionUnits = state.connectionUnits;
+    var direction = state.direction;
+    var onDrift = state.onDrift;
+    var axisForward = state.axisForward;
+    var usedUnits = state.usedUnits;
+
+    final currentLimit = onDrift ? _driftRunUnits : _axisRunUnits;
+    if (usedUnits + requiredUnits > currentLimit) {
+      if (onDrift) {
+        onDrift = false;
+        axisForward = !axisForward;
+        direction = axisForward
+            ? state.baseDirection
+            : _opposite(state.baseDirection);
+      } else {
+        onDrift = true;
+        direction = state.driftDirection;
+      }
+      usedUnits = 0;
+
+      // Если поворот начинается сразу после дубля, соединение должно выйти
+      // за его внешний край. Иначе следующая кость залезает на половину дубля.
+      if (state.previousWasDouble && direction != state.previousDirection) {
+        connectionUnits += _vector(direction) * 0.5;
+      }
+    }
+
+    return _PhoneBranchState(
+      connectionUnits: connectionUnits,
+      baseDirection: state.baseDirection,
+      driftDirection: state.driftDirection,
+      direction: direction,
+      previousDirection: state.previousDirection,
+      onDrift: onDrift,
+      axisForward: axisForward,
+      previousWasDouble: state.previousWasDouble,
+      usedUnits: usedUnits,
+    );
+  }
+
+  (Offset, Offset) _stepUnits({
+    required Offset connectionUnits,
     required Domino domino,
     required _PhoneDirection direction,
-    required double shortSide,
   }) {
     final vector = _vector(direction);
-    final pathLength = domino.left == domino.right ? shortSide : shortSide * 2;
-    final center = connection + vector * (pathLength / 2);
-    final nextConnection = center + vector * (pathLength / 2);
+    final length = _pathUnits(domino);
+    final center = connectionUnits + vector * (length / 2);
+    final nextConnection = center + vector * (length / 2);
     return (center, nextConnection);
   }
 
-  Size _displaySize({
+  _PhoneBranchBuildResult _buildBranch(String side) {
+    var state = _initialBranchState(side);
+    final placements = <_PlacedPhoneDomino>[];
+
+    final branch = dominoes
+        .where((item) => item.side == side)
+        .toList(growable: false)
+      ..sort(
+        (a, b) => (a.moveNumber ?? 0).compareTo(b.moveNumber ?? 0),
+      );
+
+    for (final serverDomino in branch) {
+      final domino = serverDomino.domino;
+      final prepared = _prepareForDomino(state, domino);
+      final geometry = _stepUnits(
+        connectionUnits: prepared.connectionUnits,
+        domino: domino,
+        direction: prepared.direction,
+      );
+      final requiredUnits = _pathUnits(domino);
+
+      placements.add(
+        _PlacedPhoneDomino(
+          domino: serverDomino,
+          centerUnits: geometry.$1,
+          direction: prepared.direction,
+        ),
+      );
+
+      state = _PhoneBranchState(
+        connectionUnits: geometry.$2,
+        baseDirection: prepared.baseDirection,
+        driftDirection: prepared.driftDirection,
+        direction: prepared.direction,
+        previousDirection: prepared.direction,
+        onDrift: prepared.onDrift,
+        axisForward: prepared.axisForward,
+        previousWasDouble: serverDomino.isDouble,
+        usedUnits: prepared.usedUnits + requiredUnits,
+      );
+    }
+
+    return _PhoneBranchBuildResult(
+      placements: placements,
+      state: state,
+    );
+  }
+
+  Size _displaySizeUnits({
     required Domino domino,
     required _PhoneDirection direction,
-    required double shortSide,
   }) {
     final pathHorizontal = _horizontal(direction);
     final dominoHorizontal = domino.left == domino.right
         ? !pathHorizontal
         : pathHorizontal;
     return Size(
-      dominoHorizontal ? shortSide * 2 : shortSide,
-      dominoHorizontal ? shortSide : shortSide * 2,
+      dominoHorizontal ? 2 : 1,
+      dominoHorizontal ? 1 : 2,
     );
   }
 
@@ -240,12 +348,133 @@ class MultiplayerPhoneCross extends StatelessWidget {
     Domino domino,
     _PhoneDirection direction,
   ) {
-    // Сервер хранит left = значение ближе к центру, right = наружный конец.
-    // Для веток, идущих вверх/влево, экранное направление обратное.
+    // Сервер хранит left = значение у предыдущей кости, right = новый конец.
+    // Когда экранная змейка идёт вверх или влево, изображение переворачиваем.
     if (direction == _PhoneDirection.top || direction == _PhoneDirection.left) {
       return Domino(left: domino.right, right: domino.left);
     }
     return domino;
+  }
+
+  Rect _rectForPlacement(_PlacedPhoneDomino placement) {
+    final isOpening = placement.domino.side == 'center' ||
+        placement.domino.moveNumber == 1;
+    final size = isOpening
+        ? const Size(1, 2)
+        : _displaySizeUnits(
+            domino: placement.domino.domino,
+            direction: placement.direction,
+          );
+    return Rect.fromCenter(
+      center: placement.centerUnits,
+      width: size.width,
+      height: size.height,
+    );
+  }
+
+  ({Offset centerUnits, Size sizeUnits, _PhoneDirection direction})
+      _targetGeometryUnits({
+    required _PhoneBranchState state,
+    required Domino domino,
+  }) {
+    final prepared = _prepareForDomino(state, domino);
+    final geometry = _stepUnits(
+      connectionUnits: prepared.connectionUnits,
+      domino: domino,
+      direction: prepared.direction,
+    );
+    return (
+      centerUnits: geometry.$1,
+      sizeUnits: _displaySizeUnits(
+        domino: domino,
+        direction: prepared.direction,
+      ),
+      direction: prepared.direction,
+    );
+  }
+
+  _PhoneLayoutDraft _buildDraft() {
+    final opening = _openingDomino;
+    final placements = <_PlacedPhoneDomino>[
+      _PlacedPhoneDomino(
+        domino: opening,
+        centerUnits: Offset.zero,
+        direction: _PhoneDirection.bottom,
+      ),
+    ];
+    final branchStates = <String, _PhoneBranchState>{};
+
+    for (final side in const ['top', 'right', 'bottom', 'left']) {
+      final result = _buildBranch(side);
+      placements.addAll(result.placements);
+      branchStates[side] = result.state;
+    }
+
+    var minX = double.infinity;
+    var maxX = double.negativeInfinity;
+    var minY = double.infinity;
+    var maxY = double.negativeInfinity;
+
+    void include(Rect rect) {
+      minX = math.min(minX, rect.left);
+      maxX = math.max(maxX, rect.right);
+      minY = math.min(minY, rect.top);
+      maxY = math.max(maxY, rect.bottom);
+    }
+
+    for (final placement in placements) {
+      include(_rectForPlacement(placement));
+    }
+
+    if (selectedDomino != null) {
+      for (final side in const ['top', 'right', 'bottom', 'left']) {
+        if (!playableSides.contains(side)) continue;
+        final target = _targetGeometryUnits(
+          state: branchStates[side]!,
+          domino: selectedDomino!.domino,
+        );
+        include(
+          Rect.fromCenter(
+            center: target.centerUnits,
+            width: target.sizeUnits.width,
+            height: target.sizeUnits.height,
+          ),
+        );
+      }
+    }
+
+    return _PhoneLayoutDraft(
+      placements: placements,
+      branchStates: branchStates,
+      minX: minX,
+      maxX: maxX,
+      minY: minY,
+      maxY: maxY,
+    );
+  }
+
+  double _shortSideFor(Size boardSize, _PhoneLayoutDraft draft) {
+    final availableWidth = math.max(1.0, boardSize.width - _safeMargin * 2);
+    final availableHeight = math.max(1.0, boardSize.height - _safeMargin * 2);
+    final byWidth = availableWidth / math.max(1.0, draft.widthUnits);
+    final byHeight = availableHeight / math.max(1.0, draft.heightUnits);
+    return math.max(
+      10.0,
+      math.min(_preferredShortSide, math.min(byWidth, byHeight)),
+    );
+  }
+
+  Offset _shiftFor(
+    Size boardSize,
+    _PhoneLayoutDraft draft,
+    double shortSide,
+  ) {
+    final contentCenterUnits = Offset(
+      (draft.minX + draft.maxX) / 2,
+      (draft.minY + draft.maxY) / 2,
+    );
+    return Offset(boardSize.width / 2, boardSize.height / 2) -
+        contentCenterUnits * shortSide;
   }
 
   double _dotSize(double shortSide) => math.max(2.5, shortSide * 0.16);
@@ -253,16 +482,21 @@ class MultiplayerPhoneCross extends StatelessWidget {
   Widget _buildPlacedDomino(
     _PlacedPhoneDomino placement, {
     required double shortSide,
+    required Offset shift,
   }) {
     final isOpening = placement.domino.side == 'center' ||
         placement.domino.moveNumber == 1;
-    final size = isOpening
-        ? Size(shortSide, shortSide * 2)
-        : _displaySize(
+    final sizeUnits = isOpening
+        ? const Size(1, 2)
+        : _displaySizeUnits(
             domino: placement.domino.domino,
             direction: placement.direction,
-            shortSide: shortSide,
           );
+    final size = Size(
+      sizeUnits.width * shortSide,
+      sizeUnits.height * shortSide,
+    );
+    final center = shift + placement.centerUnits * shortSide;
     final horizontal = size.width > size.height;
     final displayDomino = isOpening
         ? placement.domino.domino
@@ -293,33 +527,35 @@ class MultiplayerPhoneCross extends StatelessWidget {
         : tile;
 
     return Positioned(
-      left: placement.center.dx - size.width / 2,
-      top: placement.center.dy - size.height / 2,
+      key: ValueKey(
+        'phone-${placement.domino.id}-${placement.domino.moveNumber}',
+      ),
+      left: center.dx - size.width / 2,
+      top: center.dy - size.height / 2,
       child: child,
     );
   }
 
   Widget _buildTarget({
-    required _PhoneBranchEnd end,
+    required _PhoneBranchState state,
     required Domino domino,
     required double shortSide,
+    required Offset shift,
     required VoidCallback onTap,
   }) {
-    final geometry = _step(
-      connection: end.connection,
+    final target = _targetGeometryUnits(
+      state: state,
       domino: domino,
-      direction: end.direction,
-      shortSide: shortSide,
     );
-    final size = _displaySize(
-      domino: domino,
-      direction: end.direction,
-      shortSide: shortSide,
+    final center = shift + target.centerUnits * shortSide;
+    final size = Size(
+      target.sizeUnits.width * shortSide,
+      target.sizeUnits.height * shortSide,
     );
 
     return Positioned(
-      left: geometry.$1.dx - size.width / 2,
-      top: geometry.$1.dy - size.height / 2,
+      left: center.dx - size.width / 2,
+      top: center.dy - size.height / 2,
       child: DominoPlacementTarget(
         width: size.width,
         height: size.height,

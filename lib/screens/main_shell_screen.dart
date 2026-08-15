@@ -5,12 +5,14 @@ import 'package:flutter/material.dart';
 import '../localization/app_localizations.dart';
 import '../localization/statistics_strings.dart';
 import '../models/user_account.dart';
+import '../services/push_notification_service.dart';
 import '../services/social_service.dart';
 import '../services/sound_effects_service.dart';
 import '../widgets/cartoon_page_background.dart';
 import 'inventory_screen.dart';
 import 'profile_screen.dart';
 import 'restaurants_screen.dart';
+import 'social_manage_screen.dart';
 import 'social_screen.dart';
 import 'statistics_screen.dart';
 
@@ -32,6 +34,8 @@ class _MainShellScreenState extends State<MainShellScreen>
     with WidgetsBindingObserver {
   static const SocialService _socialService = SocialService();
 
+  final PushNotificationService _pushNotifications = PushNotificationService();
+
   int _index = 0;
   int _statisticsRefreshToken = 0;
   int _socialBadgeCount = 0;
@@ -44,6 +48,7 @@ class _MainShellScreenState extends State<MainShellScreen>
     _user = widget.user;
     WidgetsBinding.instance.addObserver(this);
     _startHeartbeat();
+    unawaited(_initializePushNotifications());
   }
 
   @override
@@ -69,6 +74,7 @@ class _MainShellScreenState extends State<MainShellScreen>
   @override
   void dispose() {
     _heartbeatTimer?.cancel();
+    _pushNotifications.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -88,6 +94,39 @@ class _MainShellScreenState extends State<MainShellScreen>
       // Presence не должен мешать основной игре. Следующий heartbeat
       // автоматически повторит попытку.
     }
+  }
+
+  Future<void> _initializePushNotifications() async {
+    await _pushNotifications.initialize(
+      onTap: (_) => _openSocialFromPush(),
+      onForeground: (title, body, _) => _showForegroundPush(title, body),
+    );
+  }
+
+  void _openSocialFromPush() {
+    if (!mounted) return;
+    setState(() => _index = 3);
+  }
+
+  void _showForegroundPush(String title, String body) {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(body.isEmpty ? title : '$title\n$body'),
+          action: SnackBarAction(
+            label: context.appLanguage.code == 'az' ? 'Aç' : 'Открыть',
+            onPressed: _openSocialFromPush,
+          ),
+        ),
+      );
+  }
+
+  Future<void> _handleLogout() async {
+    await _pushNotifications.unregisterCurrentDevice();
+    await widget.onLogout();
   }
 
   void _handleUserUpdated(UserAccount user) {
@@ -114,6 +153,16 @@ class _MainShellScreenState extends State<MainShellScreen>
     });
   }
 
+  Future<void> _openSocialManage() async {
+    SoundEffectsService.button(alternate: true);
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SocialManageScreen(currentUser: _user),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final statsStrings = StatisticsStrings.of(context);
@@ -129,7 +178,7 @@ class _MainShellScreenState extends State<MainShellScreen>
       ProfileScreen(
         user: _user,
         onUserUpdated: _handleUserUpdated,
-        onLogout: widget.onLogout,
+        onLogout: _handleLogout,
       ),
     ];
 
@@ -169,10 +218,64 @@ class _MainShellScreenState extends State<MainShellScreen>
           index: _index,
           children: screens,
         ),
+        floatingActionButton: _index == 3
+            ? _SocialManageButton(
+                label: isAz ? 'Axtarış və ayarlar' : 'Поиск и настройки',
+                onTap: _openSocialManage,
+              )
+            : null,
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         bottomNavigationBar: _CartoonGameDock(
           selectedIndex: _index,
           items: items,
           onSelected: _selectTab,
+        ),
+      ),
+    );
+  }
+}
+
+class _SocialManageButton extends StatelessWidget {
+  static const _ink = Color(0xFF17120D);
+  static const _lime = Color(0xFF79FA00);
+
+  final String label;
+  final VoidCallback onTap;
+
+  const _SocialManageButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 52,
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        decoration: BoxDecoration(
+          color: _lime,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _ink, width: 3),
+          boxShadow: const [
+            BoxShadow(
+              color: _ink,
+              blurRadius: 0,
+              offset: Offset(4, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.manage_accounts_rounded, color: _ink),
+            const SizedBox(width: 7),
+            Text(
+              label,
+              style: const TextStyle(
+                color: _ink,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../config/api_config.dart';
 import '../localization/app_localizations.dart';
+import '../localization/statistics_strings.dart';
 import '../models/restaurant.dart';
 import '../services/api_service.dart';
 import '../widgets/restaurant_tile.dart';
@@ -16,9 +19,12 @@ class RestaurantsScreen extends StatefulWidget {
 
 class _RestaurantsScreenState extends State<RestaurantsScreen> {
   static const ApiService _apiService = ApiService();
+  static const Duration _refreshInterval = Duration(seconds: 4);
 
+  Timer? _refreshTimer;
   bool showOnlyActive = false;
   bool _isLoading = true;
+  bool _isRefreshingSilently = false;
   String? _errorMessage;
   List<Restaurant> _restaurants = const [];
 
@@ -26,13 +32,28 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
   void initState() {
     super.initState();
     _loadRestaurants();
+    _refreshTimer = Timer.periodic(_refreshInterval, (_) {
+      unawaited(_loadRestaurants(silent: true));
+    });
   }
 
-  Future<void> _loadRestaurants() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadRestaurants({bool silent = false}) async {
+    if (silent && (_isRefreshingSilently || _isLoading)) return;
+
+    if (silent) {
+      _isRefreshingSilently = true;
+    } else if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
 
     try {
       final restaurants = await _apiService.fetchRestaurants();
@@ -40,19 +61,22 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
 
       setState(() {
         _restaurants = restaurants;
+        _errorMessage = null;
       });
     } on ApiException catch (error) {
-      if (!mounted) return;
+      if (!mounted || silent) return;
       setState(() {
         _errorMessage = error.message;
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || silent) return;
       setState(() {
         _errorMessage = context.tr('django_connection_failed');
       });
     } finally {
-      if (mounted) {
+      if (silent) {
+        _isRefreshingSilently = false;
+      } else if (mounted) {
         setState(() {
           _isLoading = false;
         });
@@ -65,10 +89,11 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
     final visibleRestaurants = showOnlyActive
         ? _restaurants.where((restaurant) => restaurant.active).toList()
         : _restaurants;
+    final navigationStrings = StatisticsStrings.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(context.tr('restaurants')),
+        title: Text(navigationStrings.play),
         actions: [
           IconButton(
             onPressed: _isLoading ? null : _loadRestaurants,
@@ -126,7 +151,7 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(8, 4, 8, 24),
+                padding: const EdgeInsets.fromLTRB(0, 4, 0, 28),
                 sliver: SliverList.builder(
                   itemCount: visibleRestaurants.length,
                   itemBuilder: (context, index) {
@@ -145,23 +170,13 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
                         );
 
                         if (mounted) {
-                          _loadRestaurants();
+                          await _loadRestaurants(silent: true);
                         }
                       },
                     );
                   },
                 ),
               ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                child: Text(
-                  'Backend: ${ApiConfig.baseUrl}',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-            ),
           ],
         ),
       ),
@@ -171,7 +186,7 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
 
 class _RestaurantsError extends StatelessWidget {
   final String message;
-  final Future<void> Function() onRetry;
+  final Future<void> Function({bool silent}) onRetry;
 
   const _RestaurantsError({
     required this.message,
@@ -205,7 +220,7 @@ class _RestaurantsError extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           FilledButton.icon(
-            onPressed: onRetry,
+            onPressed: () => onRetry(),
             icon: const Icon(Icons.refresh_rounded),
             label: Text(context.tr('retry')),
           ),

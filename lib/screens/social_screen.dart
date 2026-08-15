@@ -124,6 +124,103 @@ class _SocialScreenState extends State<SocialScreen> {
     if (mounted) await _load(initial: false);
   }
 
+  Future<void> _removeFriend(SocialUser user) async {
+    final friendshipId = user.friendshipId;
+    if (friendshipId == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: _SocialPalette.cream,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: _SocialPalette.ink, width: 3),
+            boxShadow: const [
+              BoxShadow(
+                color: _SocialPalette.ink,
+                blurRadius: 0,
+                offset: Offset(5, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: _SocialPalette.coral,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: _SocialPalette.ink, width: 3),
+                ),
+                child: const Icon(
+                  Icons.person_remove_rounded,
+                  color: _SocialPalette.ink,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(height: 13),
+              Text(
+                _isAz ? 'Dostlardan silinsin?' : 'Удалить из друзей?',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _SocialPalette.ink,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                user.displayName,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _SocialPalette.inkSoft,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _WideAction(
+                      label: _isAz ? 'Ləğv et' : 'Отмена',
+                      icon: Icons.arrow_back_rounded,
+                      color: _SocialPalette.cream,
+                      busy: false,
+                      onTap: () => Navigator.pop(dialogContext, false),
+                    ),
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: _WideAction(
+                      label: _isAz ? 'Sil' : 'Удалить',
+                      icon: Icons.close_rounded,
+                      color: _SocialPalette.coral,
+                      busy: false,
+                      onTap: () => Navigator.pop(dialogContext, true),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+    await _runAction(
+      'friend-remove-$friendshipId',
+      () => _service.removeFriendship(friendshipId),
+    );
+  }
+
   Future<void> _acceptInvitation(RoomInvitationItem invitation) async {
     final key = 'invite-accept-${invitation.id}';
     await _runAction(key, () async {
@@ -321,9 +418,24 @@ class _SocialScreenState extends State<SocialScreen> {
             _PersonCard(
               user: user,
               accent: _SocialPalette.mint,
-              trailing: _MessageButton(
-                unread: 0,
-                onTap: () => _openChat(user),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _MessageButton(
+                    unread: 0,
+                    onTap: () => _openChat(user),
+                  ),
+                  const SizedBox(width: 7),
+                  _MiniAction(
+                    icon: Icons.close_rounded,
+                    color: _SocialPalette.coral,
+                    busy: user.friendshipId != null &&
+                        _busyActions.contains('friend-remove-${user.friendshipId}'),
+                    onTap: user.friendshipId == null
+                        ? null
+                        : () => _removeFriend(user),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 10),

@@ -422,32 +422,6 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                     bottom: 0,
                     child: _DominoCountBadge(count: widget.dominoCount),
                   ),
-                if (widget.isOnline != null)
-                  Positioned(
-                    left: widget.compact ? 8 : 9,
-                    bottom: widget.compact ? 6 : 7,
-                    child: Container(
-                      width: widget.compact ? 13 : 14,
-                      height: widget.compact ? 13 : 14,
-                      decoration: BoxDecoration(
-                        color: widget.isOnline == true
-                            ? AppColors.cartoonMint
-                            : AppColors.cartoonCoral,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.ink,
-                          width: 1.8,
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: AppColors.ink,
-                            blurRadius: 0,
-                            offset: Offset(1, 2),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 Positioned(
                   left: widget.giftPlacement == PlayerGiftPlacement.left
                       ? 0
@@ -516,9 +490,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                 constraints: const BoxConstraints(minWidth: 56),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: widget.isActive
-                      ? AppColors.lime
-                      : AppColors.cream,
+                  color: widget.isActive ? AppColors.lime : AppColors.cream,
                   borderRadius: BorderRadius.circular(11),
                   border: Border.all(
                     color: AppColors.ink,

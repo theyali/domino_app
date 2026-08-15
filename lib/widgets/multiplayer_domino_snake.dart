@@ -7,6 +7,7 @@ import '../models/multiplayer_game_state.dart';
 import 'domino_placement_target.dart';
 import 'domino_play_animation.dart';
 import 'domino_tile.dart';
+import 'multiplayer_phone_cross.dart';
 
 enum _ChainDirection { right, left, up, down }
 
@@ -36,16 +37,10 @@ class _ChainPlacement {
       return domino;
     }
 
-    // Backend хранит всю цепочку слева направо.
-    // При построении левой ветки мы идём от центра наружу, то есть
-    // логическое направление костяшки сначала нужно развернуть.
     var outwardDomino = branchSide == _BranchSide.left
         ? Domino(left: domino.right, right: domino.left)
         : domino;
 
-    // Если сама геометрическая ветка идёт влево или вверх, экранное
-    // направление снова разворачивается, чтобы соединяющиеся значения
-    // оставались рядом друг с другом.
     if (direction == _ChainDirection.left ||
         direction == _ChainDirection.up) {
       outwardDomino = Domino(
@@ -151,20 +146,13 @@ class _SnakeLayout {
   });
 }
 
-/// Сетевая версия фиксированной змейки.
-///
-/// Backend остаётся источником истины по порядку и ориентации костей.
-/// Widget отвечает только за визуальную трассу, пунктиры и анимацию.
-///
-/// Первая сыгранная кость остаётся визуальным центром. Ходы влево
-/// достраивают левую ветку, а ходы вправо — правую, поэтому существующая
-/// цепочка не прыгает при серверном insert(0).
+/// Сетевая версия фиксированной змейки для «101».
+/// Для режима «Телефон» этот же публичный widget автоматически передаёт
+/// рендеринг в [MultiplayerPhoneCross], не затрагивая проверенную геометрию
+/// классической змейки.
 class MultiplayerDominoSnake extends StatelessWidget {
   static const double _trackGap = 0;
   static const int _horizontalTrackSquares = 11;
-
-  // Первая горизонталь расходится от центра в две стороны. По 5 квадратов
-  // на ветку + центральная зона дают тот же бюджет примерно в 11 квадратов.
   static const int _initialBranchSquares = 5;
   static const double _safeMargin = 18;
 
@@ -194,6 +182,19 @@ class MultiplayerDominoSnake extends StatelessWidget {
   Widget build(BuildContext context) {
     if (dominoes.isEmpty) {
       return const SizedBox.shrink();
+    }
+
+    if (dominoes.first.isPhone) {
+      return MultiplayerPhoneCross(
+        dominoes: dominoes,
+        selectedDomino: selectedDomino,
+        playableSides: playableSides,
+        onTargetTap: onTargetTap,
+        animatedMoveNumber: animatedMoveNumber,
+        animationSourceGlobalCenter: animationSourceGlobalCenter,
+        soundEnabled: soundEnabled,
+        onDoubleImpact: onDoubleImpact,
+      );
     }
 
     return LayoutBuilder(
@@ -428,10 +429,6 @@ class MultiplayerDominoSnake extends StatelessWidget {
       return connectionPoint;
     }
 
-    // Когда после поперечного дубля змейка поворачивает, центр дубля не
-    // является его внешним краем в новом направлении. Сдвигаем точку связи
-    // на половину квадрата: следующая кость касается дубля краем, а не
-    // заходит на его половину.
     return connectionPoint +
         _directionVector(direction) * (shortSide / 2);
   }
@@ -471,9 +468,6 @@ class MultiplayerDominoSnake extends StatelessWidget {
         direction = _verticalDirectionFor(side);
         rowDirection = _oppositeDirection(rowDirection);
         initialRow = false;
-
-        // После вертикального перехода физическая ширина занятого начала
-        // нового ряда равна одному квадрату у обычной кости и двум у дубля.
         rowUsedSquares = isDouble ? 2 : 1;
         needsTurn = rowUsedSquares >= _horizontalTrackSquares;
       } else {
@@ -656,8 +650,6 @@ class MultiplayerDominoSnake extends StatelessWidget {
       );
     }
 
-    // Пунктир участвует в расчёте fit/shift. Поэтому мы не двигаем его
-    // отдельно к безопасному краю: он остаётся точно на будущей траектории.
     if (targetDomino != null && targetSides.contains('left')) {
       _includeRectInBounds(
         rect: _targetRectFor(

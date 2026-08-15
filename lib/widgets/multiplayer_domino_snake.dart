@@ -75,6 +75,7 @@ class _BranchTrackState {
   final bool needsTurn;
   final int rowUsedSquares;
   final bool initialRow;
+  final bool previousWasDouble;
 
   const _BranchTrackState({
     required this.connectionPoint,
@@ -83,6 +84,7 @@ class _BranchTrackState {
     required this.needsTurn,
     required this.rowUsedSquares,
     required this.initialRow,
+    required this.previousWasDouble,
   });
 
   _BranchTrackState shifted(Offset offset) {
@@ -93,6 +95,7 @@ class _BranchTrackState {
       needsTurn: needsTurn,
       rowUsedSquares: rowUsedSquares,
       initialRow: initialRow,
+      previousWasDouble: previousWasDouble,
     );
   }
 }
@@ -403,22 +406,34 @@ class MultiplayerDominoSnake extends StatelessWidget {
     required _BranchSide side,
     required Domino domino,
   }) {
-    final isDouble = domino.left == domino.right;
-    final requiredSquares = isDouble ? 1 : 2;
-    final rowLimit = _rowLimit(state);
-    final wouldOverflow = state.rowUsedSquares + requiredSquares > rowLimit;
-    final doubleWouldEndRow = isDouble &&
-        state.rowUsedSquares > 0 &&
-        state.rowUsedSquares + requiredSquares >= rowLimit;
+    final requiredSquares = domino.left == domino.right ? 1 : 2;
+    final wouldOverflow =
+        state.rowUsedSquares + requiredSquares > _rowLimit(state);
 
-    // Дубль не оставляем последним квадратом горизонтального ряда.
-    // Иначе следующая вертикальная костяшка выходит из центра поперечного
-    // дубля и визуально накладывается на него. Сам дубль становится поворотом.
-    if (state.needsTurn || wouldOverflow || doubleWouldEndRow) {
+    if (state.needsTurn || wouldOverflow) {
       return _verticalDirectionFor(side);
     }
 
     return state.rowDirection;
+  }
+
+  Offset _connectionPointForStep({
+    required Offset connectionPoint,
+    required _ChainDirection direction,
+    required _ChainDirection previousDirection,
+    required bool previousWasDouble,
+    required double shortSide,
+  }) {
+    if (!previousWasDouble || direction == previousDirection) {
+      return connectionPoint;
+    }
+
+    // Когда после поперечного дубля змейка поворачивает, центр дубля не
+    // является его внешним краем в новом направлении. Сдвигаем точку связи
+    // на половину квадрата: следующая кость касается дубля краем, а не
+    // заходит на его половину.
+    return connectionPoint +
+        _directionVector(direction) * (shortSide / 2);
   }
 
   _BranchBuildResult _buildBranch({
@@ -432,6 +447,7 @@ class MultiplayerDominoSnake extends StatelessWidget {
         ? _ChainDirection.left
         : _ChainDirection.right;
     var previousDirection = rowDirection;
+    var previousWasDouble = false;
     var rowUsedSquares = 0;
     var needsTurn = false;
     var initialRow = true;
@@ -447,11 +463,7 @@ class MultiplayerDominoSnake extends StatelessWidget {
           : _horizontalTrackSquares;
       final wouldOverflow =
           rowUsedSquares + requiredSquares > rowLimit;
-      final doubleWouldEndRow = isDouble &&
-          rowUsedSquares > 0 &&
-          rowUsedSquares + requiredSquares >= rowLimit;
-      final shouldTurnBeforeDomino =
-          needsTurn || wouldOverflow || doubleWouldEndRow;
+      final shouldTurnBeforeDomino = needsTurn || wouldOverflow;
 
       late final _ChainDirection direction;
 
@@ -468,8 +480,15 @@ class MultiplayerDominoSnake extends StatelessWidget {
         direction = rowDirection;
       }
 
-      final geometry = _placeTrackStep(
+      final stepConnectionPoint = _connectionPointForStep(
         connectionPoint: connectionPoint,
+        direction: direction,
+        previousDirection: previousDirection,
+        previousWasDouble: previousWasDouble,
+        shortSide: shortSide,
+      );
+      final geometry = _placeTrackStep(
+        connectionPoint: stepConnectionPoint,
         direction: direction,
         domino: domino,
         shortSide: shortSide,
@@ -496,6 +515,7 @@ class MultiplayerDominoSnake extends StatelessWidget {
       }
 
       previousDirection = direction;
+      previousWasDouble = isDouble;
     }
 
     return _BranchBuildResult(
@@ -507,6 +527,7 @@ class MultiplayerDominoSnake extends StatelessWidget {
         needsTurn: needsTurn,
         rowUsedSquares: rowUsedSquares,
         initialRow: initialRow,
+        previousWasDouble: previousWasDouble,
       ),
     );
   }
@@ -532,8 +553,15 @@ class MultiplayerDominoSnake extends StatelessWidget {
       side: side,
       domino: domino,
     );
-    final geometry = _placeTrackStep(
+    final stepConnectionPoint = _connectionPointForStep(
       connectionPoint: state.connectionPoint,
+      direction: direction,
+      previousDirection: state.previousDirection,
+      previousWasDouble: state.previousWasDouble,
+      shortSide: shortSide,
+    );
+    final geometry = _placeTrackStep(
+      connectionPoint: stepConnectionPoint,
       direction: direction,
       domino: domino,
       shortSide: shortSide,
@@ -764,8 +792,15 @@ class MultiplayerDominoSnake extends StatelessWidget {
       side: side,
       domino: domino,
     );
-    final geometry = _placeTrackStep(
+    final stepConnectionPoint = _connectionPointForStep(
       connectionPoint: state.connectionPoint,
+      direction: direction,
+      previousDirection: state.previousDirection,
+      previousWasDouble: state.previousWasDouble,
+      shortSide: shortSide,
+    );
+    final geometry = _placeTrackStep(
+      connectionPoint: stepConnectionPoint,
       direction: direction,
       domino: domino,
       shortSide: shortSide,

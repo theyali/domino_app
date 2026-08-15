@@ -1,12 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../localization/app_localizations.dart';
 import '../localization/statistics_strings.dart';
 import '../models/user_account.dart';
+import '../services/social_service.dart';
 import '../widgets/cartoon_page_background.dart';
 import 'inventory_screen.dart';
 import 'profile_screen.dart';
 import 'restaurants_screen.dart';
+import 'social_screen.dart';
 import 'statistics_screen.dart';
 
 class MainShellScreen extends StatefulWidget {
@@ -23,15 +27,21 @@ class MainShellScreen extends StatefulWidget {
   State<MainShellScreen> createState() => _MainShellScreenState();
 }
 
-class _MainShellScreenState extends State<MainShellScreen> {
+class _MainShellScreenState extends State<MainShellScreen>
+    with WidgetsBindingObserver {
+  static const SocialService _socialService = SocialService();
+
   int _index = 0;
   int _statisticsRefreshToken = 0;
   late UserAccount _user;
+  Timer? _heartbeatTimer;
 
   @override
   void initState() {
     super.initState();
     _user = widget.user;
+    WidgetsBinding.instance.addObserver(this);
+    _startHeartbeat();
   }
 
   @override
@@ -39,6 +49,42 @@ class _MainShellScreenState extends State<MainShellScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.user != widget.user) {
       _user = widget.user;
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startHeartbeat();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _heartbeatTimer?.cancel();
+      _heartbeatTimer = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _heartbeatTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  void _startHeartbeat() {
+    _heartbeatTimer?.cancel();
+    unawaited(_heartbeat());
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+      unawaited(_heartbeat());
+    });
+  }
+
+  Future<void> _heartbeat() async {
+    try {
+      await _socialService.heartbeat();
+    } catch (_) {
+      // Presence не должен мешать основной игре. Следующий heartbeat
+      // автоматически повторит попытку.
     }
   }
 
@@ -62,10 +108,12 @@ class _MainShellScreenState extends State<MainShellScreen> {
   @override
   Widget build(BuildContext context) {
     final statsStrings = StatisticsStrings.of(context);
+    final isAz = context.appLanguage.code == 'az';
     final screens = [
       const RestaurantsScreen(),
       StatisticsScreen(key: ValueKey(_statisticsRefreshToken)),
       const InventoryScreen(),
+      SocialScreen(currentUser: _user),
       ProfileScreen(
         user: _user,
         onUserUpdated: _handleUserUpdated,
@@ -88,6 +136,11 @@ class _MainShellScreenState extends State<MainShellScreen> {
         assetPath: 'assets/icons/gift.png',
         label: context.tr('inventory'),
         accent: const Color(0xFF82D66E),
+      ),
+      _NavItemData(
+        icon: Icons.groups_rounded,
+        label: isAz ? 'Dostlar' : 'Друзья',
+        accent: const Color(0xFFC7A7FF),
       ),
       _NavItemData(
         assetPath: 'assets/icons/profile.png',
@@ -145,7 +198,7 @@ class _CartoonGameDock extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
-        minimum: const EdgeInsets.fromLTRB(8, 7, 8, 5),
+        minimum: const EdgeInsets.fromLTRB(6, 7, 6, 5),
         child: SizedBox(
           height: 78,
           child: Row(
@@ -192,14 +245,14 @@ class _CartoonNavItem extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeOut,
-          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          padding: const EdgeInsets.fromLTRB(5, 5, 5, 3),
+          margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+          padding: const EdgeInsets.fromLTRB(3, 5, 3, 3),
           decoration: BoxDecoration(
             color: selected ? data.accent : Colors.transparent,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(17),
             border: Border.all(
               color: selected ? _ink : Colors.transparent,
-              width: selected ? 2.6 : 0,
+              width: selected ? 2.5 : 0,
             ),
             boxShadow: selected
                 ? const [
@@ -216,15 +269,15 @@ class _CartoonNavItem extends StatelessWidget {
             children: [
               AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
-                width: selected ? 44 : 39,
-                height: selected ? 38 : 34,
+                width: selected ? 42 : 37,
+                height: selected ? 37 : 33,
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: selected ? _cream : Colors.white,
-                  borderRadius: BorderRadius.circular(13),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: _ink,
-                    width: 2.4,
+                    width: 2.3,
                   ),
                   boxShadow: selected
                       ? const [
@@ -244,7 +297,7 @@ class _CartoonNavItem extends StatelessWidget {
                       )
                     : Icon(
                         data.icon,
-                        size: 22,
+                        size: 21,
                         color: _ink,
                       ),
               ),
@@ -255,7 +308,7 @@ class _CartoonNavItem extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: _ink,
-                  fontSize: 10.5,
+                  fontSize: 9.2,
                   fontWeight: selected ? FontWeight.w900 : FontWeight.w800,
                 ),
               ),

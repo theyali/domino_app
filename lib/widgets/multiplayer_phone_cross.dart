@@ -23,28 +23,20 @@ class _PlacedPhoneDomino {
 }
 
 class _PhoneBranchState {
+  final String side;
   final Offset connectionUnits;
-  final _PhoneDirection baseDirection;
-  final _PhoneDirection driftDirection;
-  final _PhoneDirection direction;
-  final _PhoneDirection previousDirection;
-  final bool onDrift;
-  final bool axisForward;
-  final bool previousWasDouble;
-  final bool hasTurned;
+  final int segmentIndex;
   final double usedUnits;
+  final _PhoneDirection previousDirection;
+  final bool previousWasDouble;
 
   const _PhoneBranchState({
+    required this.side,
     required this.connectionUnits,
-    required this.baseDirection,
-    required this.driftDirection,
-    required this.direction,
-    required this.previousDirection,
-    required this.onDrift,
-    required this.axisForward,
-    required this.previousWasDouble,
-    required this.hasTurned,
+    required this.segmentIndex,
     required this.usedUnits,
+    required this.previousDirection,
+    required this.previousWasDouble,
   });
 }
 
@@ -74,27 +66,36 @@ class _PhoneLayoutDraft {
     required this.minY,
     required this.maxY,
   });
-
-  double get widthUnits => maxX - minX;
-  double get heightUnits => maxY - minY;
 }
 
-/// Визуальная змейка режима «Телефон».
+/// Визуальная раскладка режима «Телефон».
 ///
-/// Сервер продолжает хранить четыре независимых логических конца
-/// (`top/right/bottom/left`). Здесь меняется только отображение: каждая ветка
-/// выходит из центрального дубля, а затем укладывается змейкой в своём секторе.
-/// Логика ходов и подсчёта очков остаётся серверной.
+/// Сервер остаётся источником истины и хранит четыре независимых конца:
+/// top / right / bottom / left. На экране каждая ветка получает собственный
+/// сектор и после короткого прямого участка укладывается змейкой.
+///
+/// Сектора не пересекаются:
+///   top    -> верх + вправо
+///   right  -> право + вниз
+///   bottom -> низ + влево
+///   left   -> лево + вверх
+///
+/// Поэтому даже когда одновременно развиваются все четыре конца креста,
+/// костяшки больше не накладываются друг на друга.
 class MultiplayerPhoneCross extends StatelessWidget {
-  static const double _safeMargin = 14;
+  static const double _safeMargin = 16;
   static const double _preferredShortSide = 29;
 
-  // Первый луч уходит достаточно далеко от центра, чтобы четыре ветки не
-  // пересекались. После первого поворота змейка ходит туда-обратно короче,
-  // сохраняя свободный крест вокруг центрального дубля.
-  static const double _initialAxisRunUnits = 8;
-  static const double _returnAxisRunUnits = 4;
-  static const double _driftRunUnits = 3;
+  /// От центра сначала даём ветке уйти достаточно далеко, чтобы четыре луча
+  /// не столкнулись около базового дубля.
+  static const double _initialRunUnits = 6;
+
+  /// Длинная часть каждого ряда змейки.
+  static const double _rowRunUnits = 6;
+
+  /// Расстояние между соседними рядами змейки. 3 квадрата достаточно, чтобы
+  /// поперечный дубль не задевал предыдущий ряд.
+  static const double _rowStepUnits = 3;
 
   final List<ServerDomino> dominoes;
   final ServerDomino? selectedDomino;
@@ -129,7 +130,7 @@ class MultiplayerPhoneCross extends StatelessWidget {
         );
         final draft = _buildDraft();
         final shortSide = _shortSideFor(boardSize, draft);
-        final shift = _shiftFor(boardSize, draft, shortSide);
+        final boardCenter = Offset(boardSize.width / 2, boardSize.height / 2);
 
         return SizedBox(
           width: boardSize.width,
@@ -141,7 +142,7 @@ class MultiplayerPhoneCross extends StatelessWidget {
                 _buildPlacedDomino(
                   placement,
                   shortSide: shortSide,
-                  shift: shift,
+                  boardCenter: boardCenter,
                 ),
               if (selectedDomino != null && onTargetTap != null)
                 for (final side in const ['top', 'right', 'bottom', 'left'])
@@ -150,7 +151,7 @@ class MultiplayerPhoneCross extends StatelessWidget {
                       state: draft.branchStates[side]!,
                       domino: selectedDomino!.domino,
                       shortSide: shortSide,
-                      shift: shift,
+                      boardCenter: boardCenter,
                       onTap: () => onTargetTap!(side),
                     ),
             ],
@@ -167,29 +168,35 @@ class MultiplayerPhoneCross extends StatelessWidget {
     return dominoes.first;
   }
 
-  _PhoneDirection _directionFor(String side) => switch (side) {
+  _PhoneDirection _baseDirection(String side) => switch (side) {
         'top' => _PhoneDirection.top,
         'right' => _PhoneDirection.right,
         'bottom' => _PhoneDirection.bottom,
         _ => _PhoneDirection.left,
       };
 
-  _PhoneDirection _driftDirectionFor(String side) => switch (side) {
-        // Каждая ветка получает свой сектор:
-        // top -> верх-право, right -> низ-право,
-        // bottom -> низ-лево, left -> верх-лево.
-        'top' => _PhoneDirection.right,
-        'right' => _PhoneDirection.bottom,
-        'bottom' => _PhoneDirection.left,
-        _ => _PhoneDirection.top,
-      };
+  _PhoneDirection _directionForSegment(String side, int segmentIndex) {
+    if (segmentIndex == 0) return _baseDirection(side);
 
-  _PhoneDirection _opposite(_PhoneDirection direction) => switch (direction) {
-        _PhoneDirection.top => _PhoneDirection.bottom,
-        _PhoneDirection.right => _PhoneDirection.left,
-        _PhoneDirection.bottom => _PhoneDirection.top,
-        _PhoneDirection.left => _PhoneDirection.right,
-      };
+    // Чётные сегменты после первого всегда продолжают движение наружу,
+    // создавая новый ряд. Нечётные проходят сам ряд туда/обратно.
+    if (segmentIndex.isEven) return _baseDirection(side);
+
+    final rowNumber = (segmentIndex - 1) ~/ 2;
+    final forward = rowNumber.isEven;
+
+    return switch (side) {
+      'top' => forward ? _PhoneDirection.right : _PhoneDirection.left,
+      'right' => forward ? _PhoneDirection.bottom : _PhoneDirection.top,
+      'bottom' => forward ? _PhoneDirection.left : _PhoneDirection.right,
+      _ => forward ? _PhoneDirection.top : _PhoneDirection.bottom,
+    };
+  }
+
+  double _limitForSegment(int segmentIndex) {
+    if (segmentIndex == 0) return _initialRunUnits;
+    return segmentIndex.isOdd ? _rowRunUnits : _rowStepUnits;
+  }
 
   Offset _vector(_PhoneDirection direction) => switch (direction) {
         _PhoneDirection.top => const Offset(0, -1),
@@ -199,35 +206,32 @@ class MultiplayerPhoneCross extends StatelessWidget {
       };
 
   bool _horizontal(_PhoneDirection direction) =>
-      direction == _PhoneDirection.left || direction == _PhoneDirection.right;
+      direction == _PhoneDirection.left ||
+      direction == _PhoneDirection.right;
 
   double _pathUnits(Domino domino) => domino.left == domino.right ? 1 : 2;
 
-  Offset _openingConnectionUnits(_PhoneDirection direction) {
-    // connectionUnits — это центр последнего соединительного квадрата, а не
-    // физический край кости. Такая модель позволяет делать поворот без
-    // наложения одной костяшки на другую.
-    return switch (direction) {
-      _PhoneDirection.top => const Offset(0, -0.5),
-      _PhoneDirection.bottom => const Offset(0, 0.5),
-      _PhoneDirection.left => Offset.zero,
-      _PhoneDirection.right => Offset.zero,
+  Offset _openingConnectionUnits(String side) {
+    // Центральный дубль визуально вертикальный: его две половинки имеют
+    // центры y=-0.5 и y=+0.5. Для левого/правого выхода соединение начинается
+    // в центре дубля, а для top/bottom — от соответствующей половинки.
+    return switch (side) {
+      'top' => const Offset(0, -0.5),
+      'bottom' => const Offset(0, 0.5),
+      'left' => Offset.zero,
+      _ => Offset.zero,
     };
   }
 
-  _PhoneBranchState _initialBranchState(String side) {
-    final baseDirection = _directionFor(side);
+  _PhoneBranchState _initialState(String side) {
+    final direction = _baseDirection(side);
     return _PhoneBranchState(
-      connectionUnits: _openingConnectionUnits(baseDirection),
-      baseDirection: baseDirection,
-      driftDirection: _driftDirectionFor(side),
-      direction: baseDirection,
-      previousDirection: baseDirection,
-      onDrift: false,
-      axisForward: true,
-      previousWasDouble: false,
-      hasTurned: false,
+      side: side,
+      connectionUnits: _openingConnectionUnits(side),
+      segmentIndex: 0,
       usedUnits: 0,
+      previousDirection: direction,
+      previousWasDouble: false,
     );
   }
 
@@ -236,52 +240,43 @@ class MultiplayerPhoneCross extends StatelessWidget {
     Domino domino,
   ) {
     final requiredUnits = _pathUnits(domino);
-    var connectionUnits = state.connectionUnits;
-    var direction = state.direction;
-    var onDrift = state.onDrift;
-    var axisForward = state.axisForward;
-    var hasTurned = state.hasTurned;
+    var segmentIndex = state.segmentIndex;
     var usedUnits = state.usedUnits;
+    var connection = state.connectionUnits;
 
-    final currentLimit = onDrift
-        ? _driftRunUnits
-        : hasTurned
-            ? _returnAxisRunUnits
-            : _initialAxisRunUnits;
+    var direction = _directionForSegment(state.side, segmentIndex);
+    var limit = _limitForSegment(segmentIndex);
 
-    if (usedUnits + requiredUnits > currentLimit) {
-      if (onDrift) {
-        onDrift = false;
-        axisForward = !axisForward;
-        direction = axisForward
-            ? state.baseDirection
-            : _opposite(state.baseDirection);
-      } else {
-        onDrift = true;
-        direction = state.driftDirection;
-        hasTurned = true;
-      }
+    if (usedUnits + requiredUnits > limit) {
+      segmentIndex += 1;
       usedUnits = 0;
+      final nextDirection = _directionForSegment(state.side, segmentIndex);
 
-      // После дубля connectionUnits находится в центре дубля. При повороте
-      // сдвигаем точку соединения к нужной половине его длинной стороны,
-      // чтобы следующая костяшка только касалась дубля, а не перекрывала его.
-      if (state.previousWasDouble && direction != state.previousDirection) {
-        connectionUnits += _vector(direction) * 0.5;
+      // После дубля connection находится в его центре. Если сразу начинается
+      // поворот, выходим к нужному краю длинной стороны дубля. Без этого
+      // следующая костяшка залезает на половину дубля.
+      if (state.previousWasDouble && nextDirection != state.previousDirection) {
+        connection += _vector(nextDirection) * 0.5;
+      }
+
+      direction = nextDirection;
+      limit = _limitForSegment(segmentIndex);
+
+      // Защитный guard: максимальная кость занимает 2 единицы, а самый
+      // короткий сегмент — 3, поэтому сюда обычно не попадаем.
+      if (requiredUnits > limit) {
+        segmentIndex += 1;
+        direction = _directionForSegment(state.side, segmentIndex);
       }
     }
 
     return _PhoneBranchState(
-      connectionUnits: connectionUnits,
-      baseDirection: state.baseDirection,
-      driftDirection: state.driftDirection,
-      direction: direction,
-      previousDirection: state.previousDirection,
-      onDrift: onDrift,
-      axisForward: axisForward,
-      previousWasDouble: state.previousWasDouble,
-      hasTurned: hasTurned,
+      side: state.side,
+      connectionUnits: connection,
+      segmentIndex: segmentIndex,
       usedUnits: usedUnits,
+      previousDirection: direction,
+      previousWasDouble: state.previousWasDouble,
     );
   }
 
@@ -294,12 +289,11 @@ class MultiplayerPhoneCross extends StatelessWidget {
     final isDouble = domino.left == domino.right;
 
     if (isDouble) {
+      // Дубль занимает один квадрат по направлению цепочки и два поперёк.
       final center = connectionUnits + vector;
       return (center, center);
     }
 
-    // Сначала находим центр половинки, которая касается предыдущей кости.
-    // Вторая половинка продолжает путь ещё на один квадрат.
     final connectingSquareCenter = connectionUnits + vector;
     final center = connectingSquareCenter + vector * 0.5;
     final nextConnection = center + vector * 0.5;
@@ -307,7 +301,7 @@ class MultiplayerPhoneCross extends StatelessWidget {
   }
 
   _PhoneBranchBuildResult _buildBranch(String side) {
-    var state = _initialBranchState(side);
+    var state = _initialState(side);
     final placements = <_PlacedPhoneDomino>[];
 
     final branch = dominoes
@@ -320,32 +314,31 @@ class MultiplayerPhoneCross extends StatelessWidget {
     for (final serverDomino in branch) {
       final domino = serverDomino.domino;
       final prepared = _prepareForDomino(state, domino);
+      final direction = _directionForSegment(
+        prepared.side,
+        prepared.segmentIndex,
+      );
       final geometry = _stepUnits(
         connectionUnits: prepared.connectionUnits,
         domino: domino,
-        direction: prepared.direction,
+        direction: direction,
       );
-      final requiredUnits = _pathUnits(domino);
 
       placements.add(
         _PlacedPhoneDomino(
           domino: serverDomino,
           centerUnits: geometry.$1,
-          direction: prepared.direction,
+          direction: direction,
         ),
       );
 
       state = _PhoneBranchState(
+        side: side,
         connectionUnits: geometry.$2,
-        baseDirection: prepared.baseDirection,
-        driftDirection: prepared.driftDirection,
-        direction: prepared.direction,
-        previousDirection: prepared.direction,
-        onDrift: prepared.onDrift,
-        axisForward: prepared.axisForward,
+        segmentIndex: prepared.segmentIndex,
+        usedUnits: prepared.usedUnits + _pathUnits(domino),
+        previousDirection: direction,
         previousWasDouble: serverDomino.isDouble,
-        hasTurned: prepared.hasTurned,
-        usedUnits: prepared.usedUnits + requiredUnits,
       );
     }
 
@@ -369,13 +362,9 @@ class MultiplayerPhoneCross extends StatelessWidget {
     );
   }
 
-  Domino _displayDomino(
-    Domino domino,
-    _PhoneDirection direction,
-  ) {
-    // Сервер хранит left = значение возле предыдущей кости, right = новый
-    // открытый конец. На экранных направлениях вверх/влево переворачиваем.
-    if (direction == _PhoneDirection.top || direction == _PhoneDirection.left) {
+  Domino _displayDomino(Domino domino, _PhoneDirection direction) {
+    if (direction == _PhoneDirection.top ||
+        direction == _PhoneDirection.left) {
       return Domino(left: domino.right, right: domino.left);
     }
     return domino;
@@ -397,22 +386,25 @@ class MultiplayerPhoneCross extends StatelessWidget {
     );
   }
 
-  ({Offset centerUnits, Size sizeUnits}) _targetGeometryUnits({
+  ({Offset centerUnits, Size sizeUnits, _PhoneDirection direction})
+      _targetGeometryUnits({
     required _PhoneBranchState state,
     required Domino domino,
   }) {
     final prepared = _prepareForDomino(state, domino);
+    final direction = _directionForSegment(
+      prepared.side,
+      prepared.segmentIndex,
+    );
     final geometry = _stepUnits(
       connectionUnits: prepared.connectionUnits,
       domino: domino,
-      direction: prepared.direction,
+      direction: direction,
     );
     return (
       centerUnits: geometry.$1,
-      sizeUnits: _displaySizeUnits(
-        domino: domino,
-        direction: prepared.direction,
-      ),
+      sizeUnits: _displaySizeUnits(domino: domino, direction: direction),
+      direction: direction,
     );
   }
 
@@ -433,10 +425,10 @@ class MultiplayerPhoneCross extends StatelessWidget {
       branchStates[side] = result.state;
     }
 
-    var minX = double.infinity;
-    var maxX = double.negativeInfinity;
-    var minY = double.infinity;
-    var maxY = double.negativeInfinity;
+    var minX = -0.5;
+    var maxX = 0.5;
+    var minY = -1.0;
+    var maxY = 1.0;
 
     void include(Rect rect) {
       minX = math.min(minX, rect.left);
@@ -479,25 +471,26 @@ class MultiplayerPhoneCross extends StatelessWidget {
   double _shortSideFor(Size boardSize, _PhoneLayoutDraft draft) {
     final availableWidth = math.max(1.0, boardSize.width - _safeMargin * 2);
     final availableHeight = math.max(1.0, boardSize.height - _safeMargin * 2);
-    final byWidth = availableWidth / math.max(1.0, draft.widthUnits);
-    final byHeight = availableHeight / math.max(1.0, draft.heightUnits);
+
+    // Базовый дубль всегда остаётся в геометрическом центре стола. Поэтому
+    // масштаб считаем не по центру bounding box, а по максимальному удалению
+    // от нуля в каждую сторону.
+    final halfWidthUnits = math.max(
+      1.0,
+      math.max(draft.minX.abs(), draft.maxX.abs()),
+    );
+    final halfHeightUnits = math.max(
+      1.0,
+      math.max(draft.minY.abs(), draft.maxY.abs()),
+    );
+
+    final byWidth = availableWidth / (halfWidthUnits * 2);
+    final byHeight = availableHeight / (halfHeightUnits * 2);
+
     return math.max(
       10.0,
       math.min(_preferredShortSide, math.min(byWidth, byHeight)),
     );
-  }
-
-  Offset _shiftFor(
-    Size boardSize,
-    _PhoneLayoutDraft draft,
-    double shortSide,
-  ) {
-    final contentCenterUnits = Offset(
-      (draft.minX + draft.maxX) / 2,
-      (draft.minY + draft.maxY) / 2,
-    );
-    return Offset(boardSize.width / 2, boardSize.height / 2) -
-        contentCenterUnits * shortSide;
   }
 
   double _dotSize(double shortSide) => math.max(2.5, shortSide * 0.16);
@@ -505,7 +498,7 @@ class MultiplayerPhoneCross extends StatelessWidget {
   Widget _buildPlacedDomino(
     _PlacedPhoneDomino placement, {
     required double shortSide,
-    required Offset shift,
+    required Offset boardCenter,
   }) {
     final isOpening = placement.domino.side == 'center' ||
         placement.domino.moveNumber == 1;
@@ -519,7 +512,7 @@ class MultiplayerPhoneCross extends StatelessWidget {
       sizeUnits.width * shortSide,
       sizeUnits.height * shortSide,
     );
-    final center = shift + placement.centerUnits * shortSide;
+    final center = boardCenter + placement.centerUnits * shortSide;
     final horizontal = size.width > size.height;
     final displayDomino = isOpening
         ? placement.domino.domino
@@ -563,14 +556,11 @@ class MultiplayerPhoneCross extends StatelessWidget {
     required _PhoneBranchState state,
     required Domino domino,
     required double shortSide,
-    required Offset shift,
+    required Offset boardCenter,
     required VoidCallback onTap,
   }) {
-    final target = _targetGeometryUnits(
-      state: state,
-      domino: domino,
-    );
-    final center = shift + target.centerUnits * shortSide;
+    final target = _targetGeometryUnits(state: state, domino: domino);
+    final center = boardCenter + target.centerUnits * shortSide;
     final size = Size(
       target.sizeUnits.width * shortSide,
       target.sizeUnits.height * shortSide,

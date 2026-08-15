@@ -207,13 +207,13 @@ class SocialService {
     return data['sent'] as int? ?? 0;
   }
 
-  Future<SocialJoinResult> acceptInvitation(int invitationId) async {
+  Future<AcceptedRoomInvitation> acceptInvitation(int invitationId) async {
     final response = await http.post(
       ApiConfig.uri('/api/social/invitations/$invitationId/accept/'),
       headers: await _authJsonHeaders(),
     );
     final data = _decode(response);
-    return SocialJoinResult.fromJson(
+    return AcceptedRoomInvitation.fromJson(
       Map<String, dynamic>.from(data as Map),
     );
   }

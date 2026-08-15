@@ -12,6 +12,8 @@ import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/auth_session_store.dart';
 import '../theme/app_colors.dart';
+import '../widgets/cartoon_page_background.dart';
+import '../widgets/game_avatar_frame.dart';
 
 class ProfileScreen extends StatefulWidget {
   final UserAccount user;
@@ -212,168 +214,175 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final strings = ProfileStrings.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(context.tr('profile'))),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 30),
-        children: [
-          _buildProfileHeader(strings),
-          const SizedBox(height: 18),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceRaised,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: AppColors.brass.withValues(alpha: 0.28),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        surfaceTintColor: Colors.transparent,
+        title: Text(context.tr('profile')),
+      ),
+      body: CartoonPageBackground(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 30),
+          children: [
+            _buildProfileHeader(strings),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceRaised,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: AppColors.brass.withValues(alpha: 0.28),
+                ),
               ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  strings.editProfile,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: _firstNameController,
-                  enabled: !_isSaving,
-                  textInputAction: TextInputAction.next,
-                  decoration: InputDecoration(
-                    labelText: strings.displayName,
-                    prefixIcon: const Icon(Icons.badge_outlined),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _usernameController,
-                  enabled: !_isSaving,
-                  textInputAction: TextInputAction.next,
-                  autocorrect: false,
-                  decoration: InputDecoration(
-                    labelText: strings.username,
-                    prefixIcon: const Icon(Icons.alternate_email_rounded),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _emailController,
-                  enabled: !_isSaving,
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.done,
-                  autocorrect: false,
-                  decoration: InputDecoration(
-                    labelText: strings.email,
-                    prefixIcon: const Icon(Icons.mail_outline_rounded),
-                  ),
-                  onSubmitted: (_) => _saveProfile(),
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  height: 50,
-                  child: FilledButton.icon(
-                    onPressed: _isSaving ? null : _saveProfile,
-                    icon: _isSaving
-                        ? const SizedBox(
-                            width: 19,
-                            height: 19,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.3,
-                              color: Colors.black,
-                            ),
-                          )
-                        : const Icon(Icons.check_rounded),
-                    label: Text(
-                      _isSaving ? strings.saving : strings.save,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    strings.editProfile,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.language_rounded),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              context.tr('language'),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              context.tr('language_description'),
-                              style: TextStyle(
-                                color: colorScheme.onSurfaceVariant,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _firstNameController,
+                    enabled: !_isSaving,
+                    textInputAction: TextInputAction.next,
+                    decoration: InputDecoration(
+                      labelText: strings.displayName,
+                      prefixIcon: const Icon(Icons.badge_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _usernameController,
+                    enabled: !_isSaving,
+                    textInputAction: TextInputAction.next,
+                    autocorrect: false,
+                    decoration: InputDecoration(
+                      labelText: strings.username,
+                      prefixIcon: const Icon(Icons.alternate_email_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _emailController,
+                    enabled: !_isSaving,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.done,
+                    autocorrect: false,
+                    decoration: InputDecoration(
+                      labelText: strings.email,
+                      prefixIcon: const Icon(Icons.mail_outline_rounded),
+                    ),
+                    onSubmitted: (_) => _saveProfile(),
                   ),
                   const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _LanguageChoiceButton(
-                          language: AppLanguage.az,
-                          selected:
-                              languageController.language == AppLanguage.az,
-                          onPressed: () => languageController.setLanguage(
-                            AppLanguage.az,
-                          ),
-                        ),
+                  SizedBox(
+                    height: 50,
+                    child: FilledButton.icon(
+                      onPressed: _isSaving ? null : _saveProfile,
+                      icon: _isSaving
+                          ? const SizedBox(
+                              width: 19,
+                              height: 19,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.3,
+                                color: Colors.black,
+                              ),
+                            )
+                          : const Icon(Icons.check_rounded),
+                      label: Text(
+                        _isSaving ? strings.saving : strings.save,
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _LanguageChoiceButton(
-                          language: AppLanguage.ru,
-                          selected:
-                              languageController.language == AppLanguage.ru,
-                          onPressed: () => languageController.setLanguage(
-                            AppLanguage.ru,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.card_giftcard_rounded),
-              title: Text(context.tr('my_gifts')),
-              subtitle: Text(context.tr('inventory_bottom_menu')),
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.language_rounded),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                context.tr('language'),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                context.tr('language_description'),
+                                style: TextStyle(
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _LanguageChoiceButton(
+                            language: AppLanguage.az,
+                            selected:
+                                languageController.language == AppLanguage.az,
+                            onPressed: () => languageController.setLanguage(
+                              AppLanguage.az,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _LanguageChoiceButton(
+                            language: AppLanguage.ru,
+                            selected:
+                                languageController.language == AppLanguage.ru,
+                            onPressed: () => languageController.setLanguage(
+                              AppLanguage.ru,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: _isSaving ? null : widget.onLogout,
-            icon: const Icon(Icons.logout_rounded),
-            label: Text(context.tr('logout')),
-          ),
-        ],
+            const SizedBox(height: 12),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.card_giftcard_rounded),
+                title: Text(context.tr('my_gifts')),
+                subtitle: Text(context.tr('inventory_bottom_menu')),
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _isSaving ? null : widget.onLogout,
+              icon: const Icon(Icons.logout_rounded),
+              label: Text(context.tr('logout')),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -413,33 +422,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Stack(
           clipBehavior: Clip.none,
           children: [
-            Container(
-              width: 112,
-              height: 112,
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.brass,
-                  width: 2,
-                ),
-                color: AppColors.surfaceRaised,
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black54,
-                    blurRadius: 12,
-                    offset: Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: ClipOval(child: avatarContent),
+            GameAvatarFrame(
+              size: 126,
+              innerPadding: 15,
+              child: avatarContent,
             ),
             Positioned(
-              right: -3,
-              bottom: 3,
+              right: 1,
+              bottom: 6,
               child: Material(
                 color: AppColors.lime,
                 shape: const CircleBorder(),
+                elevation: 4,
+                shadowColor: Colors.black54,
                 child: InkWell(
                   onTap: _isSaving ? null : _pickAvatar,
                   customBorder: const CircleBorder(),
@@ -457,7 +452,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         TextButton.icon(
           onPressed: _isSaving ? null : _pickAvatar,
           icon: const Icon(Icons.photo_library_outlined, size: 18),

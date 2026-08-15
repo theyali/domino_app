@@ -104,29 +104,22 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
                 child: Transform.scale(
                   scale: pulseScale * drawScale,
                   child: Container(
-                    width: 64,
-                    height: 64,
+                    width: 66,
+                    height: 66,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppColors.panelTop,
-                          AppColors.panelBottom,
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(21),
+                      color: widget.enabled
+                          ? AppColors.cartoonYellow
+                          : const Color(0xFFD8C89E),
+                      borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: AppColors.brass.withValues(
-                          alpha: widget.enabled ? 0.78 : 0.38,
-                        ),
-                        width: widget.enabled ? 1.6 : 1.1,
+                        color: AppColors.ink,
+                        width: 2.7,
                       ),
                       boxShadow: const [
                         BoxShadow(
-                          color: Colors.black45,
-                          blurRadius: 11,
-                          offset: Offset(0, 6),
+                          color: AppColors.ink,
+                          blurRadius: 0,
+                          offset: Offset(3, 4),
                         ),
                       ],
                     ),
@@ -134,39 +127,48 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
                       clipBehavior: Clip.none,
                       children: [
                         const Positioned(
-                          left: 10,
-                          top: 14,
-                          child: _DominoBack(angle: -0.16),
+                          left: 9,
+                          top: 15,
+                          child: _DominoBack(
+                            angle: -0.16,
+                            color: AppColors.cartoonCoral,
+                          ),
                         ),
                         const Positioned(
                           left: 20,
                           top: 10,
-                          child: _DominoBack(angle: -0.01),
+                          child: _DominoBack(
+                            angle: -0.01,
+                            color: AppColors.cream,
+                          ),
                         ),
                         const Positioned(
-                          left: 30,
-                          top: 14,
-                          child: _DominoBack(angle: 0.16),
+                          left: 31,
+                          top: 15,
+                          child: _DominoBack(
+                            angle: 0.16,
+                            color: AppColors.cartoonMint,
+                          ),
                         ),
                         Positioned(
                           left: 5,
                           bottom: 5,
                           child: Container(
-                            width: 20,
-                            height: 20,
+                            width: 21,
+                            height: 21,
                             decoration: BoxDecoration(
-                              color: AppColors.badge,
+                              color: AppColors.cartoonCoral,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: AppColors.brass.withValues(alpha: 0.62),
-                                width: 1.1,
+                                color: AppColors.ink,
+                                width: 1.7,
                               ),
                             ),
                             child: Icon(
                               Icons.touch_app_rounded,
                               color: widget.enabled
-                                  ? AppColors.lime
-                                  : Colors.white54,
+                                  ? AppColors.ink
+                                  : AppColors.ink.withValues(alpha: 0.45),
                               size: 13,
                             ),
                           ),
@@ -188,30 +190,30 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
                             child: Container(
                               key: ValueKey(widget.count),
                               constraints: const BoxConstraints(
-                                minWidth: 27,
-                                minHeight: 27,
+                                minWidth: 29,
+                                minHeight: 29,
                               ),
                               padding: const EdgeInsets.symmetric(horizontal: 5),
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: AppColors.lime,
-                                borderRadius: BorderRadius.circular(14),
+                                borderRadius: BorderRadius.circular(15),
                                 border: Border.all(
                                   color: AppColors.ink,
-                                  width: 1.6,
+                                  width: 1.8,
                                 ),
                                 boxShadow: const [
                                   BoxShadow(
-                                    color: Colors.black45,
-                                    blurRadius: 5,
-                                    offset: Offset(0, 2),
+                                    color: AppColors.ink,
+                                    blurRadius: 0,
+                                    offset: Offset(2, 2),
                                   ),
                                 ],
                               ),
                               child: Text(
                                 '${widget.count}',
                                 style: const TextStyle(
-                                  color: Colors.black,
+                                  color: AppColors.ink,
                                   fontSize: 11,
                                   fontWeight: FontWeight.w900,
                                 ),
@@ -234,9 +236,11 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
 
 class _DominoBack extends StatelessWidget {
   final double angle;
+  final Color color;
 
   const _DominoBack({
     required this.angle,
+    required this.color,
   });
 
   @override
@@ -244,40 +248,30 @@ class _DominoBack extends StatelessWidget {
     return Transform.rotate(
       angle: angle,
       child: Container(
-        width: 21,
-        height: 36,
+        width: 22,
+        height: 37,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFB7C4D0),
-              Color(0xFF5D6E7D),
-            ],
-          ),
+          color: color,
           borderRadius: BorderRadius.circular(7),
           border: Border.all(
-            color: AppColors.cream,
+            color: AppColors.ink,
             width: 1.7,
           ),
           boxShadow: const [
             BoxShadow(
-              color: Colors.black45,
-              blurRadius: 4,
-              offset: Offset(1, 3),
+              color: AppColors.ink,
+              blurRadius: 0,
+              offset: Offset(2, 3),
             ),
           ],
         ),
         child: Center(
           child: Container(
-            width: 6.5,
-            height: 6.5,
-            decoration: BoxDecoration(
-              color: AppColors.badge,
+            width: 7,
+            height: 7,
+            decoration: const BoxDecoration(
+              color: AppColors.ink,
               shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white38,
-              ),
             ),
           ),
         ),

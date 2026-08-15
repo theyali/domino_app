@@ -22,20 +22,24 @@ class GameTableDecorations extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(23),
                   border: Border.all(
-                    color: AppColors.brassLight.withValues(alpha: 0.52),
-                    width: 2,
+                    color: AppColors.brassLight.withValues(alpha: 0.72),
+                    width: 2.2,
                   ),
                 ),
               ),
             ),
           ),
-          const Positioned(left: 12, top: 12, child: _CartoonFastener()),
-          const Positioned(right: 12, top: 12, child: _CartoonFastener()),
-          const Positioned(left: 12, bottom: 12, child: _CartoonFastener()),
-          const Positioned(right: 12, bottom: 12, child: _CartoonFastener()),
+          const Positioned(left: 13, top: 13, child: _BrassFastener()),
+          const Positioned(right: 13, top: 13, child: _BrassFastener()),
+
+          // Нижние HUD-кнопки занимают сами углы. Шурупы сдвинуты немного
+          // к центру стола, чтобы они не прятались под раундом и базаром.
+          const Positioned(left: 88, bottom: 13, child: _BrassFastener()),
+          const Positioned(right: 88, bottom: 13, child: _BrassFastener()),
+
           Center(
             child: Opacity(
-              opacity: 0.08,
+              opacity: 0.07,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -66,8 +70,8 @@ class GameTableDecorations extends StatelessWidget {
   }
 }
 
-class _CartoonFastener extends StatelessWidget {
-  const _CartoonFastener();
+class _BrassFastener extends StatelessWidget {
+  const _BrassFastener();
 
   @override
   Widget build(BuildContext context) {
@@ -79,13 +83,13 @@ class _CartoonFastener extends StatelessWidget {
         color: AppColors.cartoonYellow,
         border: Border.all(
           color: AppColors.ink,
-          width: 1.7,
+          width: 2,
         ),
         boxShadow: const [
           BoxShadow(
             color: AppColors.ink,
             blurRadius: 0,
-            offset: Offset(1.5, 2),
+            offset: Offset(2, 2),
           ),
         ],
       ),
@@ -94,7 +98,7 @@ class _CartoonFastener extends StatelessWidget {
           angle: -0.55,
           child: Container(
             width: 8,
-            height: 1.8,
+            height: 2,
             decoration: BoxDecoration(
               color: AppColors.ink,
               borderRadius: BorderRadius.circular(99),
@@ -120,7 +124,7 @@ class _DominoWatermark extends StatelessWidget {
           borderRadius: BorderRadius.circular(7),
           border: Border.all(
             color: AppColors.cream,
-            width: 2.2,
+            width: 2,
           ),
         ),
         child: Column(
@@ -133,7 +137,7 @@ class _DominoWatermark extends StatelessWidget {
                 ],
               ),
             ),
-            Container(height: 2.2, color: AppColors.cream),
+            Container(height: 2, color: AppColors.cream),
             Expanded(
               child: Stack(
                 children: const [

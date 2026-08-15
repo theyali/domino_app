@@ -8,6 +8,7 @@ import '../models/restaurant.dart';
 import '../models/room_player.dart';
 import '../services/api_service.dart';
 import '../theme/app_colors.dart';
+import '../widgets/cartoon_page_background.dart';
 import '../widgets/create_room_bottom_sheet.dart';
 import '../widgets/game_room_card.dart';
 import '../widgets/join_room_bottom_sheet.dart';
@@ -100,6 +101,28 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
     );
   }
 
+  Widget _buildLobbyRoute({
+    required GameRoom room,
+    required RoomPlayer localPlayer,
+  }) {
+    return CartoonPageBackground(
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          scaffoldBackgroundColor: Colors.transparent,
+          appBarTheme: Theme.of(context).appBarTheme.copyWith(
+                backgroundColor: Colors.transparent,
+                surfaceTintColor: Colors.transparent,
+              ),
+        ),
+        child: RoomLobbyScreen(
+          restaurant: widget.restaurant,
+          initialRoom: room,
+          localPlayer: localPlayer,
+        ),
+      ),
+    );
+  }
+
   Future<void> _showCreateRoomSheet() async {
     if (_isSubmitting) return;
 
@@ -131,9 +154,8 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => RoomLobbyScreen(
-            restaurant: widget.restaurant,
-            initialRoom: room,
+          builder: (context) => _buildLobbyRoute(
+            room: room,
             localPlayer: owner,
           ),
         ),
@@ -185,9 +207,8 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => RoomLobbyScreen(
-            restaurant: widget.restaurant,
-            initialRoom: result.room,
+          builder: (context) => _buildLobbyRoute(
+            room: result.room,
             localPlayer: result.player,
           ),
         ),
@@ -230,121 +251,126 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.restaurant.name),
-        actions: [
-          IconButton(
-            onPressed: _showGiftShop,
-            tooltip: context.tr('restaurant_gifts'),
-            icon: const Icon(Icons.card_giftcard_rounded),
-          ),
-          IconButton(
-            onPressed: _isLoading ? null : _loadRooms,
-            tooltip: context.tr('refresh'),
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isSubmitting ? null : _showCreateRoomSheet,
-        icon: _isSubmitting
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.add_rounded),
-        label: Text(context.tr('create_table')),
-      ),
-      body: RefreshIndicator(
-        onRefresh: _loadRooms,
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
-                child: _RestaurantRoomHeader(
-                  restaurant: widget.restaurant,
-                  roomsCount: _rooms.length,
-                  waitingPlayers: _rooms.fold<int>(
-                    0,
-                    (total, room) => total + room.currentPlayers,
-                  ),
-                  onOpenGiftShop: _showGiftShop,
-                ),
-              ),
+    return CartoonPageBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          title: Text(widget.restaurant.name),
+          actions: [
+            IconButton(
+              onPressed: _showGiftShop,
+              tooltip: context.tr('restaurant_gifts'),
+              icon: const Icon(Icons.card_giftcard_rounded),
             ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverToBoxAdapter(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        context.tr('open_tables'),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    if (_rooms.isNotEmpty)
-                      Text(
-                        '${_rooms.length}',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+            IconButton(
+              onPressed: _isLoading ? null : _loadRooms,
+              tooltip: context.tr('refresh'),
+              icon: const Icon(Icons.refresh_rounded),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 12)),
-            if (_isLoading && _rooms.isEmpty)
-              const SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (_errorMessage != null && _rooms.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: _RoomListMessage(
-                  icon: Icons.cloud_off_rounded,
-                  title: context.tr('rooms_load_failed_title'),
-                  subtitle: _errorMessage!,
-                  buttonText: context.tr('retry'),
-                  onPressed: () => _loadRooms(),
-                ),
-              )
-            else if (_rooms.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: _RoomListMessage(
-                  icon: Icons.table_restaurant_outlined,
-                  title: context.tr('no_open_tables'),
-                  subtitle: context.tr('create_first_table'),
-                  buttonText: context.tr('create_table'),
-                  onPressed: _showCreateRoomSheet,
-                ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-                sliver: SliverList.builder(
-                  itemCount: _rooms.length,
-                  itemBuilder: (context, index) {
-                    final room = _rooms[index];
-                    return GameRoomCard(
-                      room: room,
-                      onTap: () => _showJoinRoomSheet(room),
-                    );
-                  },
-                ),
-              ),
           ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: _isSubmitting ? null : _showCreateRoomSheet,
+          icon: _isSubmitting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.add_rounded),
+          label: Text(context.tr('create_table')),
+        ),
+        body: RefreshIndicator(
+          onRefresh: _loadRooms,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+                  child: _RestaurantRoomHeader(
+                    restaurant: widget.restaurant,
+                    roomsCount: _rooms.length,
+                    waitingPlayers: _rooms.fold<int>(
+                      0,
+                      (total, room) => total + room.currentPlayers,
+                    ),
+                    onOpenGiftShop: _showGiftShop,
+                  ),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverToBoxAdapter(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          context.tr('open_tables'),
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      if (_rooms.isNotEmpty)
+                        Text(
+                          '${_rooms.length}',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+              if (_isLoading && _rooms.isEmpty)
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_errorMessage != null && _rooms.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _RoomListMessage(
+                    icon: Icons.cloud_off_rounded,
+                    title: context.tr('rooms_load_failed_title'),
+                    subtitle: _errorMessage!,
+                    buttonText: context.tr('retry'),
+                    onPressed: () => _loadRooms(),
+                  ),
+                )
+              else if (_rooms.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _RoomListMessage(
+                    icon: Icons.table_restaurant_outlined,
+                    title: context.tr('no_open_tables'),
+                    subtitle: context.tr('create_first_table'),
+                    buttonText: context.tr('create_table'),
+                    onPressed: _showCreateRoomSheet,
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                  sliver: SliverList.builder(
+                    itemCount: _rooms.length,
+                    itemBuilder: (context, index) {
+                      final room = _rooms[index];
+                      return GameRoomCard(
+                        room: room,
+                        onTap: () => _showJoinRoomSheet(room),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -448,7 +474,8 @@ class _RestaurantHeaderLogo extends StatelessWidget {
             ? Image.network(
                 imageUrl!,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const _RestaurantHeaderFallback(),
+                errorBuilder: (context, error, stackTrace) =>
+                    const _RestaurantHeaderFallback(),
               )
             : const _RestaurantHeaderFallback(),
       ),
@@ -464,7 +491,11 @@ class _RestaurantHeaderFallback extends StatelessWidget {
     return Container(
       color: AppColors.badge,
       alignment: Alignment.center,
-      child: const Icon(Icons.restaurant_rounded, size: 30, color: AppColors.cream),
+      child: const Icon(
+        Icons.restaurant_rounded,
+        size: 30,
+        color: AppColors.cream,
+      ),
     );
   }
 }

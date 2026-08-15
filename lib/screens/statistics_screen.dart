@@ -28,12 +28,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   }
 
   Future<void> _load() async {
-    if (mounted) {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
-    }
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
     try {
       final statistics = await _statisticsService.fetchStatistics();
@@ -94,9 +92,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     final statistics = _statistics;
 
     if (_isLoading && statistics == null) {
-      return const ListView(
-        physics: AlwaysScrollableScrollPhysics(),
-        children: [
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [
           SizedBox(height: 280),
           Center(child: CircularProgressIndicator()),
         ],
@@ -109,7 +107,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         padding: const EdgeInsets.all(24),
         children: [
           const SizedBox(height: 190),
-          const Icon(Icons.leaderboard_rounded, size: 62, color: AppColors.brass),
+          const Icon(
+            Icons.leaderboard_rounded,
+            size: 62,
+            color: AppColors.brass,
+          ),
           const SizedBox(height: 14),
           Text(
             _errorMessage!,
@@ -121,7 +123,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             child: FilledButton.icon(
               onPressed: _load,
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Retry'),
+              label: Text(strings.loadFailed),
             ),
           ),
         ],
@@ -129,7 +131,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     }
 
     if (statistics == null) {
-      return const ListView();
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+      );
     }
 
     final selectedStanding = _selectedStanding(statistics);
@@ -191,6 +195,13 @@ class _MyLeagueCard extends StatelessWidget {
 
   const _MyLeagueCard({required this.statistics, required this.strings});
 
+  LeagueStanding? _nextLeagueFor(LeaguePlayerStats me) {
+    for (final league in statistics.leagues) {
+      if (league.number == me.league - 1) return league;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final me = statistics.me;
@@ -198,9 +209,7 @@ class _MyLeagueCard extends StatelessWidget {
       (league) => league.number == me.league,
       orElse: () => statistics.leagues.last,
     );
-    final nextLeague = statistics.leagues
-        .where((league) => league.number == me.league - 1)
-        .firstOrNull;
+    final nextLeague = _nextLeagueFor(me);
 
     final progress = nextLeague == null
         ? 1.0
@@ -218,9 +227,16 @@ class _MyLeagueCard extends StatelessWidget {
           colors: [AppColors.panelTop, AppColors.panelBottom],
         ),
         borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: AppColors.brass.withValues(alpha: 0.65), width: 1.5),
+        border: Border.all(
+          color: AppColors.brass.withValues(alpha: 0.65),
+          width: 1.5,
+        ),
         boxShadow: const [
-          BoxShadow(color: Colors.black38, blurRadius: 18, offset: Offset(0, 9)),
+          BoxShadow(
+            color: Colors.black38,
+            blurRadius: 18,
+            offset: Offset(0, 9),
+          ),
         ],
       ),
       child: Column(
@@ -235,17 +251,27 @@ class _MyLeagueCard extends StatelessWidget {
                   children: [
                     Text(
                       strings.yourLeague,
-                      style: const TextStyle(color: Colors.white60, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${strings.league} ${me.leagueRoman}',
-                      style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       '${me.leaguePoints} ${strings.points}',
-                      style: const TextStyle(color: AppColors.lime, fontSize: 17, fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        color: AppColors.lime,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ],
                 ),
@@ -253,7 +279,11 @@ class _MyLeagueCard extends StatelessWidget {
               if (me.rank != null)
                 Text(
                   '#${me.rank}',
-                  style: const TextStyle(color: AppColors.brassLight, fontSize: 23, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    color: AppColors.brassLight,
+                    fontSize: 23,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
             ],
           ),
@@ -273,26 +303,51 @@ class _MyLeagueCard extends StatelessWidget {
             child: Text(
               nextLeague == null
                   ? strings.maxLeague
-                  : strings.pointsUntilNext(me.pointsToNextLeague, nextLeague.roman),
-              style: const TextStyle(color: Colors.white60, fontSize: 12.5, fontWeight: FontWeight.w700),
+                  : strings.pointsUntilNext(
+                      me.pointsToNextLeague,
+                      nextLeague.roman,
+                    ),
+              style: const TextStyle(
+                color: Colors.white60,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(child: _MiniStat(value: '${me.gamesPlayed}', label: strings.games)),
+              Expanded(
+                child: _MiniStat(
+                  value: '${me.gamesPlayed}',
+                  label: strings.games,
+                ),
+              ),
               const SizedBox(width: 7),
-              Expanded(child: _MiniStat(value: '${me.wins}', label: strings.wins)),
+              Expanded(
+                child: _MiniStat(value: '${me.wins}', label: strings.wins),
+              ),
               const SizedBox(width: 7),
-              Expanded(child: _MiniStat(value: '${me.losses}', label: strings.losses)),
+              Expanded(
+                child: _MiniStat(value: '${me.losses}', label: strings.losses),
+              ),
               const SizedBox(width: 7),
-              Expanded(child: _MiniStat(value: '${me.winRate.toStringAsFixed(0)}%', label: strings.winRate)),
+              Expanded(
+                child: _MiniStat(
+                  value: '${me.winRate.toStringAsFixed(0)}%',
+                  label: strings.winRate,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
           Text(
             strings.winReward(statistics.winPoints),
-            style: const TextStyle(color: AppColors.brassLight, fontSize: 12, fontWeight: FontWeight.w700),
+            style: const TextStyle(
+              color: AppColors.brassLight,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -316,9 +371,20 @@ class _MiniStat extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.cream)),
+          Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.w900,
+              color: AppColors.cream,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 9.5, color: Colors.white54)),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 9.5, color: Colors.white54),
+          ),
         ],
       ),
     );
@@ -330,7 +396,11 @@ class _LeagueChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _LeagueChip({required this.league, required this.selected, required this.onTap});
+  const _LeagueChip({
+    required this.league,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -342,7 +412,11 @@ class _LeagueChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? AppColors.lime : AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: selected ? AppColors.ink : AppColors.brass.withValues(alpha: 0.30)),
+          border: Border.all(
+            color: selected
+                ? AppColors.ink
+                : AppColors.brass.withValues(alpha: 0.30),
+          ),
         ),
         alignment: Alignment.center,
         child: Text(
@@ -362,17 +436,25 @@ class _LeaderboardPlayer extends StatelessWidget {
   final bool isMe;
   final StatisticsStrings strings;
 
-  const _LeaderboardPlayer({required this.player, required this.isMe, required this.strings});
+  const _LeaderboardPlayer({
+    required this.player,
+    required this.isMe,
+    required this.strings,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: isMe ? AppColors.lime.withValues(alpha: 0.10) : AppColors.surfaceRaised,
+        color: isMe
+            ? AppColors.lime.withValues(alpha: 0.10)
+            : AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: isMe ? AppColors.lime.withValues(alpha: 0.62) : AppColors.brass.withValues(alpha: 0.18),
+          color: isMe
+              ? AppColors.lime.withValues(alpha: 0.62)
+              : AppColors.brass.withValues(alpha: 0.18),
           width: isMe ? 1.4 : 1,
         ),
       ),
@@ -383,7 +465,9 @@ class _LeaderboardPlayer extends StatelessWidget {
             child: Text(
               '#${player.rank ?? '-'}',
               style: TextStyle(
-                color: (player.rank ?? 99) <= 3 ? AppColors.brassLight : Colors.white54,
+                color: (player.rank ?? 99) <= 3
+                    ? AppColors.brassLight
+                    : Colors.white54,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -405,8 +489,12 @@ class _LeaderboardPlayer extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${player.wins} ${strings.wins.toLowerCase()} · ${player.losses} ${strings.losses.toLowerCase()}',
-                  style: const TextStyle(color: Colors.white54, fontSize: 10.5),
+                  '${player.wins} ${strings.wins.toLowerCase()} · '
+                  '${player.losses} ${strings.losses.toLowerCase()}',
+                  style: const TextStyle(
+                    color: Colors.white54,
+                    fontSize: 10.5,
+                  ),
                 ),
               ],
             ),
@@ -417,9 +505,19 @@ class _LeaderboardPlayer extends StatelessWidget {
             children: [
               Text(
                 '${player.leaguePoints}',
-                style: const TextStyle(color: AppColors.lime, fontSize: 18, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  color: AppColors.lime,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
-              Text(strings.points, style: const TextStyle(color: Colors.white38, fontSize: 9.5)),
+              Text(
+                strings.points,
+                style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 9.5,
+                ),
+              ),
             ],
           ),
         ],
@@ -443,13 +541,17 @@ class _StatsAvatar extends StatelessWidget {
       width: 42,
       height: 42,
       padding: const EdgeInsets.all(2),
-      decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.brass),
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.brass,
+      ),
       child: ClipOval(
         child: player.avatarUrl?.isNotEmpty == true
             ? Image.network(
                 player.avatarUrl!,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => _AvatarLetter(letter: letter),
+                errorBuilder: (context, error, stackTrace) =>
+                    _AvatarLetter(letter: letter),
               )
             : _AvatarLetter(letter: letter),
       ),
@@ -467,7 +569,14 @@ class _AvatarLetter extends StatelessWidget {
     return Container(
       color: AppColors.cream,
       alignment: Alignment.center,
-      child: Text(letter, style: const TextStyle(color: AppColors.ink, fontSize: 17, fontWeight: FontWeight.w900)),
+      child: Text(
+        letter,
+        style: const TextStyle(
+          color: AppColors.ink,
+          fontSize: 17,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
     );
   }
 }
@@ -488,15 +597,29 @@ class _LeagueMedal extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.brassLight, AppColors.brass, AppColors.brassDark],
+          colors: [
+            AppColors.brassLight,
+            AppColors.brass,
+            AppColors.brassDark,
+          ],
         ),
         border: Border.all(color: AppColors.cream, width: 2),
-        boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 9, offset: Offset(0, 5))],
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black45,
+            blurRadius: 9,
+            offset: Offset(0, 5),
+          ),
+        ],
       ),
       alignment: Alignment.center,
       child: Text(
         roman,
-        style: TextStyle(color: AppColors.ink, fontSize: size * 0.34, fontWeight: FontWeight.w900),
+        style: TextStyle(
+          color: AppColors.ink,
+          fontSize: size * 0.34,
+          fontWeight: FontWeight.w900,
+        ),
       ),
     );
   }
@@ -517,15 +640,19 @@ class _EmptyLeague extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Icon(Icons.emoji_events_outlined, size: 48, color: AppColors.brass),
+          const Icon(
+            Icons.emoji_events_outlined,
+            size: 48,
+            color: AppColors.brass,
+          ),
           const SizedBox(height: 10),
-          Text(strings.noPlayers, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white60)),
+          Text(
+            strings.noPlayers,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white60),
+          ),
         ],
       ),
     );
   }
-}
-
-extension<T> on Iterable<T> {
-  T? get firstOrNull => isEmpty ? null : first;
 }

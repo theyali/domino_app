@@ -84,7 +84,6 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
 
   void _handleSocketStatus(SocketConnectionStatus status) {
     if (!mounted) return;
-
     setState(() {
       _socketStatus = status;
     });
@@ -297,8 +296,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
               ? player.isOnline && localRealtimeConnected
               : player.isOnline,
         );
-    final canStart =
-        allPlayersReady &&
+    final canStart = allPlayersReady &&
         allPlayersOnline &&
         isLocalOwner &&
         _room.status == 'waiting' &&
@@ -307,7 +305,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
 
     final waitingMessage = allPlayersReady
         ? !allPlayersOnline
-            ? context.tr('all_seats_offline')
+            ? context.tr('waiting_players')
             : isLocalOwner
                 ? context.tr('owner_can_start')
                 : context.tr('waiting_owner_start')
@@ -382,12 +380,8 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                 _LobbyHeader(
                   restaurantName: widget.restaurant.name,
                   room: _room,
-                  allPlayersReady: allPlayersReady,
-                  allPlayersOnline: allPlayersOnline,
                 ),
-                const SizedBox(height: 18),
-                _RealtimeStatus(status: _socketStatus),
-                const SizedBox(height: 25),
+                const SizedBox(height: 24),
                 _LobbySectionTitle(
                   title: context.tr('players'),
                   count: '${_room.currentPlayers}/${_room.maxPlayers}',
@@ -400,7 +394,6 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                       seatIndex: seat,
                       player: _playerAtSeat(seat),
                       localPlayerId: widget.localPlayer.id,
-                      localRealtimeConnected: localRealtimeConnected,
                     ),
                   ),
                 if (_errorMessage != null) ...[
@@ -424,7 +417,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                 _WaitingMessage(
                   message: waitingMessage,
                   allPlayersReady: allPlayersReady,
-                  allPlayersOnline: allPlayersOnline,
+                  canStartNow: allPlayersOnline,
                 ),
                 if (_isRefreshing) ...[
                   const SizedBox(height: 18),
@@ -500,29 +493,14 @@ class _LobbyTopButton extends StatelessWidget {
 class _LobbyHeader extends StatelessWidget {
   final String restaurantName;
   final GameRoom room;
-  final bool allPlayersReady;
-  final bool allPlayersOnline;
 
   const _LobbyHeader({
     required this.restaurantName,
     required this.room,
-    required this.allPlayersReady,
-    required this.allPlayersOnline,
   });
 
   @override
   Widget build(BuildContext context) {
-    final icon = !allPlayersReady
-        ? Icons.hourglass_top_rounded
-        : allPlayersOnline
-            ? Icons.check_circle_rounded
-            : Icons.cloud_off_rounded;
-    final statusText = !allPlayersReady
-        ? context.tr('waiting_players')
-        : allPlayersOnline
-            ? context.tr('all_players_online')
-            : context.tr('realtime_reconnecting');
-
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -591,7 +569,7 @@ class _LobbyHeader extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 11,
-                    vertical: 9,
+                    vertical: 10,
                   ),
                   decoration: BoxDecoration(
                     color: _LobbyPalette.paper,
@@ -600,11 +578,15 @@ class _LobbyHeader extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Icon(icon, color: _LobbyPalette.ink, size: 19),
+                      const Icon(
+                        Icons.hourglass_top_rounded,
+                        color: _LobbyPalette.ink,
+                        size: 19,
+                      ),
                       const SizedBox(width: 7),
                       Expanded(
                         child: Text(
-                          statusText,
+                          context.tr('waiting_players'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -640,119 +622,6 @@ class _LobbyHeader extends StatelessWidget {
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RealtimeStatus extends StatelessWidget {
-  final SocketConnectionStatus status;
-
-  const _RealtimeStatus({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final (icon, title, subtitle, isLoading, color) = switch (status) {
-      SocketConnectionStatus.connected => (
-          Icons.bolt_rounded,
-          context.tr('realtime_connected'),
-          context.tr('realtime_connected_subtitle'),
-          false,
-          _LobbyPalette.mint,
-        ),
-      SocketConnectionStatus.connecting => (
-          Icons.sync_rounded,
-          context.tr('realtime_connecting'),
-          context.tr('realtime_connecting_subtitle'),
-          true,
-          _LobbyPalette.yellow,
-        ),
-      SocketConnectionStatus.reconnecting => (
-          Icons.sync_rounded,
-          context.tr('realtime_reconnecting'),
-          context.tr('realtime_reconnecting_subtitle'),
-          true,
-          _LobbyPalette.skyBlue,
-        ),
-      SocketConnectionStatus.disconnected => (
-          Icons.cloud_off_rounded,
-          context.tr('realtime_disconnected'),
-          context.tr('realtime_disconnected_subtitle'),
-          true,
-          _LobbyPalette.coral,
-        ),
-    };
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
-      padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(21),
-        border: Border.all(color: _LobbyPalette.ink, width: 3),
-        boxShadow: const [
-          BoxShadow(
-            color: _LobbyPalette.ink,
-            blurRadius: 0,
-            offset: Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 45,
-            height: 45,
-            decoration: BoxDecoration(
-              color: _LobbyPalette.paper,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _LobbyPalette.ink, width: 2.2),
-            ),
-            child: Icon(icon, color: _LobbyPalette.ink, size: 24),
-          ),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: _LobbyPalette.ink,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: _LobbyPalette.inkSoft,
-                    fontSize: 12,
-                    height: 1.25,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          if (isLoading)
-            const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                color: _LobbyPalette.ink,
-              ),
-            )
-          else
-            const Icon(
-              Icons.check_circle_rounded,
-              color: _LobbyPalette.ink,
-              size: 25,
-            ),
         ],
       ),
     );
@@ -831,13 +700,11 @@ class _LobbySeat extends StatelessWidget {
   final int seatIndex;
   final RoomPlayer? player;
   final int localPlayerId;
-  final bool localRealtimeConnected;
 
   const _LobbySeat({
     required this.seatIndex,
     required this.player,
     required this.localPlayerId,
-    required this.localRealtimeConnected,
   });
 
   Color get _seatColor {
@@ -856,9 +723,6 @@ class _LobbySeat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMe = player?.id == localPlayerId;
-    final isOnline = player != null &&
-        player!.isOnline &&
-        (!isMe || localRealtimeConnected);
 
     return Container(
       padding: const EdgeInsets.all(13),
@@ -876,31 +740,7 @@ class _LobbySeat extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              _LobbyAvatar(player: player),
-              if (player != null)
-                Positioned(
-                  right: -2,
-                  bottom: -2,
-                  child: Container(
-                    width: 16,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isOnline
-                          ? _LobbyPalette.online
-                          : _LobbyPalette.offline,
-                      border: Border.all(
-                        color: _LobbyPalette.ink,
-                        width: 2.2,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
+          _LobbyAvatar(player: player),
           const SizedBox(width: 13),
           Expanded(
             child: Column(
@@ -936,10 +776,7 @@ class _LobbySeat extends StatelessWidget {
               ],
             ),
           ),
-          if (player != null) ...[
-            const SizedBox(width: 8),
-            _LobbyPresenceBadge(isOnline: isOnline),
-          ] else
+          if (player == null)
             const Icon(
               Icons.add_circle_outline_rounded,
               color: _LobbyPalette.ink,
@@ -1023,49 +860,6 @@ class _LobbyAvatarLetter extends StatelessWidget {
           fontSize: 19,
           fontWeight: FontWeight.w900,
         ),
-      ),
-    );
-  }
-}
-
-class _LobbyPresenceBadge extends StatelessWidget {
-  final bool isOnline;
-
-  const _LobbyPresenceBadge({required this.isOnline});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isOnline ? _LobbyPalette.online : _LobbyPalette.offline;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: _LobbyPalette.paper,
-        borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: _LobbyPalette.ink, width: 2),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color,
-              border: Border.all(color: _LobbyPalette.ink, width: 1),
-            ),
-          ),
-          const SizedBox(width: 5),
-          Text(
-            context.tr(isOnline ? 'online' : 'offline'),
-            style: const TextStyle(
-              color: _LobbyPalette.ink,
-              fontSize: 10.5,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1190,26 +984,26 @@ class _StartGameButton extends StatelessWidget {
 class _WaitingMessage extends StatelessWidget {
   final String message;
   final bool allPlayersReady;
-  final bool allPlayersOnline;
+  final bool canStartNow;
 
   const _WaitingMessage({
     required this.message,
     required this.allPlayersReady,
-    required this.allPlayersOnline,
+    required this.canStartNow,
   });
 
   @override
   Widget build(BuildContext context) {
     final color = !allPlayersReady
         ? _LobbyPalette.cream
-        : allPlayersOnline
+        : canStartNow
             ? _LobbyPalette.mint
             : _LobbyPalette.yellow;
     final icon = !allPlayersReady
         ? Icons.hourglass_bottom_rounded
-        : allPlayersOnline
+        : canStartNow
             ? Icons.check_circle_rounded
-            : Icons.sync_rounded;
+            : Icons.hourglass_top_rounded;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -1259,6 +1053,4 @@ class _LobbyPalette {
   static const Color mint = Color(0xFF8CDD79);
   static const Color coral = Color(0xFFFF8A79);
   static const Color lavender = Color(0xFFC7A7FF);
-  static const Color online = Color(0xFF31C96B);
-  static const Color offline = Color(0xFF9AA6B2);
 }

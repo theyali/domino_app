@@ -168,34 +168,33 @@ class _MultiplayerGameResultOverlayState
       return const SizedBox.shrink();
     }
 
-    Widget child;
-    switch (_phase) {
-      case _ResultPresentationPhase.waitingForLastDomino:
-        child = const IgnorePointer(
-          key: ValueKey('result-waiting'),
-          child: SizedBox.expand(),
-        );
-      case _ResultPresentationPhase.revealedHands:
-        child = _RoundHandsReveal(
-          key: const ValueKey('result-hands'),
-          gameState: gameState,
-          result: result,
-        );
-      case _ResultPresentationPhase.outcome:
-        final isWinner = _isLocalWinner(result);
-        final winner = _firstRoundWinner(result);
-        child = _RoundOutcomeFlash(
-          key: const ValueKey('result-outcome'),
-          isWinner: isWinner,
-          isMatchFinished: gameState.isMatchFinished,
-          reason: result.reason,
-          winnerName: winner?.name,
-        );
-      case _ResultPresentationPhase.menu:
-        child = KeyedSubtree(
-          key: const ValueKey('result-menu'),
-          child: _buildResultMenu(context, result),
-        );
+    late final Widget child;
+    if (_phase == _ResultPresentationPhase.waitingForLastDomino) {
+      child = const IgnorePointer(
+        key: ValueKey('result-waiting'),
+        child: SizedBox.expand(),
+      );
+    } else if (_phase == _ResultPresentationPhase.revealedHands) {
+      child = _RoundHandsReveal(
+        key: const ValueKey('result-hands'),
+        gameState: gameState,
+        result: result,
+      );
+    } else if (_phase == _ResultPresentationPhase.outcome) {
+      final isWinner = _isLocalWinner(result);
+      final winner = _firstRoundWinner(result);
+      child = _RoundOutcomeFlash(
+        key: const ValueKey('result-outcome'),
+        isWinner: isWinner,
+        isMatchFinished: gameState.isMatchFinished,
+        reason: result.reason,
+        winnerName: winner?.name,
+      );
+    } else {
+      child = KeyedSubtree(
+        key: const ValueKey('result-menu'),
+        child: _buildResultMenu(context, result),
+      );
     }
 
     return AnimatedSwitcher(
@@ -552,16 +551,16 @@ class _RoundHandsReveal extends StatelessWidget {
       child: SafeArea(
         child: Center(
           child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: 1),
+            tween: Tween(begin: 0.0, end: 1.0),
             duration: const Duration(milliseconds: 650),
             curve: Curves.easeOutBack,
-            builder: (context, value, child) => Transform.scale(
-              scale: 0.88 + 0.12 * value.clamp(0.0, 1.0),
-              child: Opacity(
-                opacity: value.clamp(0.0, 1.0),
-                child: child,
-              ),
-            ),
+            builder: (context, value, child) {
+              final progress = value.clamp(0.0, 1.0).toDouble();
+              return Transform.scale(
+                scale: 0.88 + 0.12 * progress,
+                child: Opacity(opacity: progress, child: child),
+              );
+            },
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 470, maxHeight: 700),
               child: Container(
@@ -856,28 +855,24 @@ class _RevealedPlayerHandCard extends StatelessWidget {
                       ],
                     ),
                   )
-                : LayoutBuilder(
-                    builder: (context, constraints) {
-                      return FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            for (var index = 0; index < hand.length; index++) ...[
-                              DominoTile(
-                                domino: hand[index].domino,
-                                width: 36,
-                                height: 58,
-                                dotSize: 4.1,
-                              ),
-                              if (index != hand.length - 1)
-                                const SizedBox(width: 4),
-                            ],
-                          ],
-                        ),
-                      );
-                    },
+                : FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (var index = 0; index < hand.length; index++) ...[
+                          DominoTile(
+                            domino: hand[index].domino,
+                            width: 36,
+                            height: 58,
+                            dotSize: 4.1,
+                          ),
+                          if (index != hand.length - 1)
+                            const SizedBox(width: 4),
+                        ],
+                      ],
+                    ),
                   ),
           ),
         ],
@@ -946,7 +941,9 @@ class _RoundOutcomeFlash extends StatelessWidget {
             ? 'Matçı qazandın. Nəticə yadda saxlanıldı.'
             : 'Ты выиграл матч. Результат сохранён.';
       } else if (winnerName == null) {
-        subtitle = isAz ? 'Bu dəfə rəqib qalib gəldi.' : 'В этот раз победил соперник.';
+        subtitle = isAz
+            ? 'Bu dəfə rəqib qalib gəldi.'
+            : 'В этот раз победил соперник.';
       } else {
         subtitle = isAz
             ? '$winnerName matçı qazandı.'
@@ -954,7 +951,9 @@ class _RoundOutcomeFlash extends StatelessWidget {
       }
     } else if (reason == 'fish') {
       subtitle = winnerName == null
-          ? (isAz ? 'Raund bal hesabı ilə bitdi.' : 'Раунд завершён по очкам на руках.')
+          ? (isAz
+              ? 'Raund bal hesabı ilə bitdi.'
+              : 'Раунд завершён по очкам на руках.')
           : (isAz
               ? '$winnerName əlində ən az xal saxladı.'
               : '$winnerName оставил меньше всего очков на руках.');

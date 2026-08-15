@@ -1,4 +1,5 @@
 import '../config/api_config.dart';
+import 'user_gender.dart';
 
 class UserAccount {
   final int id;
@@ -6,6 +7,7 @@ class UserAccount {
   final String email;
   final String firstName;
   final String? avatarUrl;
+  final UserGender? gender;
 
   const UserAccount({
     required this.id,
@@ -13,6 +15,7 @@ class UserAccount {
     required this.email,
     required this.firstName,
     this.avatarUrl,
+    this.gender,
   });
 
   factory UserAccount.fromJson(Map<String, dynamic> json) {
@@ -22,6 +25,7 @@ class UserAccount {
       email: json['email'] as String? ?? '',
       firstName: json['first_name'] as String? ?? '',
       avatarUrl: ApiConfig.resolveUrl(json['avatar_url'] as String?),
+      gender: UserGender.fromApi(json['gender']),
     );
   }
 

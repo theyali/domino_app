@@ -222,6 +222,35 @@ class _MultiplayerGameResultOverlayState
                             fontWeight: FontWeight.w700,
                           ),
                         ),
+                        if (gameState.isPhone) ...[
+                          const SizedBox(height: 10),
+                          Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 7,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _ResultPalette.skyBlue,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: _ResultPalette.ink,
+                                  width: 2.2,
+                                ),
+                              ),
+                              child: Text(
+                                context.appLanguage.code == 'az'
+                                    ? 'Telefon · hədəf ${gameState.targetScore}'
+                                    : 'Телефон · цель ${gameState.targetScore}',
+                                style: const TextStyle(
+                                  color: _ResultPalette.ink,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 22),
                         for (final player in gameState.players)
                           Padding(
@@ -229,6 +258,7 @@ class _MultiplayerGameResultOverlayState
                             child: _PlayerResultRow(
                               player: player,
                               result: result,
+                              isPhone: gameState.isPhone,
                             ),
                           ),
                         const SizedBox(height: 8),
@@ -338,6 +368,11 @@ class _MultiplayerGameResultOverlayState
     if (reason == 'player_left') {
       return context.tr('match_finished_title');
     }
+    if (isMatchFinished && gameState.isPhone) {
+      return context.appLanguage.code == 'az'
+          ? 'Telefon oyunu bitdi'
+          : '«Телефон» завершён';
+    }
     if (isMatchFinished) {
       return context.tr('game_101_finished');
     }
@@ -367,6 +402,22 @@ class _MultiplayerGameResultOverlayState
               'player_left_match',
               arguments: {'player': player.name},
             );
+    }
+
+    if (gameState.isMatchFinished && gameState.isPhone) {
+      final winnerNames = result.matchWinnerPlayerIds
+          .map(_playerById)
+          .whereType<MultiplayerPlayerState>()
+          .map((player) => player.name)
+          .join(', ');
+      if (winnerNames.isEmpty) {
+        return context.appLanguage.code == 'az'
+            ? 'Hədəf xalına çatıldı.'
+            : 'Достигнуто целевое количество очков.';
+      }
+      return context.appLanguage.code == 'az'
+          ? '$winnerNames ${gameState.targetScore} xal hədəfinə çatdı.'
+          : '$winnerNames достиг цели ${gameState.targetScore} очков.';
     }
 
     if (gameState.isMatchFinished) {
@@ -618,16 +669,20 @@ class _OutcomeBurst extends StatelessWidget {
 class _PlayerResultRow extends StatelessWidget {
   final MultiplayerPlayerState player;
   final MultiplayerRoundResult result;
+  final bool isPhone;
 
   const _PlayerResultRow({
     required this.player,
     required this.result,
+    required this.isPhone,
   });
 
   @override
   Widget build(BuildContext context) {
     final handPoints = result.handPoints[player.id] ?? 0;
-    final added = result.addedPenalties[player.id] ?? 0;
+    final added = isPhone
+        ? (result.addedPoints[player.id] ?? 0)
+        : (result.addedPenalties[player.id] ?? 0);
     final total = result.totalScores[player.id] ?? player.score;
     final isRoundWinner = result.winnerPlayerIds.contains(player.id);
     final isMatchLoser = result.matchLoserPlayerIds.contains(player.id);
@@ -643,6 +698,18 @@ class _PlayerResultRow extends StatelessWidget {
         : isRoundWinner
             ? _ResultPalette.lime
             : _ResultPalette.yellow;
+
+    final detailText = isPhone
+        ? (context.appLanguage.code == 'az'
+            ? 'Əldə: $handPoints · Qazanıldı: +$added'
+            : 'На руках: $handPoints · Получено: +$added')
+        : context.tr(
+            'hand_points_penalty',
+            arguments: {
+              'hand': handPoints,
+              'penalty': added,
+            },
+          );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
@@ -710,13 +777,7 @@ class _PlayerResultRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  context.tr(
-                    'hand_points_penalty',
-                    arguments: {
-                      'hand': handPoints,
-                      'penalty': added,
-                    },
-                  ),
+                  detailText,
                   style: const TextStyle(
                     color: _ResultPalette.inkSoft,
                     fontSize: 11,

@@ -9,10 +9,12 @@ import '../localization/app_language.dart';
 import '../localization/app_localizations.dart';
 import '../localization/profile_strings.dart';
 import '../models/user_account.dart';
+import '../models/user_gender.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/auth_session_store.dart';
 import '../theme/app_colors.dart';
+import '../theme/gender_style.dart';
 import '../widgets/cartoon_page_background.dart';
 import '../widgets/game_avatar_frame.dart';
 import 'purchased_gifts_screen.dart';
@@ -44,6 +46,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final TextEditingController _usernameController;
   late final TextEditingController _emailController;
 
+  UserGender? _selectedGender;
   String? _pickedAvatarPath;
   bool _isSaving = false;
   bool _usernameCopied = false;
@@ -55,6 +58,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _firstNameController = TextEditingController(text: _user.firstName);
     _usernameController = TextEditingController(text: _user.username);
     _emailController = TextEditingController(text: _user.email);
+    _selectedGender = _user.gender;
   }
 
   @override
@@ -78,6 +82,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _firstNameController.text = user.firstName;
     _usernameController.text = user.username;
     _emailController.text = user.email;
+    _selectedGender = user.gender;
   }
 
   Future<void> _pickAvatar() async {
@@ -153,9 +158,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final firstName = _firstNameController.text.trim();
     final username = _usernameController.text.trim();
     final email = _emailController.text.trim();
+    final gender = _selectedGender;
 
     if (firstName.isEmpty || username.isEmpty || email.isEmpty) {
       _showMessage(strings.fillFields);
+      return;
+    }
+
+    if (gender == null) {
+      _showMessage(
+        context.appLanguage.code == 'az' ? 'Cinsini seç.' : 'Выбери пол.',
+      );
       return;
     }
 
@@ -176,6 +189,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         username: username,
         email: email,
         firstName: firstName,
+        gender: gender,
         avatarPath: _pickedAvatarPath,
       );
 
@@ -324,6 +338,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         label: strings.username,
                         icon: Icons.alternate_email_rounded,
                       ),
+                    ),
+                    const SizedBox(height: 11),
+                    _ProfileGenderSelector(
+                      selected: _selectedGender,
+                      enabled: !_isSaving,
+                      isAzerbaijani: isAz,
+                      onSelected: (gender) {
+                        setState(() {
+                          _selectedGender = gender;
+                        });
+                      },
                     ),
                     const SizedBox(height: 11),
                     TextField(
@@ -516,6 +541,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildProfileHeader(ProfileStrings strings) {
     final avatarPath = _pickedAvatarPath;
     final avatarUrl = _user.avatarUrl;
+    final genderColor = GenderStyle.colorFor(
+      _user.gender,
+      fallback: _ProfilePalette.ink,
+    );
     final letter = _user.displayName.trim().isEmpty
         ? '?'
         : _user.displayName.trim().substring(0, 1).toUpperCase();
@@ -537,10 +566,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         height: 104,
         filterQuality: FilterQuality.high,
         errorBuilder: (context, error, stackTrace) =>
-            _AvatarLetter(letter: letter),
+            _AvatarLetter(letter: letter, color: genderColor),
       );
     } else {
-      avatarContent = _AvatarLetter(letter: letter);
+      avatarContent = _AvatarLetter(letter: letter, color: genderColor);
     }
 
     return Column(
@@ -623,7 +652,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 13),
+        Text(
+          _user.displayName,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: genderColor,
+            fontSize: 23,
+            height: 1,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 9),
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: _copyUsername,
@@ -663,15 +703,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           : Icons.content_copy_rounded,
                       key: ValueKey(_usernameCopied),
                       size: 18,
-                      color: _ProfilePalette.ink,
+                      color: genderColor,
                     ),
                   ),
                   const SizedBox(width: 7),
                   Text(
                     '@${_user.username}',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: _ProfilePalette.ink,
+                    style: TextStyle(
+                      color: genderColor,
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
                     ),
@@ -682,6 +722,135 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ProfileGenderSelector extends StatelessWidget {
+  final UserGender? selected;
+  final bool enabled;
+  final bool isAzerbaijani;
+  final ValueChanged<UserGender> onSelected;
+
+  const _ProfileGenderSelector({
+    required this.selected,
+    required this.enabled,
+    required this.isAzerbaijani,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+      decoration: BoxDecoration(
+        color: _ProfilePalette.cream,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _ProfilePalette.ink, width: 2.6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 3),
+            child: Text(
+              isAzerbaijani ? 'Cins' : 'Пол',
+              style: const TextStyle(
+                color: _ProfilePalette.inkSoft,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(height: 7),
+          Row(
+            children: [
+              for (final gender in UserGender.values) ...[
+                Expanded(
+                  child: _ProfileGenderChoice(
+                    gender: gender,
+                    selected: selected == gender,
+                    enabled: enabled,
+                    isAzerbaijani: isAzerbaijani,
+                    onTap: () => onSelected(gender),
+                  ),
+                ),
+                if (gender != UserGender.values.last)
+                  const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileGenderChoice extends StatelessWidget {
+  final UserGender gender;
+  final bool selected;
+  final bool enabled;
+  final bool isAzerbaijani;
+  final VoidCallback onTap;
+
+  const _ProfileGenderChoice({
+    required this.gender,
+    required this.selected,
+    required this.enabled,
+    required this.isAzerbaijani,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = GenderStyle.colorFor(gender);
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.55,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: 46,
+          decoration: BoxDecoration(
+            color: selected ? color : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: _ProfilePalette.ink, width: 2.2),
+            boxShadow: selected
+                ? const [
+                    BoxShadow(
+                      color: _ProfilePalette.ink,
+                      blurRadius: 0,
+                      offset: Offset(2, 3),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                gender == UserGender.male
+                    ? Icons.male_rounded
+                    : Icons.female_rounded,
+                color: selected ? Colors.white : color,
+                size: 21,
+              ),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  gender.label(isAzerbaijani: isAzerbaijani),
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: selected ? Colors.white : color,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -791,8 +960,9 @@ class _CartoonIconBadge extends StatelessWidget {
 
 class _AvatarLetter extends StatelessWidget {
   final String letter;
+  final Color color;
 
-  const _AvatarLetter({required this.letter});
+  const _AvatarLetter({required this.letter, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -801,8 +971,8 @@ class _AvatarLetter extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         letter,
-        style: const TextStyle(
-          color: Color(0xFF6242A3),
+        style: TextStyle(
+          color: color,
           fontSize: 38,
           fontWeight: FontWeight.w900,
         ),

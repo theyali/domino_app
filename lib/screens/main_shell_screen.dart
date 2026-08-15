@@ -75,7 +75,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
     final items = [
       _NavItemData(
-        icon: Icons.sports_esports_rounded,
+        assetPath: 'assets/icons/domino.png',
         label: statsStrings.play,
         accent: const Color(0xFF66C7F0),
       ),
@@ -116,7 +116,6 @@ class _MainShellScreenState extends State<MainShellScreen> {
 class _CartoonGameDock extends StatelessWidget {
   static const _dockColor = Color(0xFFF5CE79);
   static const _ink = Color(0xFF17120D);
-  static const _cream = Color(0xFFFFF3CC);
 
   final int selectedIndex;
   final List<_NavItemData> items;
@@ -219,6 +218,7 @@ class _CartoonNavItem extends StatelessWidget {
                 duration: const Duration(milliseconds: 150),
                 width: selected ? 44 : 39,
                 height: selected ? 38 : 34,
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: selected ? _cream : Colors.white,
                   borderRadius: BorderRadius.circular(13),
@@ -236,11 +236,17 @@ class _CartoonNavItem extends StatelessWidget {
                         ]
                       : null,
                 ),
-                child: Icon(
-                  data.icon,
-                  size: 22,
-                  color: _ink,
-                ),
+                child: data.assetPath != null
+                    ? Image.asset(
+                        data.assetPath!,
+                        fit: BoxFit.contain,
+                        filterQuality: FilterQuality.high,
+                      )
+                    : Icon(
+                        data.icon,
+                        size: 22,
+                        color: _ink,
+                      ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -262,13 +268,15 @@ class _CartoonNavItem extends StatelessWidget {
 }
 
 class _NavItemData {
-  final IconData icon;
+  final IconData? icon;
+  final String? assetPath;
   final String label;
   final Color accent;
 
   const _NavItemData({
-    required this.icon,
+    this.icon,
+    this.assetPath,
     required this.label,
     required this.accent,
-  });
+  }) : assert(icon != null || assetPath != null);
 }

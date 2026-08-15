@@ -42,10 +42,102 @@ class SocialService {
     if (data is! List) {
       throw const ApiException('Сервер вернул неверный список игроков.');
     }
-    return data
-        .whereType<Map>()
-        .map((item) => SocialUser.fromJson(Map<String, dynamic>.from(item)))
-        .toList(growable: false);
+    return _parseUsers(data);
+  }
+
+  Future<List<SocialUser>> searchUsers(String query) async {
+    final normalized = query.trim().replaceFirst(RegExp(r'^@'), '');
+    if (normalized.length < 2) return const <SocialUser>[];
+
+    final uri = ApiConfig.uri('/api/social/users/search/').replace(
+      queryParameters: {'q': normalized},
+    );
+    final response = await http.get(uri, headers: await _authHeaders());
+    final data = _decode(response);
+    if (data is! List) {
+      throw const ApiException('Сервер вернул неверный результат поиска.');
+    }
+    return _parseUsers(data);
+  }
+
+  Future<List<SocialUser>> fetchBlockedUsers() async {
+    final response = await http.get(
+      ApiConfig.uri('/api/social/blocked/'),
+      headers: await _authHeaders(),
+    );
+    final data = _decode(response);
+    if (data is! List) {
+      throw const ApiException('Сервер вернул неверный чёрный список.');
+    }
+    return _parseUsers(data);
+  }
+
+  Future<void> blockUser(int userId) async {
+    final response = await http.post(
+      ApiConfig.uri('/api/social/users/$userId/block/'),
+      headers: await _authJsonHeaders(),
+    );
+    _decode(response);
+  }
+
+  Future<void> unblockUser(int userId) async {
+    final response = await http.post(
+      ApiConfig.uri('/api/social/users/$userId/unblock/'),
+      headers: await _authJsonHeaders(),
+    );
+    _decode(response);
+  }
+
+  Future<NotificationPreferences> fetchNotificationPreferences() async {
+    final response = await http.get(
+      ApiConfig.uri('/api/social/notifications/settings/'),
+      headers: await _authHeaders(),
+    );
+    final data = _decode(response);
+    return NotificationPreferences.fromJson(
+      Map<String, dynamic>.from(data as Map),
+    );
+  }
+
+  Future<NotificationPreferences> updateNotificationPreferences(
+    NotificationPreferences preferences,
+  ) async {
+    final response = await http.patch(
+      ApiConfig.uri('/api/social/notifications/settings/'),
+      headers: await _authJsonHeaders(),
+      body: jsonEncode(preferences.toJson()),
+    );
+    final data = _decode(response);
+    return NotificationPreferences.fromJson(
+      Map<String, dynamic>.from(data as Map),
+    );
+  }
+
+  Future<void> registerPushDevice({
+    required String registrationToken,
+    required String platform,
+  }) async {
+    final response = await http.post(
+      ApiConfig.uri('/api/social/notifications/devices/'),
+      headers: await _authJsonHeaders(),
+      body: jsonEncode({
+        'registration_token': registrationToken,
+        'platform': platform,
+      }),
+    );
+    _decode(response);
+  }
+
+  Future<void> unregisterPushDevice(String registrationToken) async {
+    final request = http.Request(
+      'DELETE',
+      ApiConfig.uri('/api/social/notifications/devices/'),
+    )
+      ..headers.addAll(await _authJsonHeaders())
+      ..body = jsonEncode({'registration_token': registrationToken});
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+    _decode(response);
   }
 
   Future<void> sendFriendRequest(int userId) async {
@@ -132,6 +224,13 @@ class SocialService {
       headers: await _authJsonHeaders(),
     );
     _decode(response);
+  }
+
+  List<SocialUser> _parseUsers(List<dynamic> data) {
+    return data
+        .whereType<Map>()
+        .map((item) => SocialUser.fromJson(Map<String, dynamic>.from(item)))
+        .toList(growable: false);
   }
 
   Future<Map<String, String>> _authHeaders() async {

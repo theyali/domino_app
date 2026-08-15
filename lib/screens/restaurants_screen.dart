@@ -101,25 +101,27 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
       (total, restaurant) => total + restaurant.waitingRooms,
     );
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        surfaceTintColor: Colors.transparent,
-        title: Text(
-          navigationStrings.play,
-          style: const TextStyle(fontWeight: FontWeight.w900),
-        ),
-        actions: [
-          IconButton(
-            onPressed: _isLoading ? null : () => _loadRestaurants(),
-            tooltip: context.tr('refresh'),
-            icon: const Icon(Icons.refresh_rounded),
+    return CartoonPageBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          title: Text(
+            navigationStrings.play,
+            style: const TextStyle(fontWeight: FontWeight.w900),
           ),
-        ],
-      ),
-      body: CartoonPageBackground(
-        child: RefreshIndicator(
+          actions: [
+            IconButton(
+              onPressed: _isLoading ? null : () => _loadRestaurants(),
+              tooltip: context.tr('refresh'),
+              icon: const Icon(Icons.refresh_rounded),
+            ),
+          ],
+        ),
+        body: RefreshIndicator(
           color: AppColors.lime,
           backgroundColor: AppColors.surfaceRaised,
           onRefresh: () => _loadRestaurants(),

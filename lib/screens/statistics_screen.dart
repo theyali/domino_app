@@ -75,24 +75,16 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     final strings = StatisticsStrings.of(context);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        surfaceTintColor: Colors.transparent,
-        title: Text(strings.title),
-        actions: [
-          IconButton(
-            onPressed: _isLoading ? null : _load,
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-        ],
-      ),
+      backgroundColor: Colors.transparent,
       body: CartoonPageBackground(
-        child: RefreshIndicator(
-          color: AppColors.lime,
-          backgroundColor: AppColors.surfaceRaised,
-          onRefresh: _load,
-          child: _buildBody(strings),
+        child: SafeArea(
+          bottom: false,
+          child: RefreshIndicator(
+            color: AppColors.lime,
+            backgroundColor: AppColors.surfaceRaised,
+            onRefresh: _load,
+            child: _buildBody(strings),
+          ),
         ),
       ),
     );

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -44,6 +45,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String? _pickedAvatarPath;
   bool _isSaving = false;
+  bool _usernameCopied = false;
 
   @override
   void initState() {
@@ -205,6 +207,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _copyUsername() async {
+    final username = _user.username.trim();
+    if (username.isEmpty) return;
+
+    await Clipboard.setData(ClipboardData(text: '@$username'));
+    if (!mounted) return;
+
+    setState(() {
+      _usernameCopied = true;
+    });
+
+    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    if (!mounted) return;
+
+    setState(() {
+      _usernameCopied = false;
+    });
   }
 
   InputDecoration _cartoonFieldDecoration({
@@ -579,54 +600,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 10),
-        Text(
-          strings.avatarHint,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            shadows: [
-              Shadow(
-                color: Colors.black87,
-                offset: Offset(1, 2),
-                blurRadius: 0,
+        const SizedBox(height: 16),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _copyUsername,
+          child: AnimatedScale(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutBack,
+            scale: _usernameCopied ? 1.06 : 1,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+              decoration: BoxDecoration(
+                color: _usernameCopied
+                    ? _ProfilePalette.lime
+                    : _ProfilePalette.cream,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: _ProfilePalette.ink, width: 2.5),
+                boxShadow: const [
+                  BoxShadow(
+                    color: _ProfilePalette.ink,
+                    blurRadius: 0,
+                    offset: Offset(2, 3),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          _user.displayName,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 25,
-            fontWeight: FontWeight.w900,
-            shadows: [
-              Shadow(
-                color: Colors.black87,
-                offset: Offset(2, 3),
-                blurRadius: 0,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    transitionBuilder: (child, animation) => ScaleTransition(
+                      scale: animation,
+                      child: child,
+                    ),
+                    child: Icon(
+                      _usernameCopied
+                          ? Icons.check_rounded
+                          : Icons.content_copy_rounded,
+                      key: ValueKey(_usernameCopied),
+                      size: 18,
+                      color: _ProfilePalette.ink,
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    '@${_user.username}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: _ProfilePalette.ink,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 3),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-          decoration: BoxDecoration(
-            color: _ProfilePalette.cream,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: _ProfilePalette.ink, width: 2.2),
-          ),
-          child: Text(
-            '@${_user.username}',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _ProfilePalette.ink,
-              fontWeight: FontWeight.w800,
             ),
           ),
         ),

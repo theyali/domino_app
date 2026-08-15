@@ -26,6 +26,20 @@ class _JoinRoomBottomSheetState extends State<JoinRoomBottomSheet> {
   bool _obscurePassword = true;
 
   @override
+  void initState() {
+    super.initState();
+
+    // Для открытого стола подтверждение не нужно: сразу возвращаем запрос
+    // на вход родительскому экрану. Bottom sheet остаётся только для пароля.
+    if (!widget.room.isLocked) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _submit();
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _passwordController.dispose();
     super.dispose();
@@ -39,6 +53,11 @@ class _JoinRoomBottomSheetState extends State<JoinRoomBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    // Открытые столы не показывают окно подтверждения вообще.
+    if (!widget.room.isLocked) {
+      return const SizedBox.shrink();
+    }
+
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
     return Material(
@@ -96,10 +115,8 @@ class _JoinRoomBottomSheetState extends State<JoinRoomBottomSheet> {
                             ),
                           ],
                         ),
-                        child: Icon(
-                          widget.room.isLocked
-                              ? Icons.lock_rounded
-                              : Icons.table_restaurant_rounded,
+                        child: const Icon(
+                          Icons.lock_rounded,
                           color: _JoinRoomPalette.ink,
                           size: 29,
                         ),
@@ -196,19 +213,15 @@ class _JoinRoomBottomSheetState extends State<JoinRoomBottomSheet> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: widget.room.isLocked
-                              ? _JoinRoomPalette.coral
-                              : _JoinRoomPalette.mint,
+                          color: _JoinRoomPalette.coral,
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: _JoinRoomPalette.ink,
                             width: 2.2,
                           ),
                         ),
-                        child: Icon(
-                          widget.room.isLocked
-                              ? Icons.lock_rounded
-                              : Icons.lock_open_rounded,
+                        child: const Icon(
+                          Icons.lock_rounded,
                           color: _JoinRoomPalette.ink,
                           size: 20,
                         ),
@@ -216,50 +229,48 @@ class _JoinRoomBottomSheetState extends State<JoinRoomBottomSheet> {
                     ],
                   ),
                 ),
-                if (widget.room.isLocked) ...[
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: _JoinRoomPalette.coral,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: _JoinRoomPalette.ink,
-                            width: 2.4,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.key_rounded,
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: _JoinRoomPalette.coral,
+                        shape: BoxShape.circle,
+                        border: Border.all(
                           color: _JoinRoomPalette.ink,
-                          size: 19,
+                          width: 2.4,
                         ),
                       ),
-                      const SizedBox(width: 9),
-                      Text(
-                        context.tr('room_password'),
-                        style: const TextStyle(
-                          color: _JoinRoomPalette.ink,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                        ),
+                      child: const Icon(
+                        Icons.key_rounded,
+                        color: _JoinRoomPalette.ink,
+                        size: 19,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _JoinPasswordField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    onSubmitted: (_) => _submit(),
-                    onToggleVisibility: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
-                  ),
-                ],
+                    ),
+                    const SizedBox(width: 9),
+                    Text(
+                      context.tr('room_password'),
+                      style: const TextStyle(
+                        color: _JoinRoomPalette.ink,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _JoinPasswordField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  onSubmitted: (_) => _submit(),
+                  onToggleVisibility: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                ),
                 const SizedBox(height: 26),
                 _JoinButton(
                   label: context.tr('join_table'),
@@ -450,5 +461,4 @@ class _JoinRoomPalette {
   static const Color yellow = Color(0xFFFFD65C);
   static const Color skyBlue = Color(0xFF79CDF1);
   static const Color coral = Color(0xFFFF8A79);
-  static const Color mint = Color(0xFF8CDD79);
 }

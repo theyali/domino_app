@@ -18,7 +18,7 @@ class PlayerEmotionOverlay extends StatefulWidget {
 }
 
 class _PlayerEmotionOverlayState extends State<PlayerEmotionOverlay> {
-  static const Duration _visibleDuration = Duration(milliseconds: 1800);
+  static const Duration _visibleDuration = Duration(milliseconds: 3200);
 
   StreamSubscription<PlayerEmotionEvent>? _subscription;
   final List<_VisibleEmotion> _visible = <_VisibleEmotion>[];
@@ -143,33 +143,43 @@ class _EmotionBurstState extends State<_EmotionBurst>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1650),
+      duration: const Duration(milliseconds: 3000),
     );
-    _scale = Tween<double>(begin: 0.45, end: 1.08).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0, 0.28, curve: Curves.easeOutBack),
+
+    _scale = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.55, end: 1.08)
+            .chain(CurveTween(curve: Curves.easeOutBack)),
+        weight: 24,
       ),
-    );
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.08, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 76,
+      ),
+    ]).animate(_controller);
+
     _opacity = TweenSequence<double>([
       TweenSequenceItem(
         tween: Tween<double>(begin: 0, end: 1)
             .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 16,
+        weight: 10,
       ),
       TweenSequenceItem(
         tween: ConstantTween<double>(1),
-        weight: 58,
+        weight: 76,
       ),
       TweenSequenceItem(
         tween: Tween<double>(begin: 1, end: 0)
             .chain(CurveTween(curve: Curves.easeIn)),
-        weight: 26,
+        weight: 14,
       ),
     ]).animate(_controller);
-    _rise = Tween<double>(begin: 8, end: -24).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+
+    _rise = Tween<double>(begin: 5, end: -7).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
     );
+
     _controller.forward();
   }
 
@@ -181,13 +191,16 @@ class _EmotionBurstState extends State<_EmotionBurst>
 
   @override
   Widget build(BuildContext context) {
+    // Эмоция теперь появляется справа от лица, а не над аватаром.
+    // Для верхнего соперника это не даёт ей залезать в AppBar и сразу
+    // исчезать за границей игрового стола.
     const slots = <Offset>[
-      Offset(2, -20),
-      Offset(34, -26),
-      Offset(58, -12),
-      Offset(-8, 8),
-      Offset(52, 12),
-      Offset(18, 20),
+      Offset(43, 15),
+      Offset(38, 20),
+      Offset(46, 10),
+      Offset(35, 14),
+      Offset(42, 22),
+      Offset(39, 12),
     ];
     final slot = slots[widget.sequence % slots.length];
 
@@ -213,13 +226,17 @@ class _EmotionBurstState extends State<_EmotionBurst>
           height: 42,
           padding: const EdgeInsets.all(2),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.92),
+            color: const Color(0xFFFFE8B6),
             shape: BoxShape.circle,
-            boxShadow: [
+            border: Border.all(
+              color: const Color(0xFF111111),
+              width: 2.2,
+            ),
+            boxShadow: const [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
+                color: Color(0xFF111111),
+                blurRadius: 0,
+                offset: Offset(3, 4),
               ),
             ],
           ),

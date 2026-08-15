@@ -6,6 +6,7 @@ import '../localization/app_localizations.dart';
 import '../localization/statistics_strings.dart';
 import '../models/user_account.dart';
 import '../services/social_service.dart';
+import '../services/sound_effects_service.dart';
 import '../widgets/cartoon_page_background.dart';
 import 'inventory_screen.dart';
 import 'profile_screen.dart';
@@ -254,7 +255,10 @@ class _CartoonNavItem extends StatelessWidget {
       label: data.label,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: onTap,
+        onTap: () {
+          SoundEffectsService.button(alternate: true);
+          onTap();
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeOut,

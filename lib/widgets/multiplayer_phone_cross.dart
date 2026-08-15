@@ -71,30 +71,29 @@ class _PhoneLayoutDraft {
 /// Визуальная раскладка режима «Телефон».
 ///
 /// Сервер остаётся источником истины и хранит четыре независимых конца:
-/// top / right / bottom / left. На экране каждая ветка получает собственный
-/// сектор и после короткого прямого участка укладывается змейкой.
+/// top / right / bottom / left. Каждый луч креста проходит только короткий
+/// стартовый участок, после чего укладывается отдельной змейкой в своём
+/// секторе стола.
 ///
 /// Сектора не пересекаются:
-///   top    -> верх + вправо
-///   right  -> право + вниз
-///   bottom -> низ + влево
-///   left   -> лево + вверх
-///
-/// Поэтому даже когда одновременно развиваются все четыре конца креста,
-/// костяшки больше не накладываются друг на друга.
+///   top    -> верх + вправо/влево змейкой
+///   right  -> право + вниз/вверх змейкой
+///   bottom -> низ + влево/вправо змейкой
+///   left   -> лево + вверх/вниз змейкой
 class MultiplayerPhoneCross extends StatelessWidget {
   static const double _safeMargin = 16;
   static const double _preferredShortSide = 29;
 
-  /// От центра сначала даём ветке уйти достаточно далеко, чтобы четыре луча
-  /// не столкнулись около базового дубля.
-  static const double _initialRunUnits = 6;
+  /// Максимум две обычные костяшки прямо от центрального дубля. После этого
+  /// ветка обязательно поворачивает и становится змейкой, чтобы крест не рос
+  /// через весь стол.
+  static const double _initialRunUnits = 4;
 
-  /// Длинная часть каждого ряда змейки.
-  static const double _rowRunUnits = 6;
+  /// Длина горизонтального/вертикального ряда после первого поворота.
+  static const double _rowRunUnits = 5;
 
-  /// Расстояние между соседними рядами змейки. 3 квадрата достаточно, чтобы
-  /// поперечный дубль не задевал предыдущий ряд.
+  /// Шаг наружу между соседними рядами. Трёх квадратов достаточно даже для
+  /// поперечного дубля, поэтому соседние ряды не накладываются.
   static const double _rowStepUnits = 3;
 
   final List<ServerDomino> dominoes;
@@ -178,8 +177,6 @@ class MultiplayerPhoneCross extends StatelessWidget {
   _PhoneDirection _directionForSegment(String side, int segmentIndex) {
     if (segmentIndex == 0) return _baseDirection(side);
 
-    // Чётные сегменты после первого всегда продолжают движение наружу,
-    // создавая новый ряд. Нечётные проходят сам ряд туда/обратно.
     if (segmentIndex.isEven) return _baseDirection(side);
 
     final rowNumber = (segmentIndex - 1) ~/ 2;
@@ -212,9 +209,6 @@ class MultiplayerPhoneCross extends StatelessWidget {
   double _pathUnits(Domino domino) => domino.left == domino.right ? 1 : 2;
 
   Offset _openingConnectionUnits(String side) {
-    // Центральный дубль визуально вертикальный: его две половинки имеют
-    // центры y=-0.5 и y=+0.5. Для левого/правого выхода соединение начинается
-    // в центре дубля, а для top/bottom — от соответствующей половинки.
     return switch (side) {
       'top' => const Offset(0, -0.5),
       'bottom' => const Offset(0, 0.5),
@@ -252,9 +246,6 @@ class MultiplayerPhoneCross extends StatelessWidget {
       usedUnits = 0;
       final nextDirection = _directionForSegment(state.side, segmentIndex);
 
-      // После дубля connection находится в его центре. Если сразу начинается
-      // поворот, выходим к нужному краю длинной стороны дубля. Без этого
-      // следующая костяшка залезает на половину дубля.
       if (state.previousWasDouble && nextDirection != state.previousDirection) {
         connection += _vector(nextDirection) * 0.5;
       }
@@ -262,8 +253,6 @@ class MultiplayerPhoneCross extends StatelessWidget {
       direction = nextDirection;
       limit = _limitForSegment(segmentIndex);
 
-      // Защитный guard: максимальная кость занимает 2 единицы, а самый
-      // короткий сегмент — 3, поэтому сюда обычно не попадаем.
       if (requiredUnits > limit) {
         segmentIndex += 1;
         direction = _directionForSegment(state.side, segmentIndex);
@@ -289,7 +278,6 @@ class MultiplayerPhoneCross extends StatelessWidget {
     final isDouble = domino.left == domino.right;
 
     if (isDouble) {
-      // Дубль занимает один квадрат по направлению цепочки и два поперёк.
       final center = connectionUnits + vector;
       return (center, center);
     }
@@ -472,9 +460,6 @@ class MultiplayerPhoneCross extends StatelessWidget {
     final availableWidth = math.max(1.0, boardSize.width - _safeMargin * 2);
     final availableHeight = math.max(1.0, boardSize.height - _safeMargin * 2);
 
-    // Базовый дубль всегда остаётся в геометрическом центре стола. Поэтому
-    // масштаб считаем не по центру bounding box, а по максимальному удалению
-    // от нуля в каждую сторону.
     final halfWidthUnits = math.max(
       1.0,
       math.max(draft.minX.abs(), draft.maxX.abs()),

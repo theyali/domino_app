@@ -61,7 +61,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       useSafeArea: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.72),
+      barrierColor: Colors.black.withValues(alpha: 0.76),
       builder: (context) => _InventoryGiftDetails(item: item),
     );
   }
@@ -116,7 +116,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         padding: const EdgeInsets.all(28),
         children: [
           const SizedBox(height: 150),
-          const _InventoryMessageIcon(
+          const _InventoryStateIcon(
             icon: Icons.cloud_off_rounded,
             accent: Color(0xFFFF655B),
           ),
@@ -132,10 +132,24 @@ class _InventoryScreenState extends State<InventoryScreen> {
           ),
           const SizedBox(height: 20),
           Center(
-            child: _CartoonActionButton(
+            child: FilledButton.icon(
               onPressed: _load,
-              icon: Icons.refresh_rounded,
-              label: context.tr('retry'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.lime,
+                foregroundColor: AppColors.ink,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 13,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text(
+                context.tr('retry'),
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
             ),
           ),
         ],
@@ -176,12 +190,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
     return ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 122),
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 124),
       itemCount: _items.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 13),
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final item = _items[index];
-        return _ReceivedGiftCard(
+        return _VoucherGiftCard(
           item: item,
           onTap: () => _showGift(item),
         );
@@ -190,17 +204,20 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 }
 
-class _ReceivedGiftCard extends StatefulWidget {
+class _VoucherGiftCard extends StatefulWidget {
   final InventoryGift item;
   final VoidCallback onTap;
 
-  const _ReceivedGiftCard({required this.item, required this.onTap});
+  const _VoucherGiftCard({
+    required this.item,
+    required this.onTap,
+  });
 
   @override
-  State<_ReceivedGiftCard> createState() => _ReceivedGiftCardState();
+  State<_VoucherGiftCard> createState() => _VoucherGiftCardState();
 }
 
-class _ReceivedGiftCardState extends State<_ReceivedGiftCard> {
+class _VoucherGiftCardState extends State<_VoucherGiftCard> {
   bool _pressed = false;
 
   @override
@@ -208,7 +225,6 @@ class _ReceivedGiftCardState extends State<_ReceivedGiftCard> {
     final item = widget.item;
     final gift = item.gift;
     final redeemed = item.status == 'redeemed';
-    final accent = redeemed ? AppColors.brass : AppColors.lime;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -219,119 +235,58 @@ class _ReceivedGiftCardState extends State<_ReceivedGiftCard> {
         widget.onTap();
       },
       child: AnimatedScale(
-        scale: _pressed ? 0.985 : 1,
-        duration: const Duration(milliseconds: 110),
+        scale: _pressed ? 0.982 : 1,
+        duration: const Duration(milliseconds: 105),
         curve: Curves.easeOut,
         child: Container(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF23382E), Color(0xFF151F1B)],
-            ),
-            borderRadius: BorderRadius.circular(25),
-            border: Border.all(
-              color: AppColors.brass.withValues(alpha: 0.48),
-              width: 1.35,
-            ),
-            boxShadow: const [
+          decoration: const BoxDecoration(
+            boxShadow: [
               BoxShadow(
                 color: Colors.black45,
-                blurRadius: 16,
+                blurRadius: 15,
                 offset: Offset(0, 8),
               ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
+          child: AspectRatio(
+            aspectRatio: 2.62,
             child: Stack(
+              fit: StackFit.expand,
               children: [
-                const Positioned(
-                  top: -34,
-                  left: -24,
-                  child: _SoftCardDecoration(),
+                Image.asset(
+                  'assets/texture/voucher.png',
+                  fit: BoxFit.fill,
+                  filterQuality: FilterQuality.high,
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.fromLTRB(18, 13, 15, 13),
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 14, right: 10),
-                        child: _GiftShowcase(
-                          imageUrl: gift.imageUrl,
-                          size: 88,
-                        ),
-                      ),
                       Expanded(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        flex: 76,
+                        child: Row(
                           children: [
-                            Text(
-                              gift.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: AppColors.cream,
-                                fontSize: 18.5,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.25,
+                            _GiftArtwork(
+                              imageUrl: gift.imageUrl,
+                              size: 72,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _VoucherGiftInfo(
+                                item: item,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.restaurant_rounded,
-                                  size: 14,
-                                  color: AppColors.brassLight,
-                                ),
-                                const SizedBox(width: 5),
-                                Expanded(
-                                  child: Text(
-                                    gift.restaurantName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Colors.white60,
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              context.tr(
-                                'gift_from',
-                                arguments: {'name': item.senderLabel},
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            if (item.giftedAt != null) ...[
-                              const SizedBox(height: 5),
-                              _DateChip(value: _formatDate(item.giftedAt!)),
-                            ],
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        height: 122,
-                        child: _VoucherStub(
+                      Expanded(
+                        flex: 24,
+                        child: _VoucherQrStub(
+                          qrCode: item.qrCode,
+                          redeemed: redeemed,
                           status: context.tr(
                             redeemed ? 'gift_redeemed' : 'gift_available',
                           ),
-                          accent: accent,
-                          redeemed: redeemed,
                         ),
                       ),
                     ],
@@ -346,103 +301,198 @@ class _ReceivedGiftCardState extends State<_ReceivedGiftCard> {
   }
 }
 
-class _VoucherStub extends StatelessWidget {
-  final String status;
-  final Color accent;
-  final bool redeemed;
+class _VoucherGiftInfo extends StatelessWidget {
+  final InventoryGift item;
 
-  const _VoucherStub({
-    required this.status,
-    required this.accent,
+  const _VoucherGiftInfo({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final gift = item.gift;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          gift.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Color(0xFF18211D),
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.25,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Row(
+          children: [
+            const Icon(
+              Icons.restaurant_rounded,
+              size: 13,
+              color: Color(0xFF9A6726),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                gift.restaurantName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF5E625E),
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          context.tr(
+            'gift_from',
+            arguments: {'name': item.senderLabel},
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Color(0xFF242A27),
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        if (item.giftedAt != null) ...[
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1D2C25).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: Text(
+              _formatDate(item.giftedAt!),
+              style: const TextStyle(
+                color: Color(0xFF6A6D69),
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _VoucherQrStub extends StatelessWidget {
+  final String qrCode;
+  final bool redeemed;
+  final String status;
+
+  const _VoucherQrStub({
+    required this.qrCode,
     required this.redeemed,
+    required this.status,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 76,
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.18),
-        border: const Border(
-          left: BorderSide(color: Colors.white12, width: 1),
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            left: -4,
-            top: 10,
-            bottom: 10,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: List.generate(
-                8,
-                (index) => Container(
-                  width: 2,
-                  height: 5,
-                  color: AppColors.brass.withValues(alpha: 0.42),
+    final accent = redeemed ? const Color(0xFF8B7350) : const Color(0xFF4E7E24);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final qrSize = constraints.maxHeight * 0.42;
+
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Opacity(
+              opacity: redeemed ? 0.42 : 1,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(
+                    color: const Color(0xFFC8943E),
+                    width: 1.4,
+                  ),
+                ),
+                child: QrImageView(
+                  data: qrCode,
+                  size: qrSize.clamp(40.0, 58.0).toDouble(),
+                  padding: EdgeInsets.zero,
+                  backgroundColor: Colors.white,
+                  eyeStyle: const QrEyeStyle(
+                    eyeShape: QrEyeShape.square,
+                    color: Color(0xFF171B19),
+                  ),
+                  dataModuleStyle: const QrDataModuleStyle(
+                    dataModuleShape: QrDataModuleShape.square,
+                    color: Color(0xFF171B19),
+                  ),
                 ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 12),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 45,
-                  height: 45,
-                  decoration: BoxDecoration(
-                    color: AppColors.cream,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.brass, width: 1.5),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black38,
-                        blurRadius: 7,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    redeemed
-                        ? Icons.check_circle_rounded
-                        : Icons.qr_code_2_rounded,
-                    color: AppColors.ink,
-                    size: 29,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  constraints: const BoxConstraints(maxWidth: 62),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(99),
-                    border: Border.all(color: accent.withValues(alpha: 0.6)),
-                  ),
-                  child: Text(
-                    status,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: accent,
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ],
+            const SizedBox(height: 5),
+            Text(
+              status,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: accent,
+                fontSize: 9.5,
+                fontWeight: FontWeight.w900,
+              ),
             ),
-          ),
-        ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _GiftArtwork extends StatelessWidget {
+  final String? imageUrl;
+  final double size;
+
+  const _GiftArtwork({
+    required this.imageUrl,
+    required this.size,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Padding(
+        padding: const EdgeInsets.all(3),
+        child: imageUrl?.trim().isNotEmpty == true
+            ? Image.network(
+                imageUrl!,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+                errorBuilder: (context, error, stackTrace) =>
+                    const _GiftFallback(),
+              )
+            : const _GiftFallback(),
       ),
+    );
+  }
+}
+
+class _GiftFallback extends StatelessWidget {
+  const _GiftFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Icon(
+      Icons.card_giftcard_rounded,
+      color: Color(0xFF9A6726),
+      size: 44,
     );
   }
 }
@@ -456,10 +506,9 @@ class _InventoryGiftDetails extends StatelessWidget {
   Widget build(BuildContext context) {
     final gift = item.gift;
     final redeemed = item.status == 'redeemed';
-    final accent = redeemed ? AppColors.brass : AppColors.lime;
 
     return FractionallySizedBox(
-      heightFactor: 0.88,
+      heightFactor: 0.82,
       child: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -467,7 +516,7 @@ class _InventoryGiftDetails extends StatelessWidget {
             end: Alignment.bottomCenter,
             colors: [AppColors.panelTop, AppColors.background],
           ),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(34)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
           border: Border(
             top: BorderSide(color: AppColors.brass, width: 2),
           ),
@@ -487,37 +536,11 @@ class _InventoryGiftDetails extends StatelessWidget {
               ),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(22, 18, 22, 28),
+                  padding: const EdgeInsets.fromLTRB(18, 20, 18, 28),
                   child: Column(
                     children: [
-                      _GiftShowcase(imageUrl: gift.imageUrl, size: 126),
-                      const SizedBox(height: 16),
-                      Text(
-                        gift.name,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: AppColors.cream,
-                          fontSize: 27,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.6,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        gift.restaurantName,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: AppColors.brassLight,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _StatusRibbon(
-                        text: context.tr(
-                          redeemed ? 'gift_redeemed' : 'gift_available',
-                        ),
-                        color: accent,
+                      _LargeVoucher(
+                        item: item,
                       ),
                       const SizedBox(height: 18),
                       Container(
@@ -527,10 +550,10 @@ class _InventoryGiftDetails extends StatelessWidget {
                           vertical: 13,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.17),
+                          color: Colors.black.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
-                            color: AppColors.brass.withValues(alpha: 0.2),
+                            color: AppColors.brass.withValues(alpha: 0.28),
                           ),
                         ),
                         child: Row(
@@ -548,7 +571,7 @@ class _InventoryGiftDetails extends StatelessWidget {
                                   arguments: {'name': item.senderLabel},
                                 ),
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: AppColors.cream,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
@@ -558,16 +581,14 @@ class _InventoryGiftDetails extends StatelessWidget {
                                 _formatDate(item.giftedAt!),
                                 style: const TextStyle(
                                   color: Colors.white54,
-                                  fontSize: 12,
+                                  fontSize: 11.5,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      _QrVoucher(qrCode: item.qrCode, redeemed: redeemed),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 15),
                       Text(
                         context.tr(
                           redeemed
@@ -578,8 +599,18 @@ class _InventoryGiftDetails extends StatelessWidget {
                         style: const TextStyle(
                           color: Colors.white54,
                           fontSize: 12.5,
-                          height: 1.4,
+                          height: 1.45,
                           fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        gift.restaurantName,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.brassLight,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ],
@@ -594,212 +625,156 @@ class _InventoryGiftDetails extends StatelessWidget {
   }
 }
 
-class _QrVoucher extends StatelessWidget {
-  final String qrCode;
-  final bool redeemed;
+class _LargeVoucher extends StatelessWidget {
+  final InventoryGift item;
 
-  const _QrVoucher({required this.qrCode, required this.redeemed});
+  const _LargeVoucher({required this.item});
 
   @override
   Widget build(BuildContext context) {
+    final gift = item.gift;
+    final redeemed = item.status == 'redeemed';
+
     return Container(
-      width: 264,
-      padding: const EdgeInsets.fromLTRB(15, 15, 15, 16),
-      decoration: BoxDecoration(
-        color: AppColors.cream,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.brass, width: 2.3),
-        boxShadow: const [
+      decoration: const BoxDecoration(
+        boxShadow: [
           BoxShadow(
-            color: Colors.black45,
-            blurRadius: 18,
-            offset: Offset(0, 9),
+            color: Colors.black54,
+            blurRadius: 20,
+            offset: Offset(0, 10),
           ),
         ],
       ),
-      child: Column(
-        children: [
-          Row(
-            children: const [
-              _VoucherHole(),
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Divider(color: AppColors.brass, thickness: 1),
-                ),
-              ),
-              Icon(
-                Icons.confirmation_number_rounded,
-                color: AppColors.brassDark,
-                size: 20,
-              ),
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Divider(color: AppColors.brass, thickness: 1),
-                ),
-              ),
-              _VoucherHole(),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Opacity(
-            opacity: redeemed ? 0.42 : 1,
-            child: QrImageView(
-              data: qrCode,
-              size: 210,
-              backgroundColor: AppColors.cream,
-              eyeStyle: const QrEyeStyle(
-                eyeShape: QrEyeShape.square,
-                color: AppColors.ink,
-              ),
-              dataModuleStyle: const QrDataModuleStyle(
-                dataModuleShape: QrDataModuleShape.square,
-                color: AppColors.ink,
+      child: AspectRatio(
+        aspectRatio: 2.25,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              'assets/texture/voucher.png',
+              fit: BoxFit.fill,
+              filterQuality: FilterQuality.high,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(21, 17, 18, 17),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 75,
+                    child: Row(
+                      children: [
+                        _GiftArtwork(
+                          imageUrl: gift.imageUrl,
+                          size: 92,
+                        ),
+                        const SizedBox(width: 13),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                gift.name,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFF18211D),
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.0,
+                                ),
+                              ),
+                              const SizedBox(height: 7),
+                              Text(
+                                gift.restaurantName,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFF62645F),
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    flex: 25,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final qrSize = constraints.maxWidth * 0.72;
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Opacity(
+                              opacity: redeemed ? 0.42 : 1,
+                              child: Container(
+                                padding: const EdgeInsets.all(5),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(11),
+                                  border: Border.all(
+                                    color: const Color(0xFFC8943E),
+                                    width: 1.6,
+                                  ),
+                                ),
+                                child: QrImageView(
+                                  data: item.qrCode,
+                                  size: qrSize.clamp(54.0, 82.0).toDouble(),
+                                  padding: EdgeInsets.zero,
+                                  backgroundColor: Colors.white,
+                                  eyeStyle: const QrEyeStyle(
+                                    eyeShape: QrEyeShape.square,
+                                    color: Color(0xFF171B19),
+                                  ),
+                                  dataModuleStyle: const QrDataModuleStyle(
+                                    dataModuleShape: QrDataModuleShape.square,
+                                    color: Color(0xFF171B19),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 7),
+                            Text(
+                              context.tr(
+                                redeemed ? 'gift_redeemed' : 'gift_available',
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: redeemed
+                                    ? const Color(0xFF8B7350)
+                                    : const Color(0xFF4E7E24),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GiftShowcase extends StatelessWidget {
-  final String? imageUrl;
-  final double size;
-
-  const _GiftShowcase({required this.imageUrl, required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: size * 0.84,
-            height: size * 0.84,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const RadialGradient(
-                colors: [Color(0xFFFFE7A0), AppColors.brassDark],
-              ),
-              border: Border.all(color: AppColors.brassLight, width: 1.6),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black38,
-                  blurRadius: 11,
-                  offset: Offset(0, 6),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(
-            width: size * 0.79,
-            height: size * 0.79,
-            child: Padding(
-              padding: EdgeInsets.all(size * 0.08),
-              child: imageUrl?.trim().isNotEmpty == true
-                  ? Image.network(
-                      imageUrl!,
-                      fit: BoxFit.contain,
-                      filterQuality: FilterQuality.high,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const _GiftFallback(),
-                    )
-                  : const _GiftFallback(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GiftFallback extends StatelessWidget {
-  const _GiftFallback();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Icon(
-      Icons.card_giftcard_rounded,
-      color: AppColors.ink,
-      size: 42,
-    );
-  }
-}
-
-class _StatusRibbon extends StatelessWidget {
-  final String text;
-  final Color color;
-
-  const _StatusRibbon({required this.text, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.13),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.65)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 7,
-            height: 7,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-          ),
-          const SizedBox(width: 7),
-          Text(
-            text,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DateChip extends StatelessWidget {
-  final String value;
-
-  const _DateChip({required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(99),
-      ),
-      child: Text(
-        value,
-        style: const TextStyle(
-          color: Colors.white54,
-          fontSize: 10.5,
-          fontWeight: FontWeight.w700,
+          ],
         ),
       ),
     );
   }
 }
 
-class _InventoryMessageIcon extends StatelessWidget {
+class _InventoryStateIcon extends StatelessWidget {
   final IconData icon;
   final Color accent;
 
-  const _InventoryMessageIcon({required this.icon, required this.accent});
+  const _InventoryStateIcon({
+    required this.icon,
+    required this.accent,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -820,38 +795,6 @@ class _InventoryMessageIcon extends StatelessWidget {
           ],
         ),
         child: Icon(icon, color: accent, size: 42),
-      ),
-    );
-  }
-}
-
-class _CartoonActionButton extends StatelessWidget {
-  final VoidCallback onPressed;
-  final IconData icon;
-  final String label;
-
-  const _CartoonActionButton({
-    required this.onPressed,
-    required this.icon,
-    required this.label,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton.icon(
-      onPressed: onPressed,
-      style: FilledButton.styleFrom(
-        backgroundColor: AppColors.lime,
-        foregroundColor: AppColors.ink,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
-      icon: Icon(icon),
-      label: Text(
-        label,
-        style: const TextStyle(fontWeight: FontWeight.w900),
       ),
     );
   }
@@ -878,7 +821,10 @@ class _EmptyGiftChest extends StatelessWidget {
                   gradient: const LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [AppColors.rackWoodLight, AppColors.rackWoodDark],
+                    colors: [
+                      AppColors.rackWoodLight,
+                      AppColors.rackWoodDark,
+                    ],
                   ),
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: AppColors.brass, width: 2.5),
@@ -919,38 +865,6 @@ class _EmptyGiftChest extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _SoftCardDecoration extends StatelessWidget {
-  const _SoftCardDecoration();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 120,
-      height: 120,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.brass.withValues(alpha: 0.055),
-      ),
-    );
-  }
-}
-
-class _VoucherHole extends StatelessWidget {
-  const _VoucherHole();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.brass,
       ),
     );
   }

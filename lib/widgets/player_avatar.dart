@@ -22,6 +22,7 @@ enum PlayerGiftPlacement { left, right }
 class PlayerAvatar extends StatefulWidget {
   final Player player;
   final VoidCallback onTap;
+  final VoidCallback? onDoubleTap;
   final bool isActive;
   final int? turnSecondsLeft;
   final double turnProgress;
@@ -38,6 +39,7 @@ class PlayerAvatar extends StatefulWidget {
     required this.player,
     required this.onTap,
     required this.dominoCount,
+    this.onDoubleTap,
     this.isActive = false,
     this.turnSecondsLeft,
     this.turnProgress = 0,
@@ -335,6 +337,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
     return GestureDetector(
       key: _anchorKey,
       onTap: _handleTap,
+      onDoubleTap: widget.onDoubleTap,
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,

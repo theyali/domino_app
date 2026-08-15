@@ -43,7 +43,7 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
 
     _scale = Tween<double>(
       begin: 0.99,
-      end: 1.025,
+      end: 1.035,
     ).animate(
       CurvedAnimation(
         parent: _pulseController,
@@ -71,24 +71,23 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
   @override
   Widget build(BuildContext context) {
     final boneyardLabel = context.appLanguage.code == 'az' ? 'Bazar' : 'Базар';
+    final active = widget.enabled;
 
     return Tooltip(
       message: '$boneyardLabel: ${widget.count}',
       child: Padding(
-        // Positioned в игровом поле привязан к правому нижнему углу.
-        // Этот внутренний запас визуально сдвигает иконку влево и вверх,
-        // чтобы угловой шуруп стола оставался виден.
-        padding: const EdgeInsets.only(right: 12, bottom: 12),
+        // Оставляем угловой шуруп на своём месте и уводим базар левее.
+        padding: const EdgeInsets.only(right: 64, bottom: 12),
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: widget.enabled ? widget.onTap : null,
+          onTap: active ? widget.onTap : null,
           child: AnimatedBuilder(
             animation: Listenable.merge([
               _pulseController,
               _drawController,
             ]),
             builder: (context, child) {
-              final pulseScale = widget.enabled ? _scale.value : 1.0;
+              final pulseScale = active ? _scale.value : 1.0;
 
               final drawProgress = _drawController.value;
               final drawDecay = 1 - drawProgress;
@@ -107,126 +106,145 @@ class _DominoBoneyardPileState extends State<DominoBoneyardPile>
                   angle: shakeRotation,
                   child: Transform.scale(
                     scale: pulseScale * drawScale,
-                    child: Container(
-                      width: 66,
-                      height: 66,
-                      decoration: BoxDecoration(
-                        color: widget.enabled
-                            ? AppColors.cartoonYellow
-                            : const Color(0xFFD8C89E),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: AppColors.ink,
-                          width: 2.7,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 180),
+                      opacity: active ? 1 : 0.55,
+                      child: Container(
+                        width: 66,
+                        height: 66,
+                        decoration: BoxDecoration(
+                          color: active
+                              ? AppColors.cartoonYellow
+                              : const Color(0xFF4E4740),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: active ? AppColors.lime : AppColors.ink,
+                            width: active ? 3.2 : 2.7,
+                          ),
+                          boxShadow: [
+                            const BoxShadow(
+                              color: AppColors.ink,
+                              blurRadius: 0,
+                              offset: Offset(3, 4),
+                            ),
+                            if (active)
+                              BoxShadow(
+                                color: AppColors.lime.withValues(alpha: 0.55),
+                                blurRadius: 13,
+                                spreadRadius: 2,
+                              ),
+                          ],
                         ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: AppColors.ink,
-                            blurRadius: 0,
-                            offset: Offset(3, 4),
-                          ),
-                        ],
-                      ),
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          const Positioned(
-                            left: 9,
-                            top: 15,
-                            child: _DominoBack(
-                              angle: -0.16,
-                              color: AppColors.cartoonCoral,
-                            ),
-                          ),
-                          const Positioned(
-                            left: 20,
-                            top: 10,
-                            child: _DominoBack(
-                              angle: -0.01,
-                              color: AppColors.cream,
-                            ),
-                          ),
-                          const Positioned(
-                            left: 31,
-                            top: 15,
-                            child: _DominoBack(
-                              angle: 0.16,
-                              color: AppColors.cartoonMint,
-                            ),
-                          ),
-                          Positioned(
-                            left: 5,
-                            bottom: 5,
-                            child: Container(
-                              width: 21,
-                              height: 21,
-                              decoration: BoxDecoration(
-                                color: AppColors.cartoonCoral,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: AppColors.ink,
-                                  width: 1.7,
-                                ),
-                              ),
-                              child: Icon(
-                                Icons.touch_app_rounded,
-                                color: widget.enabled
-                                    ? AppColors.ink
-                                    : AppColors.ink.withValues(alpha: 0.45),
-                                size: 13,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Positioned(
+                              left: 9,
+                              top: 15,
+                              child: _DominoBack(
+                                angle: -0.16,
+                                color: active
+                                    ? AppColors.cartoonCoral
+                                    : const Color(0xFF716961),
                               ),
                             ),
-                          ),
-                          Positioned(
-                            right: -5,
-                            top: -6,
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 180),
-                              transitionBuilder: (child, animation) {
-                                return ScaleTransition(
-                                  scale: animation,
-                                  child: FadeTransition(
-                                    opacity: animation,
-                                    child: child,
-                                  ),
-                                );
-                              },
+                            Positioned(
+                              left: 20,
+                              top: 10,
+                              child: _DominoBack(
+                                angle: -0.01,
+                                color: active
+                                    ? AppColors.cream
+                                    : const Color(0xFF837B72),
+                              ),
+                            ),
+                            Positioned(
+                              left: 31,
+                              top: 15,
+                              child: _DominoBack(
+                                angle: 0.16,
+                                color: active
+                                    ? AppColors.cartoonMint
+                                    : const Color(0xFF69645F),
+                              ),
+                            ),
+                            Positioned(
+                              left: 5,
+                              bottom: 5,
                               child: Container(
-                                key: ValueKey(widget.count),
-                                constraints: const BoxConstraints(
-                                  minWidth: 29,
-                                  minHeight: 29,
-                                ),
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 5),
-                                alignment: Alignment.center,
+                                width: 21,
+                                height: 21,
                                 decoration: BoxDecoration(
-                                  color: AppColors.lime,
-                                  borderRadius: BorderRadius.circular(15),
+                                  color: active
+                                      ? AppColors.cartoonCoral
+                                      : const Color(0xFF6E675F),
+                                  shape: BoxShape.circle,
                                   border: Border.all(
                                     color: AppColors.ink,
-                                    width: 1.8,
+                                    width: 1.7,
                                   ),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: AppColors.ink,
-                                      blurRadius: 0,
-                                      offset: Offset(2, 2),
-                                    ),
-                                  ],
                                 ),
-                                child: Text(
-                                  '${widget.count}',
-                                  style: const TextStyle(
-                                    color: AppColors.ink,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w900,
+                                child: Icon(
+                                  Icons.touch_app_rounded,
+                                  color: active
+                                      ? AppColors.ink
+                                      : AppColors.ink.withValues(alpha: 0.6),
+                                  size: 13,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              right: -5,
+                              top: -6,
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 180),
+                                transitionBuilder: (child, animation) {
+                                  return ScaleTransition(
+                                    scale: animation,
+                                    child: FadeTransition(
+                                      opacity: animation,
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  key: ValueKey(widget.count),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 29,
+                                    minHeight: 29,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: active
+                                        ? AppColors.lime
+                                        : const Color(0xFF8A8178),
+                                    borderRadius: BorderRadius.circular(15),
+                                    border: Border.all(
+                                      color: AppColors.ink,
+                                      width: 1.8,
+                                    ),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: AppColors.ink,
+                                        blurRadius: 0,
+                                        offset: Offset(2, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    '${widget.count}',
+                                    style: const TextStyle(
+                                      color: AppColors.ink,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w900,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),

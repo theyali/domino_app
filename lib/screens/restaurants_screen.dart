@@ -96,14 +96,14 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
         title: Text(navigationStrings.play),
         actions: [
           IconButton(
-            onPressed: _isLoading ? null : _loadRestaurants,
+            onPressed: _isLoading ? null : () => _loadRestaurants(),
             tooltip: context.tr('refresh'),
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _loadRestaurants,
+        onRefresh: () => _loadRestaurants(),
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
@@ -133,7 +133,7 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
                 hasScrollBody: false,
                 child: _RestaurantsError(
                   message: _errorMessage!,
-                  onRetry: _loadRestaurants,
+                  onRetry: () => _loadRestaurants(),
                 ),
               )
             else if (visibleRestaurants.isEmpty)
@@ -186,7 +186,7 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
 
 class _RestaurantsError extends StatelessWidget {
   final String message;
-  final Future<void> Function({bool silent}) onRetry;
+  final Future<void> Function() onRetry;
 
   const _RestaurantsError({
     required this.message,
@@ -220,7 +220,7 @@ class _RestaurantsError extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           FilledButton.icon(
-            onPressed: () => onRetry(),
+            onPressed: onRetry,
             icon: const Icon(Icons.refresh_rounded),
             label: Text(context.tr('retry')),
           ),

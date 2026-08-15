@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../localization/app_language.dart';
 import '../localization/app_localizations.dart';
 import '../localization/statistics_strings.dart';
 import '../models/user_account.dart';
@@ -163,6 +164,21 @@ class _MainShellScreenState extends State<MainShellScreen>
     );
   }
 
+  Future<void> _openLanguagePicker() async {
+    SoundEffectsService.button(alternate: true);
+    final controller = LanguageScope.of(context);
+    final selected = await showModalBottomSheet<AppLanguage>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black54,
+      builder: (sheetContext) => _LanguagePickerSheet(
+        current: controller.language,
+      ),
+    );
+    if (selected == null || selected == controller.language) return;
+    await controller.setLanguage(selected);
+  }
+
   @override
   Widget build(BuildContext context) {
     final statsStrings = StatisticsStrings.of(context);
@@ -171,9 +187,9 @@ class _MainShellScreenState extends State<MainShellScreen>
       const RestaurantsScreen(),
       StatisticsScreen(key: ValueKey(_statisticsRefreshToken)),
       const InventoryScreen(),
-      SocialScreen(
-        currentUser: _user,
-        onBadgeChanged: _handleSocialBadgeChanged,
+      const IconTheme(
+        data: IconThemeData(color: Color(0xFF111111)),
+        child: SizedBox.shrink(),
       ),
       ProfileScreen(
         user: _user,
@@ -181,6 +197,13 @@ class _MainShellScreenState extends State<MainShellScreen>
         onLogout: _handleLogout,
       ),
     ];
+    screens[3] = IconTheme(
+      data: const IconThemeData(color: Color(0xFF111111)),
+      child: SocialScreen(
+        currentUser: _user,
+        onBadgeChanged: _handleSocialBadgeChanged,
+      ),
+    );
 
     final items = [
       _NavItemData(
@@ -214,9 +237,22 @@ class _MainShellScreenState extends State<MainShellScreen>
     return CartoonPageBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: IndexedStack(
-          index: _index,
-          children: screens,
+        body: Stack(
+          children: [
+            IndexedStack(
+              index: _index,
+              children: screens,
+            ),
+            if (_index == 0)
+              Positioned(
+                left: 12,
+                top: MediaQuery.paddingOf(context).top + 7,
+                child: _LanguageButton(
+                  language: context.appLanguage,
+                  onTap: _openLanguagePicker,
+                ),
+              ),
+          ],
         ),
         floatingActionButton: _index == 3
             ? _SocialManageButton(
@@ -229,6 +265,147 @@ class _MainShellScreenState extends State<MainShellScreen>
           selectedIndex: _index,
           items: items,
           onSelected: _selectTab,
+        ),
+      ),
+    );
+  }
+}
+
+class _LanguageButton extends StatelessWidget {
+  static const _ink = Color(0xFF17120D);
+  static const _cream = Color(0xFFFFF3CC);
+
+  final AppLanguage language;
+  final VoidCallback onTap;
+
+  const _LanguageButton({
+    required this.language,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 46,
+        height: 46,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: _cream,
+          shape: BoxShape.circle,
+          border: Border.all(color: _ink, width: 3),
+          boxShadow: const [
+            BoxShadow(
+              color: _ink,
+              blurRadius: 0,
+              offset: Offset(3, 4),
+            ),
+          ],
+        ),
+        child: Text(
+          language.flag,
+          style: const TextStyle(fontSize: 24, height: 1),
+        ),
+      ),
+    );
+  }
+}
+
+class _LanguagePickerSheet extends StatelessWidget {
+  static const _ink = Color(0xFF17120D);
+  static const _cream = Color(0xFFFFF3CC);
+  static const _yellow = Color(0xFFFFD85A);
+  static const _lime = Color(0xFF79FA00);
+
+  final AppLanguage current;
+
+  const _LanguagePickerSheet({required this.current});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+        decoration: BoxDecoration(
+          color: _yellow,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: _ink, width: 3),
+          boxShadow: const [
+            BoxShadow(
+              color: _ink,
+              blurRadius: 0,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 46,
+              height: 5,
+              decoration: BoxDecoration(
+                color: _ink,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              current == AppLanguage.az ? 'Dili seç' : 'Выбери язык',
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 14),
+            for (final language in AppLanguage.values) ...[
+              GestureDetector(
+                onTap: () {
+                  SoundEffectsService.button(alternate: true);
+                  Navigator.pop(context, language);
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                  decoration: BoxDecoration(
+                    color: language == current ? _lime : _cream,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: _ink, width: 3),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: _ink,
+                        blurRadius: 0,
+                        offset: Offset(3, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Text(language.flag, style: const TextStyle(fontSize: 27)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          language.label,
+                          style: const TextStyle(
+                            color: _ink,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      if (language == current)
+                        const Icon(Icons.check_circle_rounded, color: _ink, size: 25),
+                    ],
+                  ),
+                ),
+              ),
+              if (language != AppLanguage.values.last) const SizedBox(height: 10),
+            ],
+          ],
         ),
       ),
     );

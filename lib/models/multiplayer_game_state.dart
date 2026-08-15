@@ -180,6 +180,7 @@ class MultiplayerGameState {
   final int boneyardCount;
   final int myPlayerId;
   final List<ServerDomino> myHand;
+  final Map<int, List<ServerDomino>> revealedHands;
   final List<ServerDomino> table;
   final List<MultiplayerPlayerState> players;
   final MultiplayerRoundResult? roundResult;
@@ -204,6 +205,7 @@ class MultiplayerGameState {
     required this.boneyardCount,
     required this.myPlayerId,
     required this.myHand,
+    required this.revealedHands,
     required this.table,
     required this.players,
     required this.roundResult,
@@ -213,6 +215,7 @@ class MultiplayerGameState {
 
   factory MultiplayerGameState.fromJson(Map<String, dynamic> json) {
     final rawHand = json['my_hand'] as List<dynamic>? ?? const [];
+    final rawRevealedHands = json['revealed_hands'];
     final rawTable = json['table'] as List<dynamic>? ?? const [];
     final rawPlayers = json['players'] as List<dynamic>? ?? const [];
     final rawRoundResult = json['round_result'];
@@ -244,6 +247,7 @@ class MultiplayerGameState {
             ),
           )
           .toList(growable: false),
+      revealedHands: _revealedHandsFromJson(rawRevealedHands),
       table: rawTable
           .map(
             (item) => ServerDomino.fromJson(
@@ -266,6 +270,27 @@ class MultiplayerGameState {
       phoneOpenEnds: _stringIntMap(rawPhoneEnds),
       phoneOpenSum: json['phone_open_sum'] as int? ?? 0,
     );
+  }
+
+  static Map<int, List<ServerDomino>> _revealedHandsFromJson(dynamic raw) {
+    if (raw is! Map) return const <int, List<ServerDomino>>{};
+
+    final result = <int, List<ServerDomino>>{};
+    for (final entry in raw.entries) {
+      final playerId = int.tryParse(entry.key.toString());
+      final rawHand = entry.value;
+      if (playerId == null || rawHand is! List) continue;
+
+      result[playerId] = rawHand
+          .whereType<Map>()
+          .map(
+            (item) => ServerDomino.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(growable: false);
+    }
+    return result;
   }
 
   static Map<String, int> _stringIntMap(dynamic raw) {

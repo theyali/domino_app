@@ -15,6 +15,7 @@ import '../services/auth_session_store.dart';
 import '../theme/app_colors.dart';
 import '../widgets/cartoon_page_background.dart';
 import '../widgets/game_avatar_frame.dart';
+import 'purchased_gifts_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final UserAccount user;
@@ -228,6 +229,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  Future<void> _openPurchasedGifts() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const PurchasedGiftsScreen(),
+      ),
+    );
+  }
+
   InputDecoration _cartoonFieldDecoration({
     required String label,
     required IconData icon,
@@ -262,6 +271,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final languageController = LanguageScope.of(context);
     final strings = ProfileStrings.of(context);
+    final isAz = context.appLanguage.code == 'az';
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -433,41 +443,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              _CartoonPanel(
-                color: _ProfilePalette.mint,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                child: Row(
-                  children: [
-                    const _CartoonIconBadge(
-                      icon: Icons.card_giftcard_rounded,
-                      color: _ProfilePalette.coral,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            context.tr('my_gifts'),
-                            style: const TextStyle(
-                              color: _ProfilePalette.ink,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            context.tr('inventory_bottom_menu'),
-                            style: const TextStyle(
-                              color: _ProfilePalette.inkSoft,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _openPurchasedGifts,
+                child: _CartoonPanel(
+                  color: _ProfilePalette.mint,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  child: Row(
+                    children: [
+                      const _CartoonIconBadge(
+                        icon: Icons.shopping_bag_rounded,
+                        color: _ProfilePalette.coral,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isAz ? 'Alınmış hədiyyələr' : 'Купленные подарки',
+                              style: const TextStyle(
+                                color: _ProfilePalette.ink,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              isAz
+                                  ? 'Alış tarixçəsi və hədiyyə etmək üçün qalanlar'
+                                  : 'История расходов и подарки, которые можно подарить',
+                              style: const TextStyle(
+                                color: _ProfilePalette.inkSoft,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: _ProfilePalette.ink,
+                        size: 20,
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

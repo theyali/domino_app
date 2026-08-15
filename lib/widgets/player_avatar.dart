@@ -309,21 +309,12 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
     final avatarUrl =
         player.avatarUrl ?? PlayerAvatarCache.avatarUrlFor(player.id);
 
-    final canvasWidth = widget.compact ? 82.0 : 90.0;
-    final canvasHeight = widget.compact ? 66.0 : 76.0;
-    final avatarAreaSize = widget.compact ? 60.0 : 68.0;
-    final frameSize = widget.compact ? 56.0 : 62.0;
+    final canvasWidth = widget.compact ? 84.0 : 92.0;
+    final canvasHeight = widget.compact ? 68.0 : 78.0;
+    final avatarAreaSize = widget.compact ? 61.0 : 69.0;
+    final frameSize = widget.compact ? 57.0 : 63.0;
     final avatarLeft = (canvasWidth - avatarAreaSize) / 2;
     final avatarTop = widget.compact ? 3.0 : 4.0;
-
-    const avatarFrameGradient = LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [
-        Color(0xFFF7F2E8),
-        Color(0xFF9AA8B6),
-      ],
-    );
 
     final realtimeGift = _activeGift;
     final activeGiftImageUrl =
@@ -332,6 +323,14 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
     final hasActiveGift =
         (activeGiftImageUrl?.trim().isNotEmpty ?? false) ||
         (activeGiftName?.trim().isNotEmpty ?? false);
+
+    final frameColor = widget.isActive
+        ? AppColors.lime
+        : player.isMe
+            ? AppColors.cartoonPurple
+            : AppColors.cartoonYellow;
+
+    final frameRotation = player.id.isEven ? 0.035 : -0.035;
 
     return GestureDetector(
       key: _anchorKey,
@@ -353,43 +352,43 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                     width: avatarAreaSize,
                     height: avatarAreaSize,
                     child: Center(
-                      child: Container(
-                        width: frameSize,
-                        height: frameSize,
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: avatarFrameGradient,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black54,
-                              blurRadius: 8,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
+                      child: Transform.rotate(
+                        angle: frameRotation,
                         child: Container(
-                          clipBehavior: Clip.antiAlias,
+                          width: frameSize,
+                          height: frameSize,
+                          padding: const EdgeInsets.all(3.5),
                           decoration: BoxDecoration(
+                            color: frameColor,
                             shape: BoxShape.circle,
-                            gradient: const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                AppColors.cream,
-                                Color(0xFFE2E6EB),
-                              ],
-                            ),
                             border: Border.all(
                               color: AppColors.ink,
-                              width: 1.6,
+                              width: 2.8,
                             ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: AppColors.ink,
+                                blurRadius: 0,
+                                offset: Offset(3, 4),
+                              ),
+                            ],
                           ),
-                          alignment: Alignment.center,
-                          child: _AvatarFace(
-                            avatarUrl: avatarUrl,
-                            letter: avatarLetter,
-                            compact: widget.compact,
+                          child: Container(
+                            clipBehavior: Clip.antiAlias,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.cream,
+                              border: Border.all(
+                                color: AppColors.ink,
+                                width: 1.8,
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: _AvatarFace(
+                              avatarUrl: avatarUrl,
+                              letter: avatarLetter,
+                              compact: widget.compact,
+                            ),
                           ),
                         ),
                       ),
@@ -401,9 +400,8 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                   right: 0,
                   child: _HudBadge(
                     text: '${player.score}',
-                    minWidth: widget.compact ? 27 : 29,
-                    backgroundColor: AppColors.badge,
-                    borderColor: AppColors.cream,
+                    minWidth: widget.compact ? 28 : 30,
+                    backgroundColor: AppColors.cartoonCoral,
                     compact: widget.compact,
                   ),
                 ),
@@ -415,8 +413,6 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                       text: '${widget.turnSecondsLeft}',
                       minWidth: widget.compact ? 31 : 34,
                       backgroundColor: AppColors.lime,
-                      borderColor: AppColors.ink,
-                      textColor: Colors.black,
                       compact: widget.compact,
                     ),
                   ),
@@ -426,6 +422,32 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                     bottom: 0,
                     child: _DominoCountBadge(count: widget.dominoCount),
                   ),
+                if (widget.isOnline != null)
+                  Positioned(
+                    left: widget.compact ? 8 : 9,
+                    bottom: widget.compact ? 6 : 7,
+                    child: Container(
+                      width: widget.compact ? 13 : 14,
+                      height: widget.compact ? 13 : 14,
+                      decoration: BoxDecoration(
+                        color: widget.isOnline == true
+                            ? AppColors.cartoonMint
+                            : AppColors.cartoonCoral,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.ink,
+                          width: 1.8,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: AppColors.ink,
+                            blurRadius: 0,
+                            offset: Offset(1, 2),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 Positioned(
                   left: widget.giftPlacement == PlayerGiftPlacement.left
                       ? 0
@@ -433,7 +455,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                   right: widget.giftPlacement == PlayerGiftPlacement.right
                       ? 0
                       : null,
-                  top: widget.compact ? 24 : 28,
+                  top: widget.compact ? 25 : 29,
                   child: SizedBox(
                     width: 30,
                     height: 30,
@@ -487,34 +509,40 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
             ),
           ),
           if (widget.showName) ...[
-            const SizedBox(height: 1),
-            Container(
-              constraints: const BoxConstraints(minWidth: 54),
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-              decoration: BoxDecoration(
-                color: AppColors.badge.withValues(alpha: 0.92),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: AppColors.brass.withValues(alpha: 0.38),
-                  width: 1,
-                ),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black38,
-                    blurRadius: 5,
-                    offset: Offset(0, 2),
+            const SizedBox(height: 2),
+            Transform.rotate(
+              angle: player.id.isEven ? -0.018 : 0.018,
+              child: Container(
+                constraints: const BoxConstraints(minWidth: 56),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: widget.isActive
+                      ? AppColors.lime
+                      : AppColors.cream,
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(
+                    color: AppColors.ink,
+                    width: 2,
                   ),
-                ],
-              ),
-              child: Text(
-                player.isMe
-                    ? '${player.name} (${_isAzerbaijani ? 'Sən' : 'Ты'})'
-                    : player.name,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: widget.isActive ? AppColors.lime : Colors.white,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w900,
+                  boxShadow: const [
+                    BoxShadow(
+                      color: AppColors.ink,
+                      blurRadius: 0,
+                      offset: Offset(2, 3),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  player.isMe
+                      ? '${player.name} (${_isAzerbaijani ? 'Sən' : 'Ты'})'
+                      : player.name,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 13.5,
+                    height: 1,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ),
@@ -543,16 +571,7 @@ class _AvatarFace extends StatelessWidget {
     Widget fallback() {
       return Container(
         alignment: Alignment.center,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.cream,
-              Color(0xFFE2E6EB),
-            ],
-          ),
-        ),
+        color: AppColors.cream,
         child: Text(
           letter,
           style: TextStyle(
@@ -647,14 +666,14 @@ class _ActiveGiftImageState extends State<_ActiveGiftImage>
                   errorBuilder: (context, error, stackTrace) {
                     return const Icon(
                       Icons.card_giftcard_rounded,
-                      color: Colors.amberAccent,
+                      color: AppColors.cartoonCoral,
                       size: 20,
                     );
                   },
                 )
               : const Icon(
                   Icons.card_giftcard_rounded,
-                  color: Colors.amberAccent,
+                  color: AppColors.cartoonCoral,
                   size: 20,
                 ),
         ),
@@ -680,27 +699,20 @@ class _DominoCountBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 23,
+      height: 24,
       padding: const EdgeInsets.symmetric(horizontal: 7),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppColors.badgeLight,
-            AppColors.badge,
-          ],
-        ),
+        color: AppColors.cream,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.cream.withValues(alpha: 0.82),
-          width: 1.4,
+          color: AppColors.ink,
+          width: 1.8,
         ),
         boxShadow: const [
           BoxShadow(
-            color: Colors.black45,
-            blurRadius: 5,
-            offset: Offset(0, 2),
+            color: AppColors.ink,
+            blurRadius: 0,
+            offset: Offset(2, 2),
           ),
         ],
       ),
@@ -712,7 +724,7 @@ class _DominoCountBadge extends StatelessWidget {
           Text(
             '$count',
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.ink,
               fontSize: 11,
               fontWeight: FontWeight.w900,
             ),
@@ -727,34 +739,33 @@ class _HudBadge extends StatelessWidget {
   final String text;
   final double minWidth;
   final Color backgroundColor;
-  final Color borderColor;
-  final Color textColor;
   final bool compact;
 
   const _HudBadge({
     required this.text,
     required this.minWidth,
     required this.backgroundColor,
-    required this.borderColor,
-    this.textColor = Colors.white,
     this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: compact ? 27 : 29,
+      height: compact ? 28 : 30,
       constraints: BoxConstraints(minWidth: minWidth),
       padding: const EdgeInsets.symmetric(horizontal: 7),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: borderColor, width: 1.7),
+        border: Border.all(
+          color: AppColors.ink,
+          width: 1.9,
+        ),
         boxShadow: const [
           BoxShadow(
-            color: Colors.black45,
-            blurRadius: 5,
-            offset: Offset(0, 3),
+            color: AppColors.ink,
+            blurRadius: 0,
+            offset: Offset(2, 2),
           ),
         ],
       ),
@@ -762,7 +773,7 @@ class _HudBadge extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          color: textColor,
+          color: AppColors.ink,
           fontSize: compact ? 11 : 11.5,
           fontWeight: FontWeight.w900,
         ),
@@ -780,9 +791,9 @@ class _MiniDominoIcon extends StatelessWidget {
       width: 10,
       height: 16,
       decoration: BoxDecoration(
-        color: AppColors.cream,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(3),
-        border: Border.all(color: AppColors.ink, width: 0.8),
+        border: Border.all(color: AppColors.ink, width: 1),
       ),
       child: Column(
         children: [

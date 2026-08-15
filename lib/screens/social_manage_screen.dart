@@ -8,6 +8,7 @@ import '../models/user_account.dart';
 import '../services/api_service.dart';
 import '../services/social_service.dart';
 import '../services/sound_effects_service.dart';
+import '../theme/gender_style.dart';
 import '../widgets/cartoon_page_background.dart';
 import 'chat_screen.dart';
 
@@ -743,6 +744,10 @@ class _SocialPersonRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final genderColor = GenderStyle.colorFor(
+      user.gender,
+      fallback: _Palette.ink,
+    );
     final letter = user.displayName.trim().isEmpty
         ? '?'
         : user.displayName.trim().substring(0, 1).toUpperCase();
@@ -771,8 +776,8 @@ class _SocialPersonRow extends StatelessWidget {
                       child: Center(
                         child: Text(
                           letter,
-                          style: const TextStyle(
-                            color: _Palette.ink,
+                          style: TextStyle(
+                            color: genderColor,
                             fontSize: 19,
                             fontWeight: FontWeight.w900,
                           ),
@@ -787,8 +792,8 @@ class _SocialPersonRow extends StatelessWidget {
                         child: Center(
                           child: Text(
                             letter,
-                            style: const TextStyle(
-                              color: _Palette.ink,
+                            style: TextStyle(
+                              color: genderColor,
                               fontSize: 19,
                               fontWeight: FontWeight.w900,
                             ),
@@ -807,8 +812,8 @@ class _SocialPersonRow extends StatelessWidget {
                   user.displayName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _Palette.ink,
+                  style: TextStyle(
+                    color: genderColor,
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
                   ),
@@ -817,8 +822,8 @@ class _SocialPersonRow extends StatelessWidget {
                   '@${user.username}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _Palette.inkSoft,
+                  style: TextStyle(
+                    color: genderColor,
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
                   ),

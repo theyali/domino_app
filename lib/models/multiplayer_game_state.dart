@@ -7,6 +7,7 @@ class ServerDomino {
   final int id;
   final int left;
   final int right;
+  final String gameMode;
   final int? playedByPlayerId;
   final String? side;
   final int? moveNumber;
@@ -15,6 +16,7 @@ class ServerDomino {
     required this.id,
     required this.left,
     required this.right,
+    this.gameMode = '101',
     this.playedByPlayerId,
     this.side,
     this.moveNumber,
@@ -25,6 +27,7 @@ class ServerDomino {
       id: json['id'] as int,
       left: json['left'] as int,
       right: json['right'] as int,
+      gameMode: json['game_mode'] as String? ?? '101',
       playedByPlayerId: json['played_by_player_id'] as int?,
       side: json['side'] as String?,
       moveNumber: json['move_number'] as int?,
@@ -34,6 +37,7 @@ class ServerDomino {
   Domino get domino => Domino(left: left, right: right);
 
   bool get isDouble => left == right;
+  bool get isPhone => gameMode == 'phone';
 
   bool containsValue(int value) => left == value || right == value;
 }

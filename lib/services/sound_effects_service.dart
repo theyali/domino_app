@@ -30,7 +30,7 @@ class SoundEffectsService {
   static void quitGame() {
     unawaited(
       _actionPlayer.play(
-        const AssetSource(_quitSound),
+        AssetSource(_quitSound),
         volume: 0.92,
         mode: PlayerMode.lowLatency,
       ),

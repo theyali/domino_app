@@ -13,6 +13,7 @@ import '../services/gift_service.dart';
 import '../services/player_avatar_registry.dart';
 import '../services/social_service.dart';
 import '../theme/app_colors.dart';
+import '../theme/gender_style.dart';
 import 'emotion_picker_sheet.dart';
 import 'gift_flight_animation.dart';
 import 'multiplayer_gift_sheet.dart';
@@ -79,6 +80,11 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   bool get _isMultiplayerAvatar => widget.isOnline != null;
 
   bool get _isAzerbaijani => context.appLanguage.code == 'az';
+
+  Color get _playerNameColor => GenderStyle.colorFor(
+        widget.player.gender ?? PlayerGenderCache.genderFor(widget.player.id),
+        fallback: AppColors.ink,
+      );
 
   @override
   void initState() {
@@ -239,8 +245,8 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                     Text(
                       widget.player.name,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: AppColors.ink,
+                      style: TextStyle(
+                        color: _playerNameColor,
                         fontSize: 24,
                         fontWeight: FontWeight.w900,
                       ),
@@ -484,6 +490,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   @override
   Widget build(BuildContext context) {
     final player = widget.player;
+    final nameColor = _playerNameColor;
     final avatarLetter = player.name.trim().isEmpty
         ? '?'
         : player.name.trim().substring(0, 1).toUpperCase();
@@ -570,6 +577,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                               avatarUrl: avatarUrl,
                               letter: avatarLetter,
                               compact: widget.compact,
+                              letterColor: nameColor,
                             ),
                           ),
                         ),
@@ -691,8 +699,8 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                       ? '${player.name} (${_isAzerbaijani ? 'Sən' : 'Ты'})'
                       : player.name,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColors.ink,
+                  style: TextStyle(
+                    color: nameColor,
                     fontSize: 13.5,
                     height: 1,
                     fontWeight: FontWeight.w900,
@@ -711,11 +719,13 @@ class _AvatarFace extends StatelessWidget {
   final String? avatarUrl;
   final String letter;
   final bool compact;
+  final Color letterColor;
 
   const _AvatarFace({
     required this.avatarUrl,
     required this.letter,
     required this.compact,
+    required this.letterColor,
   });
 
   @override
@@ -729,7 +739,7 @@ class _AvatarFace extends StatelessWidget {
         child: Text(
           letter,
           style: TextStyle(
-            color: const Color(0xFF6242A3),
+            color: letterColor,
             fontSize: compact ? 21 : 23,
             fontWeight: FontWeight.w900,
             shadows: const [

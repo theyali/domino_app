@@ -77,7 +77,7 @@ class _HeaderAssetButton extends StatelessWidget {
           behavior: HitTestBehavior.opaque,
           onTap: enabled
               ? () {
-                  SoundEffectsService.button(alternate: true);
+                  SoundEffectsService.button();
                   onTap();
                 }
               : null,

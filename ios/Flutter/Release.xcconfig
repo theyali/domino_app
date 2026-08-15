@@ -1,2 +1,4 @@
 #include "Generated.xcconfig"
 IPHONEOS_DEPLOYMENT_TARGET=15.0
+CODE_SIGN_ENTITLEMENTS=Runner/Runner.entitlements
+APS_ENVIRONMENT=production

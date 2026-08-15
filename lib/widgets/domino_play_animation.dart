@@ -29,7 +29,7 @@ class DominoPlayAnimation extends StatefulWidget {
 
 class _DominoPlayAnimationState extends State<DominoPlayAnimation>
     with SingleTickerProviderStateMixin {
-  static const String _normalImpactSound = 'sounds/domino_tap.wav';
+  static const String _normalImpactSound = 'sounds/domino_land.wav';
   static const String _doubleImpactSound = 'sounds/domino_double_slam.wav';
 
   late final AnimationController _controller;

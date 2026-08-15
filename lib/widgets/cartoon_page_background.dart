@@ -4,12 +4,15 @@ import '../theme/app_colors.dart';
 
 class CartoonPageBackground extends StatelessWidget {
   final Widget child;
+
+  /// Kept for backward compatibility with older call sites.
+  /// The new wooden background is intentionally rendered at full opacity.
   final double noiseOpacity;
 
   const CartoonPageBackground({
     super.key,
     required this.child,
-    this.noiseOpacity = 0.045,
+    this.noiseOpacity = 1,
   });
 
   @override
@@ -19,13 +22,13 @@ class CartoonPageBackground extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          IgnorePointer(
-            child: Opacity(
-              opacity: noiseOpacity,
+          Positioned.fill(
+            child: IgnorePointer(
               child: Image.asset(
                 'assets/ui/background_noise.avif',
                 fit: BoxFit.cover,
-                filterQuality: FilterQuality.low,
+                alignment: Alignment.center,
+                filterQuality: FilterQuality.medium,
                 errorBuilder: (context, error, stackTrace) =>
                     const SizedBox.expand(),
               ),

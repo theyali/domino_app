@@ -32,9 +32,11 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _loading = true;
   bool _sending = false;
   bool _polling = false;
+  bool _socialActionBusy = false;
   String? _error;
 
   bool get _isAz => context.appLanguage.code == 'az';
+  SocialUser get _currentUser => _thread?.user ?? widget.user;
 
   @override
   void initState() {
@@ -137,6 +139,165 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Future<bool> _confirmSocialAction({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    required String confirmLabel,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: _ChatPalette.cream,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: _ChatPalette.ink, width: 3),
+            boxShadow: const [
+              BoxShadow(
+                color: _ChatPalette.ink,
+                blurRadius: 0,
+                offset: Offset(5, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: _ChatPalette.ink, width: 3),
+                ),
+                child: Icon(icon, color: _ChatPalette.ink, size: 31),
+              ),
+              const SizedBox(height: 13),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _ChatPalette.ink,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _ChatPalette.inkSoft,
+                  height: 1.25,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _DialogButton(
+                      label: _isAz ? 'Ləğv et' : 'Отмена',
+                      color: _ChatPalette.cream,
+                      onTap: () => Navigator.pop(dialogContext, false),
+                    ),
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: _DialogButton(
+                      label: confirmLabel,
+                      color: color,
+                      onTap: () => Navigator.pop(dialogContext, true),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    return result == true;
+  }
+
+  Future<void> _removeFriend() async {
+    final user = _currentUser;
+    final friendshipId = user.friendshipId;
+    if (_socialActionBusy || friendshipId == null || !user.isFriend) return;
+
+    final confirmed = await _confirmSocialAction(
+      icon: Icons.person_remove_rounded,
+      color: _ChatPalette.coral,
+      title: _isAz ? 'Dostlardan silinsin?' : 'Удалить из друзей?',
+      subtitle: _isAz
+          ? '${user.displayName} artıq dostlar siyahısında olmayacaq.'
+          : '${user.displayName} будет удалён из списка друзей.',
+      confirmLabel: _isAz ? 'Sil' : 'Удалить',
+    );
+    if (!confirmed || !mounted) return;
+
+    setState(() => _socialActionBusy = true);
+    try {
+      await _service.removeFriendship(friendshipId);
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _error = error.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = _isAz
+            ? 'Dostlardan silmək mümkün olmadı.'
+            : 'Не удалось удалить из друзей.';
+      });
+    } finally {
+      if (mounted) setState(() => _socialActionBusy = false);
+    }
+  }
+
+  Future<void> _blockUser() async {
+    final user = _currentUser;
+    if (_socialActionBusy) return;
+
+    final confirmed = await _confirmSocialAction(
+      icon: Icons.block_rounded,
+      color: _ChatPalette.yellow,
+      title: _isAz ? 'Qara siyahıya əlavə edilsin?' : 'Добавить в чёрный список?',
+      subtitle: _isAz
+          ? '${user.displayName} sizə yaza, dostluq sorğusu və oyun dəvəti göndərə bilməyəcək.'
+          : '${user.displayName} больше не сможет писать тебе, добавляться в друзья и приглашать за стол.',
+      confirmLabel: _isAz ? 'Blokla' : 'В ЧС',
+    );
+    if (!confirmed || !mounted) return;
+
+    setState(() => _socialActionBusy = true);
+    try {
+      await _service.blockUser(user.id);
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _error = error.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = _isAz
+            ? 'İstifadəçini bloklamaq mümkün olmadı.'
+            : 'Не удалось добавить пользователя в чёрный список.';
+      });
+    } finally {
+      if (mounted) setState(() => _socialActionBusy = false);
+    }
+  }
+
   void _scrollToBottom() {
     if (!_scrollController.hasClients) return;
     _scrollController.animateTo(
@@ -148,7 +309,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = _thread?.user ?? widget.user;
+    final user = _currentUser;
     return CartoonPageBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -207,6 +368,29 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ],
           ),
+          actions: [
+            if (user.isFriend && user.friendshipId != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 7),
+                child: _HeaderAction(
+                  icon: Icons.close_rounded,
+                  color: _ChatPalette.coral,
+                  busy: _socialActionBusy,
+                  tooltip: _isAz ? 'Dostlardan sil' : 'Удалить из друзей',
+                  onTap: _removeFriend,
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: _HeaderAction(
+                icon: Icons.block_rounded,
+                color: _ChatPalette.yellow,
+                busy: _socialActionBusy,
+                tooltip: _isAz ? 'Qara siyahı' : 'В чёрный список',
+                onTap: _blockUser,
+              ),
+            ),
+          ],
         ),
         body: SafeArea(
           top: false,
@@ -549,6 +733,92 @@ class _TopButton extends StatelessWidget {
           ],
         ),
         child: Icon(icon, color: _ChatPalette.ink, size: 21),
+      ),
+    );
+  }
+}
+
+class _HeaderAction extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final bool busy;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  const _HeaderAction({
+    required this.icon,
+    required this.color,
+    required this.busy,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: busy ? null : onTap,
+        child: Container(
+          width: 39,
+          height: 39,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: _ChatPalette.ink, width: 2.5),
+            boxShadow: const [
+              BoxShadow(
+                color: _ChatPalette.ink,
+                blurRadius: 0,
+                offset: Offset(2, 3),
+              ),
+            ],
+          ),
+          child: busy
+              ? const Padding(
+                  padding: EdgeInsets.all(10),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.3,
+                    color: _ChatPalette.ink,
+                  ),
+                )
+              : Icon(icon, color: _ChatPalette.ink, size: 21),
+        ),
+      ),
+    );
+  }
+}
+
+class _DialogButton extends StatelessWidget {
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _DialogButton({
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 46,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: _ChatPalette.ink, width: 2.4),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: _ChatPalette.ink,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
       ),
     );
   }

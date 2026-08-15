@@ -305,6 +305,19 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
         !_isStartingGame &&
         !_isOpeningGame;
 
+    final waitingMessage = allPlayersReady
+        ? !allPlayersOnline
+            ? context.tr('all_seats_offline')
+            : isLocalOwner
+                ? context.tr('owner_can_start')
+                : context.tr('waiting_owner_start')
+        : context.tr(
+            'waiting_more_players',
+            arguments: {
+              'count': _room.maxPlayers - _room.currentPlayers,
+            },
+          );
+
     return PopScope<Object?>(
       canPop: _allowPop,
       onPopInvokedWithResult: (didPop, result) {
@@ -313,15 +326,58 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
         }
       },
       child: Scaffold(
+        backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: Text(_room.displayName),
+          automaticallyImplyLeading: false,
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          toolbarHeight: 68,
+          leadingWidth: 64,
+          centerTitle: true,
+          leading: Padding(
+            padding: const EdgeInsets.only(left: 12),
+            child: _LobbyTopButton(
+              icon: _isLeaving
+                  ? Icons.hourglass_top_rounded
+                  : Icons.arrow_back_ios_new_rounded,
+              onTap: _isLeaving ? null : _leaveAndClose,
+            ),
+          ),
+          title: Text(
+            _room.displayName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              shadows: [
+                Shadow(
+                  color: Colors.black87,
+                  offset: Offset(2, 3),
+                  blurRadius: 0,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            _LobbyTopButton(
+              icon: Icons.refresh_rounded,
+              color: _LobbyPalette.skyBlue,
+              onTap: _isRefreshing ? null : _refreshRoom,
+            ),
+            const SizedBox(width: 12),
+          ],
         ),
         body: SafeArea(
+          top: false,
           child: RefreshIndicator(
+            color: _LobbyPalette.ink,
+            backgroundColor: _LobbyPalette.cream,
             onRefresh: _refreshRoom,
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 34),
               children: [
                 _LobbyHeader(
                   restaurantName: widget.restaurant.name,
@@ -329,20 +385,17 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                   allPlayersReady: allPlayersReady,
                   allPlayersOnline: allPlayersOnline,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 18),
                 _RealtimeStatus(status: _socketStatus),
-                const SizedBox(height: 24),
-                Text(
-                  context.tr('players'),
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                  ),
+                const SizedBox(height: 25),
+                _LobbySectionTitle(
+                  title: context.tr('players'),
+                  count: '${_room.currentPlayers}/${_room.maxPlayers}',
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 for (var seat = 0; seat < _room.maxPlayers; seat++)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.only(bottom: 14),
                     child: _LobbySeat(
                       seatIndex: seat,
                       player: _playerAtSeat(seat),
@@ -351,77 +404,38 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                     ),
                   ),
                 if (_errorMessage != null) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.errorContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      _errorMessage!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onErrorContainer,
-                      ),
-                    ),
-                  ),
+                  const SizedBox(height: 2),
+                  _LobbyErrorMessage(message: _errorMessage!),
+                  const SizedBox(height: 18),
                 ],
-                const SizedBox(height: 16),
                 if (isLocalOwner && allPlayersReady) ...[
-                  SizedBox(
-                    height: 52,
-                    child: FilledButton.icon(
-                      onPressed: canStart ? _startGame : null,
-                      icon: _isStartingGame || _isOpeningGame
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.play_arrow_rounded),
-                      label: Text(
-                        context.tr(
-                          _isStartingGame || _isOpeningGame
-                              ? 'starting_game'
-                              : 'start_game',
-                        ),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
+                  _StartGameButton(
+                    enabled: canStart,
+                    isBusy: _isStartingGame || _isOpeningGame,
+                    label: context.tr(
+                      _isStartingGame || _isOpeningGame
+                          ? 'starting_game'
+                          : 'start_game',
                     ),
+                    onTap: _startGame,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                 ],
-                Text(
-                  allPlayersReady
-                      ? !allPlayersOnline
-                          ? context.tr('all_seats_offline')
-                          : isLocalOwner
-                              ? context.tr('owner_can_start')
-                              : context.tr('waiting_owner_start')
-                      : context.tr(
-                          'waiting_more_players',
-                          arguments: {
-                            'count': _room.maxPlayers - _room.currentPlayers,
-                          },
-                        ),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                _WaitingMessage(
+                  message: waitingMessage,
+                  allPlayersReady: allPlayersReady,
+                  allPlayersOnline: allPlayersOnline,
                 ),
                 if (_isRefreshing) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
                   const Center(
                     child: SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        color: _LobbyPalette.ink,
+                      ),
                     ),
                   ),
                 ],
@@ -443,82 +457,41 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
   }
 }
 
-class _RealtimeStatus extends StatelessWidget {
-  final SocketConnectionStatus status;
+class _LobbyTopButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  final Color color;
 
-  const _RealtimeStatus({required this.status});
+  const _LobbyTopButton({
+    required this.icon,
+    required this.onTap,
+    this.color = _LobbyPalette.cream,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    final (icon, title, subtitle, isLoading) = switch (status) {
-      SocketConnectionStatus.connected => (
-          Icons.bolt_rounded,
-          context.tr('realtime_connected'),
-          context.tr('realtime_connected_subtitle'),
-          false,
-        ),
-      SocketConnectionStatus.connecting => (
-          Icons.sync_rounded,
-          context.tr('realtime_connecting'),
-          context.tr('realtime_connecting_subtitle'),
-          true,
-        ),
-      SocketConnectionStatus.reconnecting => (
-          Icons.sync_rounded,
-          context.tr('realtime_reconnecting'),
-          context.tr('realtime_reconnecting_subtitle'),
-          true,
-        ),
-      SocketConnectionStatus.disconnected => (
-          Icons.cloud_off_rounded,
-          context.tr('realtime_disconnected'),
-          context.tr('realtime_disconnected_subtitle'),
-          true,
-        ),
-    };
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: colorScheme.primary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Opacity(
+        opacity: onTap == null ? 0.55 : 1,
+        child: Container(
+          width: 43,
+          height: 43,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: _LobbyPalette.ink, width: 2.7),
+            boxShadow: const [
+              BoxShadow(
+                color: _LobbyPalette.ink,
+                blurRadius: 0,
+                offset: Offset(2, 3),
+              ),
+            ],
           ),
-          if (isLoading)
-            const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          else
-            Icon(
-              Icons.check_circle_rounded,
-              color: colorScheme.primary,
-            ),
-        ],
+          child: Icon(icon, color: _LobbyPalette.ink, size: 21),
+        ),
       ),
     );
   }
@@ -539,8 +512,6 @@ class _LobbyHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     final icon = !allPlayersReady
         ? Icons.hourglass_top_rounded
         : allPlayersOnline
@@ -553,64 +524,305 @@ class _LobbyHeader extends StatelessWidget {
             : context.tr('realtime_reconnecting');
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            colorScheme.primaryContainer,
-            colorScheme.secondaryContainer,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
+        color: _LobbyPalette.yellow,
+        borderRadius: BorderRadius.circular(27),
+        border: Border.all(color: _LobbyPalette.ink, width: 3),
+        boxShadow: const [
+          BoxShadow(
+            color: _LobbyPalette.ink,
+            blurRadius: 0,
+            offset: Offset(0, 7),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            restaurantName,
-            style: TextStyle(
-              color: colorScheme.onPrimaryContainer,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            room.displayName,
-            style: TextStyle(
-              color: colorScheme.onPrimaryContainer,
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 16),
           Row(
             children: [
-              Icon(
-                icon,
-                color: colorScheme.onPrimaryContainer,
-              ),
-              const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  statusText,
-                  style: TextStyle(
-                    color: colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.w700,
+                  restaurantName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _LobbyPalette.inkSoft,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
-              Text(
-                '${room.currentPlayers} / ${room.maxPlayers}',
-                style: TextStyle(
-                  color: colorScheme.onPrimaryContainer,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
+              if (room.isLocked)
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: _LobbyPalette.coral,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: _LobbyPalette.ink, width: 2.2),
+                  ),
+                  child: const Icon(
+                    Icons.lock_rounded,
+                    color: _LobbyPalette.ink,
+                    size: 18,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Text(
+            room.displayName,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: _LobbyPalette.ink,
+              fontSize: 31,
+              height: 1,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.6,
+            ),
+          ),
+          const SizedBox(height: 17),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _LobbyPalette.paper,
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: _LobbyPalette.ink, width: 2.3),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(icon, color: _LobbyPalette.ink, size: 19),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: Text(
+                          statusText,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _LobbyPalette.ink,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 13,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: _LobbyPalette.lime,
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: _LobbyPalette.ink, width: 2.3),
+                ),
+                child: Text(
+                  '${room.currentPlayers} / ${room.maxPlayers}',
+                  style: const TextStyle(
+                    color: _LobbyPalette.ink,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+}
+
+class _RealtimeStatus extends StatelessWidget {
+  final SocketConnectionStatus status;
+
+  const _RealtimeStatus({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, title, subtitle, isLoading, color) = switch (status) {
+      SocketConnectionStatus.connected => (
+          Icons.bolt_rounded,
+          context.tr('realtime_connected'),
+          context.tr('realtime_connected_subtitle'),
+          false,
+          _LobbyPalette.mint,
+        ),
+      SocketConnectionStatus.connecting => (
+          Icons.sync_rounded,
+          context.tr('realtime_connecting'),
+          context.tr('realtime_connecting_subtitle'),
+          true,
+          _LobbyPalette.yellow,
+        ),
+      SocketConnectionStatus.reconnecting => (
+          Icons.sync_rounded,
+          context.tr('realtime_reconnecting'),
+          context.tr('realtime_reconnecting_subtitle'),
+          true,
+          _LobbyPalette.skyBlue,
+        ),
+      SocketConnectionStatus.disconnected => (
+          Icons.cloud_off_rounded,
+          context.tr('realtime_disconnected'),
+          context.tr('realtime_disconnected_subtitle'),
+          true,
+          _LobbyPalette.coral,
+        ),
+    };
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(21),
+        border: Border.all(color: _LobbyPalette.ink, width: 3),
+        boxShadow: const [
+          BoxShadow(
+            color: _LobbyPalette.ink,
+            blurRadius: 0,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 45,
+            height: 45,
+            decoration: BoxDecoration(
+              color: _LobbyPalette.paper,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _LobbyPalette.ink, width: 2.2),
+            ),
+            child: Icon(icon, color: _LobbyPalette.ink, size: 24),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: _LobbyPalette.ink,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: _LobbyPalette.inkSoft,
+                    fontSize: 12,
+                    height: 1.25,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (isLoading)
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: _LobbyPalette.ink,
+              ),
+            )
+          else
+            const Icon(
+              Icons.check_circle_rounded,
+              color: _LobbyPalette.ink,
+              size: 25,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LobbySectionTitle extends StatelessWidget {
+  final String title;
+  final String count;
+
+  const _LobbySectionTitle({
+    required this.title,
+    required this.count,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+          decoration: BoxDecoration(
+            color: _LobbyPalette.cream,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _LobbyPalette.ink, width: 2.6),
+            boxShadow: const [
+              BoxShadow(
+                color: _LobbyPalette.ink,
+                blurRadius: 0,
+                offset: Offset(2, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.groups_rounded,
+                color: _LobbyPalette.ink,
+                size: 20,
+              ),
+              const SizedBox(width: 7),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: _LobbyPalette.ink,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: _LobbyPalette.skyBlue,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: _LobbyPalette.ink, width: 2.4),
+          ),
+          child: Text(
+            count,
+            style: const TextStyle(
+              color: _LobbyPalette.ink,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -628,26 +840,39 @@ class _LobbySeat extends StatelessWidget {
     required this.localRealtimeConnected,
   });
 
+  Color get _seatColor {
+    if (player == null) return _LobbyPalette.paper;
+    if (player!.id == localPlayerId) return _LobbyPalette.lime;
+
+    const colors = [
+      _LobbyPalette.skyBlue,
+      _LobbyPalette.yellow,
+      _LobbyPalette.mint,
+      _LobbyPalette.lavender,
+    ];
+    return colors[seatIndex % colors.length];
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isMe = player?.id == localPlayerId;
     final isOnline = player != null &&
         player!.isOnline &&
         (!isMe || localRealtimeConnected);
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: isMe
-            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.55)
-            : theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isMe
-              ? theme.colorScheme.primary.withValues(alpha: 0.45)
-              : theme.colorScheme.outlineVariant,
-        ),
+        color: _seatColor,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: _LobbyPalette.ink, width: 3),
+        boxShadow: const [
+          BoxShadow(
+            color: _LobbyPalette.ink,
+            blurRadius: 0,
+            offset: Offset(0, 5),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -657,38 +882,41 @@ class _LobbySeat extends StatelessWidget {
               _LobbyAvatar(player: player),
               if (player != null)
                 Positioned(
-                  right: -1,
-                  bottom: -1,
+                  right: -2,
+                  bottom: -2,
                   child: Container(
-                    width: 13,
-                    height: 13,
+                    width: 16,
+                    height: 16,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: isOnline
-                          ? Colors.greenAccent.shade400
-                          : Colors.blueGrey.shade300,
+                          ? _LobbyPalette.online
+                          : _LobbyPalette.offline,
                       border: Border.all(
-                        color: theme.colorScheme.surface,
-                        width: 2,
+                        color: _LobbyPalette.ink,
+                        width: 2.2,
                       ),
                     ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 13),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   player?.name ?? context.tr('empty_seat'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
+                    color: _LobbyPalette.ink,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   player == null
                       ? context.tr('waiting_players')
@@ -697,13 +925,26 @@ class _LobbySeat extends StatelessWidget {
                           if (isMe) context.tr('you'),
                           if (!player!.isOwner && !isMe) '#${seatIndex + 1}',
                         ].join(' • '),
-                  style: theme.textTheme.bodySmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _LobbyPalette.inkSoft,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ],
             ),
           ),
-          if (player != null)
+          if (player != null) ...[
+            const SizedBox(width: 8),
             _LobbyPresenceBadge(isOnline: isOnline),
+          ] else
+            const Icon(
+              Icons.add_circle_outline_rounded,
+              color: _LobbyPalette.ink,
+              size: 26,
+            ),
         ],
       ),
     );
@@ -717,15 +958,22 @@ class _LobbyAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final current = player;
 
     if (current == null) {
-      return CircleAvatar(
-        radius: 22,
-        backgroundColor: theme.colorScheme.surfaceContainerHighest,
-        foregroundColor: theme.colorScheme.onSurfaceVariant,
-        child: const Icon(Icons.person_add_alt_1_rounded),
+      return Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: _LobbyPalette.cream,
+          shape: BoxShape.circle,
+          border: Border.all(color: _LobbyPalette.ink, width: 2.8),
+        ),
+        child: const Icon(
+          Icons.person_add_alt_1_rounded,
+          color: _LobbyPalette.ink,
+          size: 26,
+        ),
       );
     }
 
@@ -735,12 +983,13 @@ class _LobbyAvatar extends StatelessWidget {
     final avatarUrl = current.avatarUrl;
 
     return Container(
-      width: 46,
-      height: 46,
-      padding: const EdgeInsets.all(2),
+      width: 54,
+      height: 54,
+      padding: const EdgeInsets.all(2.5),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: theme.colorScheme.primary,
+        color: _LobbyPalette.paper,
+        border: Border.all(color: _LobbyPalette.ink, width: 2.8),
       ),
       child: ClipOval(
         child: avatarUrl != null && avatarUrl.isNotEmpty
@@ -748,9 +997,8 @@ class _LobbyAvatar extends StatelessWidget {
                 avatarUrl,
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.high,
-                errorBuilder: (context, error, stackTrace) => _LobbyAvatarLetter(
-                  letter: letter,
-                ),
+                errorBuilder: (context, error, stackTrace) =>
+                    _LobbyAvatarLetter(letter: letter),
               )
             : _LobbyAvatarLetter(letter: letter),
       ),
@@ -766,13 +1014,14 @@ class _LobbyAvatarLetter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Theme.of(context).colorScheme.primary,
+      color: _LobbyPalette.skyBlue,
       alignment: Alignment.center,
       child: Text(
         letter,
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.onPrimary,
-          fontWeight: FontWeight.w800,
+        style: const TextStyle(
+          color: _LobbyPalette.ink,
+          fontSize: 19,
+          fontWeight: FontWeight.w900,
         ),
       ),
     );
@@ -786,37 +1035,230 @@ class _LobbyPresenceBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = isOnline ? Colors.green.shade700 : Colors.blueGrey.shade600;
+    final color = isOnline ? _LobbyPalette.online : _LobbyPalette.offline;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
+        color: _LobbyPalette.paper,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: _LobbyPalette.ink, width: 2),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 7,
-            height: 7,
+            width: 8,
+            height: 8,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: color,
+              border: Border.all(color: _LobbyPalette.ink, width: 1),
             ),
           ),
           const SizedBox(width: 5),
           Text(
             context.tr(isOnline ? 'online' : 'offline'),
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w800,
+            style: const TextStyle(
+              color: _LobbyPalette.ink,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
       ),
     );
   }
+}
+
+class _LobbyErrorMessage extends StatelessWidget {
+  final String message;
+
+  const _LobbyErrorMessage({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: _LobbyPalette.coral,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _LobbyPalette.ink, width: 2.8),
+        boxShadow: const [
+          BoxShadow(
+            color: _LobbyPalette.ink,
+            blurRadius: 0,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            color: _LobbyPalette.ink,
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: _LobbyPalette.ink,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StartGameButton extends StatelessWidget {
+  final bool enabled;
+  final bool isBusy;
+  final String label;
+  final VoidCallback onTap;
+
+  const _StartGameButton({
+    required this.enabled,
+    required this.isBusy,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Opacity(
+        opacity: enabled || isBusy ? 1 : 0.55,
+        child: Container(
+          width: double.infinity,
+          height: 62,
+          decoration: BoxDecoration(
+            color: _LobbyPalette.lime,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _LobbyPalette.ink, width: 3),
+            boxShadow: const [
+              BoxShadow(
+                color: _LobbyPalette.ink,
+                blurRadius: 0,
+                offset: Offset(0, 7),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (isBusy)
+                const SizedBox(
+                  width: 21,
+                  height: 21,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.7,
+                    color: _LobbyPalette.ink,
+                  ),
+                )
+              else
+                const Icon(
+                  Icons.play_arrow_rounded,
+                  color: _LobbyPalette.ink,
+                  size: 28,
+                ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _LobbyPalette.ink,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WaitingMessage extends StatelessWidget {
+  final String message;
+  final bool allPlayersReady;
+  final bool allPlayersOnline;
+
+  const _WaitingMessage({
+    required this.message,
+    required this.allPlayersReady,
+    required this.allPlayersOnline,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = !allPlayersReady
+        ? _LobbyPalette.cream
+        : allPlayersOnline
+            ? _LobbyPalette.mint
+            : _LobbyPalette.yellow;
+    final icon = !allPlayersReady
+        ? Icons.hourglass_bottom_rounded
+        : allPlayersOnline
+            ? Icons.check_circle_rounded
+            : Icons.sync_rounded;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _LobbyPalette.ink, width: 2.7),
+        boxShadow: const [
+          BoxShadow(
+            color: _LobbyPalette.ink,
+            blurRadius: 0,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: _LobbyPalette.ink, size: 20),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: _LobbyPalette.inkSoft,
+                fontSize: 13,
+                height: 1.25,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LobbyPalette {
+  static const Color ink = Color(0xFF111111);
+  static const Color inkSoft = Color(0xFF574C42);
+  static const Color cream = Color(0xFFFFE8B6);
+  static const Color paper = Color(0xFFFFF8E8);
+  static const Color lime = Color(0xFF7CFC00);
+  static const Color yellow = Color(0xFFFFD65C);
+  static const Color skyBlue = Color(0xFF79CDF1);
+  static const Color mint = Color(0xFF8CDD79);
+  static const Color coral = Color(0xFFFF8A79);
+  static const Color lavender = Color(0xFFC7A7FF);
+  static const Color online = Color(0xFF31C96B);
+  static const Color offline = Color(0xFF9AA6B2);
 }

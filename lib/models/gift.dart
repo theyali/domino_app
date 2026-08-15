@@ -109,3 +109,76 @@ class InventoryGift {
     return value == null || value.isEmpty ? 'Пользователь Domino' : value;
   }
 }
+
+class GiftPurchase {
+  final int id;
+  final Gift gift;
+  final int quantity;
+  final String unitPrice;
+  final String totalPrice;
+  final DateTime? purchasedAt;
+
+  const GiftPurchase({
+    required this.id,
+    required this.gift,
+    required this.quantity,
+    required this.unitPrice,
+    required this.totalPrice,
+    required this.purchasedAt,
+  });
+
+  factory GiftPurchase.fromJson(Map<String, dynamic> json) {
+    return GiftPurchase(
+      id: json['id'] as int,
+      gift: Gift.fromJson(
+        Map<String, dynamic>.from(json['gift'] as Map),
+      ),
+      quantity: json['quantity'] as int? ?? 1,
+      unitPrice: json['unit_price']?.toString() ?? '0.00',
+      totalPrice: json['total_price']?.toString() ?? '0.00',
+      purchasedAt: DateTime.tryParse(json['purchased_at'] as String? ?? ''),
+    );
+  }
+}
+
+class GiftPurchaseSummary {
+  final String totalSpent;
+  final int availableCount;
+  final List<Gift> ownedGifts;
+  final List<GiftPurchase> history;
+
+  const GiftPurchaseSummary({
+    required this.totalSpent,
+    required this.availableCount,
+    required this.ownedGifts,
+    required this.history,
+  });
+
+  factory GiftPurchaseSummary.fromJson(Map<String, dynamic> json) {
+    final owned = json['owned_gifts'];
+    final history = json['history'];
+
+    return GiftPurchaseSummary(
+      totalSpent: json['total_spent']?.toString() ?? '0.00',
+      availableCount: json['available_count'] as int? ?? 0,
+      ownedGifts: owned is List
+          ? owned
+              .map(
+                (item) => Gift.fromJson(
+                  Map<String, dynamic>.from(item as Map),
+                ),
+              )
+              .toList(growable: false)
+          : const [],
+      history: history is List
+          ? history
+              .map(
+                (item) => GiftPurchase.fromJson(
+                  Map<String, dynamic>.from(item as Map),
+                ),
+              )
+              .toList(growable: false)
+          : const [],
+    );
+  }
+}

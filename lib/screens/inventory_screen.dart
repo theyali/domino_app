@@ -6,6 +6,7 @@ import '../models/gift.dart';
 import '../services/api_service.dart';
 import '../services/gift_service.dart';
 import '../theme/app_colors.dart';
+import '../widgets/cartoon_page_background.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -88,11 +89,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        color: AppColors.lime,
-        backgroundColor: AppColors.surfaceRaised,
-        onRefresh: _load,
-        child: _buildBody(),
+      body: CartoonPageBackground(
+        child: RefreshIndicator(
+          color: AppColors.lime,
+          backgroundColor: AppColors.surfaceRaised,
+          onRefresh: _load,
+          child: _buildBody(),
+        ),
       ),
     );
   }

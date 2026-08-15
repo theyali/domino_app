@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../localization/game_action_strings.dart';
+import '../services/sound_effects_service.dart';
 
 const _surrenderIconAsset = 'assets/icons/white-flag.png';
 const _exitIconAsset = 'assets/icons/remove.png';
@@ -74,7 +75,12 @@ class _HeaderAssetButton extends StatelessWidget {
         label: tooltip,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: enabled ? onTap : null,
+          onTap: enabled
+              ? () {
+                  SoundEffectsService.button(alternate: true);
+                  onTap();
+                }
+              : null,
           child: AnimatedOpacity(
             duration: const Duration(milliseconds: 160),
             opacity: enabled ? 1 : 0.35,
@@ -209,6 +215,7 @@ Future<bool> showGameActionConfirmDialog(
                     child: _CartoonDialogButton(
                       label: strings.keepPlaying,
                       color: _GameActionPalette.lime,
+                      alternateSound: true,
                       onTap: () => Navigator.of(dialogContext).pop(false),
                     ),
                   ),
@@ -217,6 +224,7 @@ Future<bool> showGameActionConfirmDialog(
                     child: _CartoonDialogButton(
                       label: confirmText,
                       color: _GameActionPalette.coral,
+                      quitSound: true,
                       onTap: () => Navigator.of(dialogContext).pop(true),
                     ),
                   ),
@@ -236,18 +244,29 @@ class _CartoonDialogButton extends StatelessWidget {
   final String label;
   final Color color;
   final VoidCallback onTap;
+  final bool alternateSound;
+  final bool quitSound;
 
   const _CartoonDialogButton({
     required this.label,
     required this.color,
     required this.onTap,
+    this.alternateSound = false,
+    this.quitSound = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: onTap,
+      onTap: () {
+        if (quitSound) {
+          SoundEffectsService.quitGame();
+        } else {
+          SoundEffectsService.button(alternate: alternateSound);
+        }
+        onTap();
+      },
       child: Container(
         height: 54,
         alignment: Alignment.center,

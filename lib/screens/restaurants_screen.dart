@@ -314,7 +314,7 @@ class _PlayLobbyHeader extends StatelessWidget {
                         Text(
                           context.tr('only_available_rooms'),
                           style: const TextStyle(
-                            color: Colors.white46,
+                            color: Colors.white54,
                             fontSize: 10.5,
                             fontWeight: FontWeight.w600,
                           ),

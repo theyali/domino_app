@@ -8,9 +8,11 @@ import '../localization/app_localizations.dart';
 import '../localization/game_action_strings.dart';
 import '../models/multiplayer_game_state.dart';
 import '../services/sound_effects_service.dart';
+import 'domino_tile.dart';
 
 enum _ResultPresentationPhase {
   waitingForLastDomino,
+  revealedHands,
   outcome,
   menu,
 }
@@ -40,8 +42,9 @@ class _MultiplayerGameResultOverlayState
     extends State<MultiplayerGameResultOverlay> {
   static const Duration _lastDominoWait = Duration(milliseconds: 920);
   static const Duration _otherResultWait = Duration(milliseconds: 280);
-  static const Duration _roundOutcomeDuration = Duration(milliseconds: 3600);
-  static const Duration _matchOutcomeDuration = Duration(milliseconds: 4800);
+  static const Duration _handsRevealDuration = Duration(milliseconds: 3000);
+  static const Duration _roundOutcomeDuration = Duration(milliseconds: 3200);
+  static const Duration _matchOutcomeDuration = Duration(milliseconds: 4400);
 
   Timer? _phaseTimer;
   late _ResultPresentationPhase _phase;
@@ -80,6 +83,11 @@ class _MultiplayerGameResultOverlayState
     return result.winnerPlayerIds.contains(gameState.myPlayerId);
   }
 
+  bool _shouldRevealHands(MultiplayerRoundResult result) {
+    if (gameState.revealedHands.isEmpty) return false;
+    return result.reason != 'surrender' && result.reason != 'player_left';
+  }
+
   void _startPresentation() {
     _phaseTimer?.cancel();
 
@@ -92,8 +100,30 @@ class _MultiplayerGameResultOverlayState
     _phase = _ResultPresentationPhase.waitingForLastDomino;
     _phaseTimer = Timer(
       result.reason == 'domino' ? _lastDominoWait : _otherResultWait,
-      _showOutcome,
+      _showHandsOrOutcome,
     );
+  }
+
+  void _showHandsOrOutcome() {
+    if (!mounted) return;
+
+    final result = gameState.roundResult;
+    if (result == null) {
+      setState(() => _phase = _ResultPresentationPhase.menu);
+      return;
+    }
+
+    if (!_shouldRevealHands(result)) {
+      _showOutcome();
+      return;
+    }
+
+    unawaited(HapticFeedback.lightImpact());
+    setState(() {
+      _phase = _ResultPresentationPhase.revealedHands;
+    });
+
+    _phaseTimer = Timer(_handsRevealDuration, _showOutcome);
   }
 
   void _showOutcome() {
@@ -101,9 +131,7 @@ class _MultiplayerGameResultOverlayState
 
     final result = gameState.roundResult;
     if (result == null) {
-      setState(() {
-        _phase = _ResultPresentationPhase.menu;
-      });
+      setState(() => _phase = _ResultPresentationPhase.menu);
       return;
     }
 
@@ -141,25 +169,33 @@ class _MultiplayerGameResultOverlayState
     }
 
     Widget child;
-    if (_phase == _ResultPresentationPhase.waitingForLastDomino) {
-      child = const IgnorePointer(
-        key: ValueKey('result-waiting'),
-        child: SizedBox.expand(),
-      );
-    } else if (_phase == _ResultPresentationPhase.outcome) {
-      final isWinner = _isLocalWinner(result);
-      final winner = _firstRoundWinner(result);
-      child = _RoundOutcomeFlash(
-        key: const ValueKey('result-outcome'),
-        isWinner: isWinner,
-        isMatchFinished: gameState.isMatchFinished,
-        winnerName: winner?.name,
-      );
-    } else {
-      child = KeyedSubtree(
-        key: const ValueKey('result-menu'),
-        child: _buildResultMenu(context, result),
-      );
+    switch (_phase) {
+      case _ResultPresentationPhase.waitingForLastDomino:
+        child = const IgnorePointer(
+          key: ValueKey('result-waiting'),
+          child: SizedBox.expand(),
+        );
+      case _ResultPresentationPhase.revealedHands:
+        child = _RoundHandsReveal(
+          key: const ValueKey('result-hands'),
+          gameState: gameState,
+          result: result,
+        );
+      case _ResultPresentationPhase.outcome:
+        final isWinner = _isLocalWinner(result);
+        final winner = _firstRoundWinner(result);
+        child = _RoundOutcomeFlash(
+          key: const ValueKey('result-outcome'),
+          isWinner: isWinner,
+          isMatchFinished: gameState.isMatchFinished,
+          reason: result.reason,
+          winnerName: winner?.name,
+        );
+      case _ResultPresentationPhase.menu:
+        child = KeyedSubtree(
+          key: const ValueKey('result-menu'),
+          child: _buildResultMenu(context, result),
+        );
     }
 
     return AnimatedSwitcher(
@@ -218,10 +254,7 @@ class _MultiplayerGameResultOverlayState
                     decoration: BoxDecoration(
                       color: _ResultPalette.cream,
                       borderRadius: BorderRadius.circular(32),
-                      border: Border.all(
-                        color: _ResultPalette.ink,
-                        width: 3,
-                      ),
+                      border: Border.all(color: _ResultPalette.ink, width: 3),
                       boxShadow: const [
                         BoxShadow(
                           color: _ResultPalette.ink,
@@ -373,11 +406,7 @@ class _MultiplayerGameResultOverlayState
                               ),
                             ],
                           ),
-                          child: Icon(
-                            icon,
-                            color: _ResultPalette.ink,
-                            size: 42,
-                          ),
+                          child: Icon(icon, color: _ResultPalette.ink, size: 42),
                         ),
                       ),
                     ),
@@ -462,10 +491,7 @@ class _MultiplayerGameResultOverlayState
           .join(', ');
       return loserNames.isEmpty
           ? context.tr('match_finished')
-          : context.tr(
-              'score_101',
-              arguments: {'players': loserNames},
-            );
+          : context.tr('score_101', arguments: {'players': loserNames});
     }
 
     final winners = result.winnerPlayerIds
@@ -485,10 +511,7 @@ class _MultiplayerGameResultOverlayState
 
     return winners.isEmpty
         ? context.tr('last_domino_played')
-        : context.tr(
-            'round_winner',
-            arguments: {'players': winners},
-          );
+        : context.tr('round_winner', arguments: {'players': winners});
   }
 
   MultiplayerPlayerState? _firstRoundWinner(MultiplayerRoundResult result) {
@@ -508,61 +531,452 @@ class _MultiplayerGameResultOverlayState
   }
 }
 
+class _RoundHandsReveal extends StatelessWidget {
+  final MultiplayerGameState gameState;
+  final MultiplayerRoundResult result;
+
+  const _RoundHandsReveal({
+    super.key,
+    required this.gameState,
+    required this.result,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isAz = context.appLanguage.code == 'az';
+    final orderedPlayers = [...gameState.players]
+      ..sort((a, b) => a.seatIndex.compareTo(b.seatIndex));
+
+    return Material(
+      color: Colors.black.withValues(alpha: 0.58),
+      child: SafeArea(
+        child: Center(
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 650),
+            curve: Curves.easeOutBack,
+            builder: (context, value, child) => Transform.scale(
+              scale: 0.88 + 0.12 * value.clamp(0.0, 1.0),
+              child: Opacity(
+                opacity: value.clamp(0.0, 1.0),
+                child: child,
+              ),
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 470, maxHeight: 700),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D4C37),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: _ResultPalette.yellow, width: 3),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: _ResultPalette.ink,
+                      blurRadius: 0,
+                      offset: Offset(5, 7),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _ResultPalette.yellow,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: _ResultPalette.ink, width: 2.4),
+                      ),
+                      child: Text(
+                        isAz ? 'ƏLDƏ QALAN DAŞLAR' : 'ОСТАЛОСЬ НА РУКАХ',
+                        style: const TextStyle(
+                          color: _ResultPalette.ink,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      isAz
+                          ? 'Raundun sonundakı daşlar'
+                          : 'Костяшки каждого игрока в конце раунда',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.86),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 13),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            for (var index = 0;
+                                index < orderedPlayers.length;
+                                index++) ...[
+                              _RevealedPlayerHandCard(
+                                player: orderedPlayers[index],
+                                hand: gameState.revealedHands[
+                                        orderedPlayers[index].id] ??
+                                    const <ServerDomino>[],
+                                handPoints:
+                                    result.handPoints[orderedPlayers[index].id] ??
+                                        0,
+                                isWinner: result.winnerPlayerIds
+                                    .contains(orderedPlayers[index].id),
+                                isMe:
+                                    orderedPlayers[index].id == gameState.myPlayerId,
+                              ),
+                              if (index != orderedPlayers.length - 1)
+                                const SizedBox(height: 10),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(
+                          width: 15,
+                          height: 15,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.3,
+                            color: _ResultPalette.yellow,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          isAz
+                              ? 'Nəticəni göstəririk...'
+                              : 'Сейчас покажем результат...',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.82),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RevealedPlayerHandCard extends StatelessWidget {
+  final MultiplayerPlayerState player;
+  final List<ServerDomino> hand;
+  final int handPoints;
+  final bool isWinner;
+  final bool isMe;
+
+  const _RevealedPlayerHandCard({
+    required this.player,
+    required this.hand,
+    required this.handPoints,
+    required this.isWinner,
+    required this.isMe,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isAz = context.appLanguage.code == 'az';
+    final accent = isWinner
+        ? _ResultPalette.lime
+        : isMe
+            ? _ResultPalette.skyBlue
+            : _ResultPalette.coral;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(10, 9, 10, 10),
+      decoration: BoxDecoration(
+        color: _ResultPalette.cream,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _ResultPalette.ink, width: 2.5),
+        boxShadow: const [
+          BoxShadow(
+            color: _ResultPalette.ink,
+            blurRadius: 0,
+            offset: Offset(3, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              _ResultAvatar(player: player, highlighted: isWinner),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      player.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _ResultPalette.ink,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Wrap(
+                      spacing: 5,
+                      runSpacing: 4,
+                      children: [
+                        if (isMe)
+                          _TinyResultBadge(
+                            text: isAz ? 'Sən' : 'Ты',
+                            color: _ResultPalette.skyBlue,
+                          ),
+                        if (isWinner)
+                          _TinyResultBadge(
+                            text: isAz ? 'Qalib' : 'Победитель',
+                            color: _ResultPalette.lime,
+                          ),
+                        _TinyResultBadge(
+                          text: isAz
+                              ? '${hand.length} daş'
+                              : '${hand.length} кост.',
+                          color: _ResultPalette.yellow,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 7),
+              Container(
+                width: 58,
+                height: 58,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: accent,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _ResultPalette.ink, width: 2.5),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: _ResultPalette.ink,
+                      blurRadius: 0,
+                      offset: Offset(2, 3),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '$handPoints',
+                      style: const TextStyle(
+                        color: _ResultPalette.ink,
+                        fontSize: 21,
+                        height: 1,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      isAz ? 'xal' : 'очк.',
+                      style: const TextStyle(
+                        color: _ResultPalette.ink,
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 9),
+          Container(
+            height: 68,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8D9B8),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: _ResultPalette.ink.withValues(alpha: 0.72),
+                width: 1.8,
+              ),
+            ),
+            child: hand.isEmpty
+                ? Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: _ResultPalette.lime,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: _ResultPalette.ink,
+                              width: 2,
+                            ),
+                          ),
+                          child: const Text(
+                            '0',
+                            style: TextStyle(
+                              color: _ResultPalette.ink,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          isAz ? 'Əl boşdur' : 'Рука пустая',
+                          style: const TextStyle(
+                            color: _ResultPalette.ink,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      return FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (var index = 0; index < hand.length; index++) ...[
+                              DominoTile(
+                                domino: hand[index].domino,
+                                width: 36,
+                                height: 58,
+                                dotSize: 4.1,
+                              ),
+                              if (index != hand.length - 1)
+                                const SizedBox(width: 4),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TinyResultBadge extends StatelessWidget {
+  final String text;
+  final Color color;
+
+  const _TinyResultBadge({required this.text, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: _ResultPalette.ink, width: 1.5),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: _ResultPalette.ink,
+          fontSize: 8.8,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
 class _RoundOutcomeFlash extends StatelessWidget {
   final bool isWinner;
   final bool isMatchFinished;
+  final String reason;
   final String? winnerName;
 
   const _RoundOutcomeFlash({
     super.key,
     required this.isWinner,
     required this.isMatchFinished,
+    required this.reason,
     required this.winnerName,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isAzerbaijani = context.appLanguage.code == 'az';
+    final isAz = context.appLanguage.code == 'az';
 
     final title = isMatchFinished
         ? isWinner
-            ? (isAzerbaijani ? 'QƏLƏBƏ!' : 'ПОБЕДА!')
-            : (isAzerbaijani ? 'MƏĞLUBİYYƏT' : 'ПОРАЖЕНИЕ')
+            ? (isAz ? 'QƏLƏBƏ!' : 'ПОБЕДА!')
+            : (isAz ? 'MƏĞLUBİYYƏT' : 'ПОРАЖЕНИЕ')
         : isWinner
-            ? (isAzerbaijani ? 'RAUND SƏNİNDİR!' : 'РАУНД ТВОЙ!')
-            : (isAzerbaijani ? 'RAUND UDUZULDU' : 'РАУНД ПРОИГРАН');
+            ? (isAz ? 'RAUND SƏNİNDİR!' : 'РАУНД ТВОЙ!')
+            : (isAz ? 'RAUND UDUZULDU' : 'РАУНД ПРОИГРАН');
 
-    final subtitle = isMatchFinished
-        ? isWinner
-            ? (isAzerbaijani
-                ? 'Matçı qazandın. Nəticə yadda saxlanıldı.'
-                : 'Ты выиграл матч. Результат сохранён.')
-            : winnerName == null
-                ? (isAzerbaijani
-                    ? 'Bu dəfə rəqib qalib gəldi.'
-                    : 'В этот раз победил соперник.')
-                : (isAzerbaijani
-                    ? '$winnerName matçı qazandı.'
-                    : '$winnerName выиграл матч.')
-        : isWinner
-            ? (isAzerbaijani
-                ? 'Son daşı birinci sən qoydun.'
-                : 'Ты первым выложил последнюю костяшку.')
-            : winnerName == null
-                ? (isAzerbaijani
-                    ? 'Rəqib raundu birinci bitirdi.'
-                    : 'Соперник первым закончил раунд.')
-                : (isAzerbaijani
-                    ? '$winnerName raundu birinci bitirdi.'
-                    : '$winnerName первым закончил раунд.');
+    String subtitle;
+    if (isMatchFinished) {
+      if (isWinner) {
+        subtitle = isAz
+            ? 'Matçı qazandın. Nəticə yadda saxlanıldı.'
+            : 'Ты выиграл матч. Результат сохранён.';
+      } else if (winnerName == null) {
+        subtitle = isAz ? 'Bu dəfə rəqib qalib gəldi.' : 'В этот раз победил соперник.';
+      } else {
+        subtitle = isAz
+            ? '$winnerName matçı qazandı.'
+            : '$winnerName выиграл матч.';
+      }
+    } else if (reason == 'fish') {
+      subtitle = winnerName == null
+          ? (isAz ? 'Raund bal hesabı ilə bitdi.' : 'Раунд завершён по очкам на руках.')
+          : (isAz
+              ? '$winnerName əlində ən az xal saxladı.'
+              : '$winnerName оставил меньше всего очков на руках.');
+    } else if (isWinner) {
+      subtitle = isAz
+          ? 'Son daşı birinci sən qoydun.'
+          : 'Ты первым выложил последнюю костяшку.';
+    } else if (winnerName == null) {
+      subtitle = isAz
+          ? 'Rəqib raundu birinci bitirdi.'
+          : 'Соперник первым закончил раунд.';
+    } else {
+      subtitle = isAz
+          ? '$winnerName raundu birinci bitirdi.'
+          : '$winnerName первым закончил раунд.';
+    }
 
     final badge = isMatchFinished
-        ? (isAzerbaijani ? 'MATÇ BAŞA ÇATDI' : 'МАТЧ ЗАВЕРШЁН')
-        : (isAzerbaijani ? 'RAUND BAŞA ÇATDI' : 'РАУНД ЗАВЕРШЁН');
-
+        ? (isAz ? 'MATÇ BAŞA ÇATDI' : 'МАТЧ ЗАВЕРШЁН')
+        : (isAz ? 'RAUND BAŞA ÇATDI' : 'РАУНД ЗАВЕРШЁН');
     final accent = isWinner ? _ResultPalette.lime : _ResultPalette.coral;
-    final secondaryAccent =
-        isWinner ? _ResultPalette.yellow : _ResultPalette.skyBlue;
+    final secondary = isWinner ? _ResultPalette.yellow : _ResultPalette.skyBlue;
 
     return Material(
       color: Colors.black.withValues(alpha: 0.58),
@@ -570,19 +984,17 @@ class _RoundOutcomeFlash extends StatelessWidget {
         child: Center(
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 1050),
+            duration: const Duration(milliseconds: 1000),
             curve: Curves.easeOutBack,
             builder: (context, progress, child) {
               final entry = progress.clamp(0.0, 1.0).toDouble();
               final shake = isWinner
                   ? 0.0
-                  : math.sin(progress * math.pi * 8) *
-                      (1 - entry) *
-                      12;
+                  : math.sin(progress * math.pi * 8) * (1 - entry) * 10;
               return Transform.translate(
                 offset: Offset(shake, 0),
                 child: Transform.scale(
-                  scale: 0.62 + (entry * 0.38),
+                  scale: 0.64 + entry * 0.36,
                   child: Opacity(opacity: entry, child: child),
                 ),
               );
@@ -591,15 +1003,6 @@ class _RoundOutcomeFlash extends StatelessWidget {
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
-                if (isWinner)
-                  const Positioned.fill(child: _OutcomeBurst()),
-                Positioned(
-                  top: -70,
-                  child: _ResultPulseRing(
-                    color: accent,
-                    isWinner: isWinner,
-                  ),
-                ),
                 Container(
                   constraints: const BoxConstraints(maxWidth: 370),
                   margin: const EdgeInsets.symmetric(horizontal: 22),
@@ -607,10 +1010,7 @@ class _RoundOutcomeFlash extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: _ResultPalette.cream,
                     borderRadius: BorderRadius.circular(32),
-                    border: Border.all(
-                      color: _ResultPalette.ink,
-                      width: 3,
-                    ),
+                    border: Border.all(color: _ResultPalette.ink, width: 3),
                     boxShadow: const [
                       BoxShadow(
                         color: _ResultPalette.ink,
@@ -628,12 +1028,9 @@ class _RoundOutcomeFlash extends StatelessWidget {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: secondaryAccent,
+                          color: secondary,
                           borderRadius: BorderRadius.circular(13),
-                          border: Border.all(
-                            color: _ResultPalette.ink,
-                            width: 2.1,
-                          ),
+                          border: Border.all(color: _ResultPalette.ink, width: 2.1),
                         ),
                         child: Text(
                           badge,
@@ -657,13 +1054,6 @@ class _RoundOutcomeFlash extends StatelessWidget {
                           height: 0.98,
                           fontWeight: FontWeight.w900,
                           letterSpacing: -0.8,
-                          shadows: const [
-                            Shadow(
-                              color: Colors.black12,
-                              offset: Offset(2, 2),
-                              blurRadius: 0,
-                            ),
-                          ],
                         ),
                       ),
                       const SizedBox(height: 15),
@@ -674,12 +1064,9 @@ class _RoundOutcomeFlash extends StatelessWidget {
                           vertical: 12,
                         ),
                         decoration: BoxDecoration(
-                          color: secondaryAccent,
+                          color: secondary,
                           borderRadius: BorderRadius.circular(17),
-                          border: Border.all(
-                            color: _ResultPalette.ink,
-                            width: 2.2,
-                          ),
+                          border: Border.all(color: _ResultPalette.ink, width: 2.2),
                         ),
                         child: Text(
                           subtitle,
@@ -692,76 +1079,32 @@ class _RoundOutcomeFlash extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 14),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            isWinner
-                                ? Icons.auto_awesome_rounded
-                                : Icons.info_outline_rounded,
-                            color: _ResultPalette.inkSoft,
-                            size: 17,
-                          ),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              isAzerbaijani
-                                  ? 'Nəticələr bir neçə saniyədən sonra göstəriləcək.'
-                                  : 'Через несколько секунд покажем результаты.',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: _ResultPalette.inkSoft,
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
                 Positioned(
                   top: -43,
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0.0, end: 1.0),
-                    duration: const Duration(milliseconds: 1450),
-                    curve: Curves.elasticOut,
-                    builder: (context, value, child) => Transform.rotate(
-                      angle: (isWinner ? 0.06 : -0.06) +
-                          math.sin(value * math.pi * 3) * 0.045,
-                      child: Transform.scale(
-                        scale: 0.8 +
-                            value.clamp(0.0, 1.0).toDouble() * 0.2,
-                        child: child,
-                      ),
-                    ),
-                    child: Container(
-                      width: 94,
-                      height: 94,
-                      decoration: BoxDecoration(
-                        color: accent,
-                        shape: BoxShape.circle,
-                        border: Border.all(
+                  child: Container(
+                    width: 94,
+                    height: 94,
+                    decoration: BoxDecoration(
+                      color: accent,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: _ResultPalette.ink, width: 3.2),
+                      boxShadow: const [
+                        BoxShadow(
                           color: _ResultPalette.ink,
-                          width: 3.2,
+                          blurRadius: 0,
+                          offset: Offset(5, 6),
                         ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: _ResultPalette.ink,
-                            blurRadius: 0,
-                            offset: Offset(5, 6),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        isWinner
-                            ? Icons.emoji_events_rounded
-                            : Icons.sentiment_dissatisfied_rounded,
-                        color: _ResultPalette.ink,
-                        size: 50,
-                      ),
+                      ],
+                    ),
+                    child: Icon(
+                      isWinner
+                          ? Icons.emoji_events_rounded
+                          : Icons.sentiment_dissatisfied_rounded,
+                      color: _ResultPalette.ink,
+                      size: 50,
                     ),
                   ),
                 ),
@@ -770,87 +1113,6 @@ class _RoundOutcomeFlash extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _ResultPulseRing extends StatelessWidget {
-  final Color color;
-  final bool isWinner;
-
-  const _ResultPulseRing({
-    required this.color,
-    required this.isWinner,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 1700),
-      curve: Curves.easeOutCubic,
-      builder: (context, progress, child) {
-        return Container(
-          width: 118 + 42 * progress,
-          height: 118 + 42 * progress,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: color.withValues(alpha: (1 - progress) * 0.75),
-              width: isWinner ? 8 : 5,
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _OutcomeBurst extends StatelessWidget {
-  const _OutcomeBurst();
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 1800),
-      curve: Curves.easeOutCubic,
-      builder: (context, progress, child) {
-        return Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.center,
-          children: [
-            for (var index = 0; index < 20; index++)
-              Transform.translate(
-                offset: Offset(
-                  math.cos((math.pi * 2 / 20) * index) * 148 * progress,
-                  math.sin((math.pi * 2 / 20) * index) * 120 * progress,
-                ),
-                child: Opacity(
-                  opacity: (1.0 - progress * 0.7)
-                      .clamp(0.0, 1.0)
-                      .toDouble(),
-                  child: Transform.rotate(
-                    angle: progress * (index.isEven ? 1.8 : -1.8),
-                    child: Icon(
-                      index % 3 == 0
-                          ? Icons.star_rounded
-                          : index.isEven
-                              ? Icons.circle
-                              : Icons.auto_awesome_rounded,
-                      size: index % 3 == 0 ? 24 : 13,
-                      color: index % 4 == 0
-                          ? _ResultPalette.coral
-                          : index % 3 == 0
-                              ? _ResultPalette.yellow
-                              : _ResultPalette.lime,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
     );
   }
 }
@@ -905,10 +1167,7 @@ class _PlayerResultRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(19),
-        border: Border.all(
-          color: _ResultPalette.ink,
-          width: 2.5,
-        ),
+        border: Border.all(color: _ResultPalette.ink, width: 2.5),
         boxShadow: const [
           BoxShadow(
             color: _ResultPalette.ink,
@@ -919,10 +1178,7 @@ class _PlayerResultRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _ResultAvatar(
-            player: player,
-            highlighted: isRoundWinner,
-          ),
+          _ResultAvatar(player: player, highlighted: isRoundWinner),
           const SizedBox(width: 11),
           Expanded(
             child: Column(
@@ -984,10 +1240,7 @@ class _PlayerResultRow extends StatelessWidget {
             decoration: BoxDecoration(
               color: scoreColor,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: _ResultPalette.ink,
-                width: 2.2,
-              ),
+              border: Border.all(color: _ResultPalette.ink, width: 2.2),
             ),
             child: Text(
               '$total',
@@ -1025,10 +1278,7 @@ class _ResultAvatar extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: highlighted ? _ResultPalette.lime : _ResultPalette.cream,
-        border: Border.all(
-          color: _ResultPalette.ink,
-          width: 2.3,
-        ),
+        border: Border.all(color: _ResultPalette.ink, width: 2.3),
       ),
       child: ClipOval(
         child: avatarUrl != null && avatarUrl.isNotEmpty
@@ -1079,10 +1329,7 @@ class _WaitingOwnerCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: _ResultPalette.yellow,
         borderRadius: BorderRadius.circular(17),
-        border: Border.all(
-          color: _ResultPalette.ink,
-          width: 2.5,
-        ),
+        border: Border.all(color: _ResultPalette.ink, width: 2.5),
         boxShadow: const [
           BoxShadow(
             color: _ResultPalette.ink,
@@ -1143,10 +1390,7 @@ class _CartoonActionButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: _ResultPalette.ink,
-            width: 2.8,
-          ),
+          border: Border.all(color: _ResultPalette.ink, width: 2.8),
           boxShadow: const [
             BoxShadow(
               color: _ResultPalette.ink,

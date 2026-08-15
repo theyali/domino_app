@@ -4,6 +4,7 @@ import '../localization/app_localizations.dart';
 import '../localization/statistics_strings.dart';
 import '../models/user_account.dart';
 import '../theme/app_colors.dart';
+import '../widgets/cartoon_page_background.dart';
 import 'inventory_screen.dart';
 import 'profile_screen.dart';
 import 'restaurants_screen.dart';
@@ -92,16 +93,19 @@ class _MainShellScreenState extends State<MainShellScreen> {
       ),
     ];
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: IndexedStack(
-        index: _index,
-        children: screens,
-      ),
-      bottomNavigationBar: _CartoonGameDock(
-        selectedIndex: _index,
-        items: items,
-        onSelected: _selectTab,
+    return CartoonPageBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        extendBody: true,
+        body: IndexedStack(
+          index: _index,
+          children: screens,
+        ),
+        bottomNavigationBar: _CartoonGameDock(
+          selectedIndex: _index,
+          items: items,
+          onSelected: _selectTab,
+        ),
       ),
     );
   }
@@ -122,7 +126,7 @@ class _CartoonGameDock extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF0B1A2A),
+        color: const Color(0xFF0B1A2A).withValues(alpha: 0.88),
         border: Border(
           top: BorderSide(
             color: AppColors.brass.withValues(alpha: 0.34),

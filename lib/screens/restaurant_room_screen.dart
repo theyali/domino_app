@@ -122,6 +122,25 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
     );
   }
 
+  Widget _withEasyDismiss({
+    required BuildContext sheetContext,
+    required Widget child,
+  }) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        child,
+        Positioned(
+          top: 12,
+          right: 14,
+          child: _SheetCloseButton(
+            onTap: () => Navigator.of(sheetContext).pop(),
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _showCreateRoomSheet() async {
     if (_isSubmitting) return;
 
@@ -129,8 +148,13 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      isDismissible: true,
+      enableDrag: true,
       showDragHandle: false,
-      builder: (context) => const CreateRoomBottomSheet(),
+      builder: (sheetContext) => _withEasyDismiss(
+        sheetContext: sheetContext,
+        child: const CreateRoomBottomSheet(),
+      ),
     );
 
     if (request == null || !mounted) return;
@@ -187,8 +211,13 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      isDismissible: true,
+      enableDrag: true,
       showDragHandle: false,
-      builder: (context) => JoinRoomBottomSheet(room: room),
+      builder: (sheetContext) => _withEasyDismiss(
+        sheetContext: sheetContext,
+        child: JoinRoomBottomSheet(room: room),
+      ),
     );
 
     if (request == null || !mounted) return;
@@ -379,6 +408,42 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SheetCloseButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _SheetCloseButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        width: 42,
+        height: 42,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: _RestaurantPalette.coral,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _RestaurantPalette.ink, width: 2.8),
+          boxShadow: const [
+            BoxShadow(
+              color: _RestaurantPalette.ink,
+              blurRadius: 0,
+              offset: Offset(2, 3),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.close_rounded,
+          color: _RestaurantPalette.ink,
+          size: 25,
         ),
       ),
     );

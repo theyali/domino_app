@@ -17,6 +17,22 @@ class PlayerAvatarCache {
   static String? avatarUrlFor(int playerId) => _urls[playerId];
 }
 
+class PlayerGenderCache {
+  static final Map<int, UserGender> _genders = <int, UserGender>{};
+
+  const PlayerGenderCache._();
+
+  static void remember(int playerId, UserGender? gender) {
+    if (gender == null) {
+      _genders.remove(playerId);
+      return;
+    }
+    _genders[playerId] = gender;
+  }
+
+  static UserGender? genderFor(int playerId) => _genders[playerId];
+}
+
 class Player {
   final int id;
   final String name;

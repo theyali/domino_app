@@ -88,6 +88,10 @@ class _MultiplayerGameResultOverlayState
     return result.reason != 'surrender' && result.reason != 'player_left';
   }
 
+  bool _isPlayedRoundResult(MultiplayerRoundResult result) {
+    return result.reason == 'domino' || result.reason == 'fish';
+  }
+
   void _startPresentation() {
     _phaseTimer?.cancel();
 
@@ -139,7 +143,7 @@ class _MultiplayerGameResultOverlayState
     if (isWinner) {
       SoundEffectsService.victory();
       unawaited(HapticFeedback.heavyImpact());
-    } else {
+    } else if (_isPlayedRoundResult(result)) {
       SoundEffectsService.defeat();
       unawaited(HapticFeedback.mediumImpact());
     }

@@ -46,6 +46,12 @@ class _MultiplayerGameResultOverlayState
   static const Duration _roundOutcomeDuration = Duration(milliseconds: 3200);
   static const Duration _matchOutcomeDuration = Duration(milliseconds: 4400);
 
+  // Защита от повторного victory/defeat при технических обновлениях того же
+  // завершённого раунда (например, когда игрок нажал «Выйти из игры»).
+  // Ключ включает gameId и roundNumber, поэтому новый раунд снова сможет
+  // проиграть свой результатный звук.
+  static final Set<String> _playedOutcomeSoundKeys = <String>{};
+
   Timer? _phaseTimer;
   late _ResultPresentationPhase _phase;
 
@@ -91,6 +97,9 @@ class _MultiplayerGameResultOverlayState
   bool _isPlayedRoundResult(MultiplayerRoundResult result) {
     return result.reason == 'domino' || result.reason == 'fish';
   }
+
+  String get _outcomeSoundKey =>
+      '${gameState.gameId}:${gameState.roundNumber}';
 
   void _startPresentation() {
     _phaseTimer?.cancel();
@@ -140,12 +149,18 @@ class _MultiplayerGameResultOverlayState
     }
 
     final isWinner = _isLocalWinner(result);
-    if (isWinner) {
-      SoundEffectsService.victory();
-      unawaited(HapticFeedback.heavyImpact());
-    } else if (_isPlayedRoundResult(result)) {
-      SoundEffectsService.defeat();
-      unawaited(HapticFeedback.mediumImpact());
+    final shouldPlayResultFeedback =
+        _isPlayedRoundResult(result) &&
+        _playedOutcomeSoundKeys.add(_outcomeSoundKey);
+
+    if (shouldPlayResultFeedback) {
+      if (isWinner) {
+        SoundEffectsService.victory();
+        unawaited(HapticFeedback.heavyImpact());
+      } else {
+        SoundEffectsService.defeat();
+        unawaited(HapticFeedback.mediumImpact());
+      }
     }
 
     setState(() {

@@ -11,6 +11,7 @@ import '../services/emotion_realtime_service.dart';
 import '../services/gift_realtime_service.dart';
 import '../services/gift_service.dart';
 import '../services/player_avatar_registry.dart';
+import '../services/social_service.dart';
 import '../theme/app_colors.dart';
 import 'emotion_picker_sheet.dart';
 import 'gift_flight_animation.dart';
@@ -58,6 +59,7 @@ class PlayerAvatar extends StatefulWidget {
 class _PlayerAvatarState extends State<PlayerAvatar> {
   static const ApiService _apiService = ApiService();
   static const GiftService _giftService = GiftService();
+  static const SocialService _socialService = SocialService();
 
   final ActiveGameSessionStore _sessionStore = ActiveGameSessionStore();
   final GiftRealtimeService _giftRealtime = GiftRealtimeService.instance;
@@ -71,6 +73,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   String? _pendingGiftEventId;
   OverlayEntry? _flightOverlay;
   bool _isOpeningGiftMenu = false;
+  bool _isOpeningSocialMenu = false;
   int _activeGiftVisualRevision = 0;
 
   bool get _isMultiplayerAvatar => widget.isOnline != null;
@@ -149,6 +152,182 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
     }
 
     await _showGiftPicker();
+  }
+
+  Future<void> _handleDoubleTap() async {
+    final customAction = widget.onDoubleTap;
+    if (customAction != null) {
+      customAction();
+      return;
+    }
+
+    if (!_isMultiplayerAvatar || widget.player.isMe || _isOpeningSocialMenu) {
+      return;
+    }
+
+    _isOpeningSocialMenu = true;
+    try {
+      final savedSession = await _sessionStore.load();
+      if (savedSession == null) {
+        _showMessage(
+          _isAzerbaijani
+              ? 'Cari masanı müəyyən etmək mümkün olmadı.'
+              : 'Не удалось определить текущий стол.',
+        );
+        return;
+      }
+
+      final gameState = await _apiService.fetchGameState(
+        roomId: savedSession.roomId,
+        playerId: savedSession.playerId,
+      );
+
+      int? userId;
+      for (final candidate in gameState.players) {
+        if (candidate.id == widget.player.id) {
+          userId = candidate.userId;
+          break;
+        }
+      }
+
+      if (userId == null || !mounted) {
+        if (mounted) {
+          _showMessage(
+            _isAzerbaijani
+                ? 'Bu oyunçunun hesabını müəyyən etmək mümkün olmadı.'
+                : 'Не удалось определить аккаунт этого игрока.',
+          );
+        }
+        return;
+      }
+
+      final addFriend = await showModalBottomSheet<bool>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        barrierColor: Colors.black54,
+        builder: (sheetContext) {
+          return SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+                decoration: BoxDecoration(
+                  color: AppColors.cream,
+                  borderRadius: BorderRadius.circular(26),
+                  border: Border.all(color: AppColors.ink, width: 3),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: AppColors.ink,
+                      blurRadius: 0,
+                      offset: Offset(0, 7),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: AppColors.ink,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      widget.player.name,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      _isAzerbaijani
+                          ? 'Oyunçu ilə nə etmək istəyirsən?'
+                          : 'Что сделать с игроком?',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.ink.withValues(alpha: 0.65),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: () => Navigator.of(sheetContext).pop(true),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.lime,
+                          foregroundColor: AppColors.ink,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          side: const BorderSide(
+                            color: AppColors.ink,
+                            width: 2.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
+                        icon: const Icon(Icons.person_add_alt_1_rounded),
+                        label: Text(
+                          _isAzerbaijani
+                              ? 'Dostlara əlavə et'
+                              : 'Добавить в друзья',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+
+      if (addFriend != true || !mounted) return;
+
+      try {
+        await _socialService.sendFriendRequest(userId);
+        if (!mounted) return;
+        _showMessage(
+          _isAzerbaijani
+              ? 'Dostluq sorğusu göndərildi.'
+              : 'Заявка в друзья отправлена.',
+        );
+      } on ApiException catch (error) {
+        if (mounted) _showMessage(error.message);
+      } catch (_) {
+        if (mounted) {
+          _showMessage(
+            _isAzerbaijani
+                ? 'Dostluq sorğusunu göndərmək mümkün olmadı.'
+                : 'Не удалось отправить заявку в друзья.',
+          );
+        }
+      }
+    } on ApiException catch (error) {
+      if (mounted) _showMessage(error.message);
+    } catch (_) {
+      if (mounted) {
+        _showMessage(
+          _isAzerbaijani
+              ? 'Oyunçu menyusunu açmaq mümkün olmadı.'
+              : 'Не удалось открыть меню игрока.',
+        );
+      }
+    } finally {
+      _isOpeningSocialMenu = false;
+    }
   }
 
   Future<void> _showEmotionPicker() async {
@@ -337,7 +516,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
     return GestureDetector(
       key: _anchorKey,
       onTap: _handleTap,
-      onDoubleTap: widget.onDoubleTap,
+      onDoubleTap: _handleDoubleTap,
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,

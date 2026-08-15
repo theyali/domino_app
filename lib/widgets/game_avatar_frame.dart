@@ -1,4 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+
+import '../theme/app_colors.dart';
 
 class GameAvatarFrame extends StatelessWidget {
   final double size;
@@ -14,52 +18,109 @@ class GameAvatarFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // avatar_frame.png has a fixed circular opening. The previous implementation
-    // let every screen use a different inset and then capped it too aggressively,
-    // so the photo could extend underneath the coloured artwork.
+    // Старый avatar_frame.png выглядел как Instagram-градиент и выбивался
+    // из нового cartoon UI. Рамка теперь полностью рисуется Flutter-ом:
+    // толстый чёрный контур, жёсткая тень и яркий игровой акцент.
     //
-    // Keep one proportional safe area for every avatar size. About 9% on each
-    // side leaves the image visually full while keeping it inside the inner edge
-    // of the illustrated frame on profile, statistics and future usages.
-    final frameSafeInset = size * 0.09;
+    // innerPadding оставляем частью API виджета, но ограничиваем его
+    // пропорционально размеру, чтобы маленькие аватары в рейтинге не
+    // становились слишком тесными.
+    final ringThickness = innerPadding.clamp(
+      math.max(4.0, size * 0.07),
+      math.max(5.0, size * 0.11),
+    );
+    final shadowOffset = math.max(2.0, size * 0.035);
+    final borderWidth = math.max(2.0, size * 0.025);
+    final innerBorderWidth = math.max(1.5, size * 0.016);
 
     return SizedBox(
       width: size,
-      height: size,
+      height: size + shadowOffset,
       child: Stack(
-        fit: StackFit.expand,
+        clipBehavior: Clip.none,
+        alignment: Alignment.topCenter,
         children: [
-          Positioned.fill(
-            child: Padding(
-              padding: EdgeInsets.all(frameSafeInset),
-              child: ClipOval(
-                clipBehavior: Clip.antiAlias,
-                child: SizedBox.expand(
-                  child: FittedBox(
-                    fit: BoxFit.cover,
-                    clipBehavior: Clip.hardEdge,
-                    child: SizedBox(
-                      width: size,
-                      height: size,
-                      child: child,
-                    ),
-                  ),
-                ),
+          Positioned(
+            top: shadowOffset,
+            child: Container(
+              width: size,
+              height: size,
+              decoration: const BoxDecoration(
+                color: AppColors.ink,
+                shape: BoxShape.circle,
               ),
             ),
           ),
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Image.asset(
-                'assets/ui/avatar_frame.png',
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.high,
-                errorBuilder: (context, error, stackTrace) =>
-                    const SizedBox.expand(),
+          Container(
+            width: size,
+            height: size,
+            padding: EdgeInsets.all(ringThickness),
+            decoration: BoxDecoration(
+              color: AppColors.cartoonYellow,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.ink,
+                width: borderWidth,
               ),
+            ),
+            child: Container(
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: AppColors.cream,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.ink,
+                  width: innerBorderWidth,
+                ),
+              ),
+              child: ClipOval(
+                child: SizedBox.expand(child: child),
+              ),
+            ),
+          ),
+          Positioned(
+            left: size * 0.08,
+            top: size * 0.14,
+            child: _CartoonFrameDot(
+              size: math.max(6, size * 0.075),
+              color: AppColors.cartoonCoral,
+            ),
+          ),
+          Positioned(
+            right: size * 0.08,
+            bottom: shadowOffset + size * 0.13,
+            child: _CartoonFrameDot(
+              size: math.max(6, size * 0.065),
+              color: AppColors.cartoonMint,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CartoonFrameDot extends StatelessWidget {
+  final double size;
+  final Color color;
+
+  const _CartoonFrameDot({
+    required this.size,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: AppColors.ink,
+          width: math.max(1.2, size * 0.18),
+        ),
       ),
     );
   }

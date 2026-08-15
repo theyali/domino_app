@@ -2,12 +2,14 @@ import '../config/api_config.dart';
 import 'game_room.dart';
 import 'restaurant.dart';
 import 'room_player.dart';
+import 'user_gender.dart';
 
 class SocialUser {
   final int id;
   final String username;
   final String displayName;
   final String? avatarUrl;
+  final UserGender? gender;
   final bool isOnline;
   final DateTime? lastSeenAt;
   final String friendshipStatus;
@@ -21,6 +23,7 @@ class SocialUser {
     required this.username,
     required this.displayName,
     required this.avatarUrl,
+    required this.gender,
     required this.isOnline,
     required this.lastSeenAt,
     required this.friendshipStatus,
@@ -40,6 +43,7 @@ class SocialUser {
           ? displayName!
           : (username.isNotEmpty ? username : 'Игрок'),
       avatarUrl: ApiConfig.resolveUrl(json['avatar_url'] as String?),
+      gender: UserGender.fromApi(json['gender']),
       isOnline: json['is_online'] as bool? ?? false,
       lastSeenAt: _parseDate(json['last_seen_at']),
       friendshipStatus: json['friendship_status'] as String? ?? 'none',
@@ -262,19 +266,35 @@ class DirectMessageThread {
   }
 }
 
-class SocialJoinResult {
+class BlockedUserItem {
+  final SocialUser user;
+  final DateTime? blockedAt;
+
+  const BlockedUserItem({required this.user, required this.blockedAt});
+
+  factory BlockedUserItem.fromJson(Map<String, dynamic> json) {
+    return BlockedUserItem(
+      user: SocialUser.fromJson(
+        Map<String, dynamic>.from(json['user'] as Map),
+      ),
+      blockedAt: _parseDate(json['blocked_at']),
+    );
+  }
+}
+
+class AcceptedRoomInvitation {
   final Restaurant restaurant;
   final GameRoom room;
   final RoomPlayer player;
 
-  const SocialJoinResult({
+  const AcceptedRoomInvitation({
     required this.restaurant,
     required this.room,
     required this.player,
   });
 
-  factory SocialJoinResult.fromJson(Map<String, dynamic> json) {
-    return SocialJoinResult(
+  factory AcceptedRoomInvitation.fromJson(Map<String, dynamic> json) {
+    return AcceptedRoomInvitation(
       restaurant: Restaurant.fromJson(
         Map<String, dynamic>.from(json['restaurant'] as Map),
       ),
@@ -289,8 +309,8 @@ class SocialJoinResult {
 }
 
 DateTime? _parseDate(dynamic value) {
-  if (value is! String || value.isEmpty) return null;
-  return DateTime.tryParse(value)?.toLocal();
+  if (value == null) return null;
+  return DateTime.tryParse(value.toString());
 }
 
 List<T> _parseList<T>(dynamic raw, T Function(Map<String, dynamic>) parser) {

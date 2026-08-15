@@ -27,6 +27,10 @@ class GameRoomCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final canJoin = !room.isFull && room.status == 'waiting';
+    final isAz = context.appLanguage.code == 'az';
+    final modeLabel = room.isPhone
+        ? '${isAz ? 'Telefon' : 'Телефон'} · ${room.targetScore}'
+        : '101';
 
     return GestureDetector(
       onTap: canJoin ? onTap : null,
@@ -58,7 +62,11 @@ class GameRoomCard extends StatelessWidget {
                   border: Border.all(color: _RoomCardPalette.ink, width: 2.8),
                 ),
                 child: Icon(
-                  room.isLocked ? Icons.lock_rounded : Icons.table_restaurant,
+                  room.isPhone
+                      ? Icons.add_circle_outline_rounded
+                      : room.isLocked
+                          ? Icons.lock_rounded
+                          : Icons.table_restaurant,
                   color: _RoomCardPalette.ink,
                   size: 29,
                 ),
@@ -116,64 +124,27 @@ class GameRoomCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 9),
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 7,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: _RoomCardPalette.ink,
-                              width: 2.2,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.group_rounded,
-                                size: 17,
-                                color: _RoomCardPalette.ink,
-                              ),
-                              const SizedBox(width: 5),
-                              Text(
-                                '${room.currentPlayers} / ${room.maxPlayers}',
-                                style: const TextStyle(
-                                  color: _RoomCardPalette.ink,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ],
-                          ),
+                        _SmallChip(
+                          icon: Icons.rule_rounded,
+                          label: modeLabel,
+                          color: room.isPhone
+                              ? const Color(0xFF79CDF1)
+                              : const Color(0xFFFFE8A3),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: room.isFull
-                                ? const Color(0xFFFF8A79)
-                                : const Color(0xFF7CFC00),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: _RoomCardPalette.ink,
-                              width: 2.2,
-                            ),
-                          ),
-                          child: Text(
-                            context.tr(room.isFull ? 'full' : 'join'),
-                            style: const TextStyle(
-                              color: _RoomCardPalette.ink,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
+                        _SmallChip(
+                          icon: Icons.group_rounded,
+                          label: '${room.currentPlayers} / ${room.maxPlayers}',
+                          color: Colors.white,
+                        ),
+                        _SmallChip(
+                          label: context.tr(room.isFull ? 'full' : 'join'),
+                          color: room.isFull
+                              ? const Color(0xFFFF8A79)
+                              : const Color(0xFF7CFC00),
                         ),
                       ],
                     ),
@@ -193,6 +164,47 @@ class GameRoomCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SmallChip extends StatelessWidget {
+  final IconData? icon;
+  final String label;
+  final Color color;
+
+  const _SmallChip({
+    this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _RoomCardPalette.ink, width: 2.2),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 16, color: _RoomCardPalette.ink),
+            const SizedBox(width: 5),
+          ],
+          Text(
+            label,
+            style: const TextStyle(
+              color: _RoomCardPalette.ink,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
       ),
     );
   }

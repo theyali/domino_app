@@ -25,13 +25,15 @@ class GameAvatarFrame extends StatelessWidget {
     // innerPadding оставляем частью API виджета, но ограничиваем его
     // пропорционально размеру, чтобы маленькие аватары в рейтинге не
     // становились слишком тесными.
-    final ringThickness = innerPadding.clamp(
-      math.max(4.0, size * 0.07),
-      math.max(5.0, size * 0.11),
-    );
-    final shadowOffset = math.max(2.0, size * 0.035);
-    final borderWidth = math.max(2.0, size * 0.025);
-    final innerBorderWidth = math.max(1.5, size * 0.016);
+    final ringThickness = innerPadding
+        .clamp(
+          math.max(4.0, size * 0.07),
+          math.max(5.0, size * 0.11),
+        )
+        .toDouble();
+    final shadowOffset = math.max(2.0, size * 0.035).toDouble();
+    final borderWidth = math.max(2.0, size * 0.025).toDouble();
+    final innerBorderWidth = math.max(1.5, size * 0.016).toDouble();
 
     return SizedBox(
       width: size,
@@ -82,7 +84,7 @@ class GameAvatarFrame extends StatelessWidget {
             left: size * 0.08,
             top: size * 0.14,
             child: _CartoonFrameDot(
-              size: math.max(6, size * 0.075),
+              size: math.max(6.0, size * 0.075).toDouble(),
               color: AppColors.cartoonCoral,
             ),
           ),
@@ -90,7 +92,7 @@ class GameAvatarFrame extends StatelessWidget {
             right: size * 0.08,
             bottom: shadowOffset + size * 0.13,
             child: _CartoonFrameDot(
-              size: math.max(6, size * 0.065),
+              size: math.max(6.0, size * 0.065).toDouble(),
               color: AppColors.cartoonMint,
             ),
           ),
@@ -119,7 +121,7 @@ class _CartoonFrameDot extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(
           color: AppColors.ink,
-          width: math.max(1.2, size * 0.18),
+          width: math.max(1.2, size * 0.18).toDouble(),
         ),
       ),
     );

@@ -100,6 +100,8 @@ class MultiplayerRoundResult {
   final List<int> winnerPlayerIds;
   final Map<int, int> handPoints;
   final Map<int, int> addedPenalties;
+  final Map<int, int> addedPoints;
+  final int roundBonusPips;
   final Map<int, int> totalScores;
   final List<int> matchLoserPlayerIds;
   final List<int> matchWinnerPlayerIds;
@@ -110,6 +112,8 @@ class MultiplayerRoundResult {
     required this.winnerPlayerIds,
     required this.handPoints,
     required this.addedPenalties,
+    required this.addedPoints,
+    required this.roundBonusPips,
     required this.totalScores,
     required this.matchLoserPlayerIds,
     required this.matchWinnerPlayerIds,
@@ -122,6 +126,8 @@ class MultiplayerRoundResult {
       winnerPlayerIds: _intList(json['winner_player_ids']),
       handPoints: _intMap(json['hand_points']),
       addedPenalties: _intMap(json['added_penalties']),
+      addedPoints: _intMap(json['added_points']),
+      roundBonusPips: json['round_bonus_pips'] as int? ?? 0,
       totalScores: _intMap(json['total_scores']),
       matchLoserPlayerIds: _intList(json['match_loser_player_ids']),
       matchWinnerPlayerIds: _intList(json['match_winner_player_ids']),
@@ -155,6 +161,9 @@ class MultiplayerRoundResult {
 class MultiplayerGameState {
   final int gameId;
   final int roomId;
+  final String gameMode;
+  final String gameModeLabel;
+  final int targetScore;
   final String status;
   final int roundNumber;
   final int version;
@@ -170,10 +179,15 @@ class MultiplayerGameState {
   final List<ServerDomino> table;
   final List<MultiplayerPlayerState> players;
   final MultiplayerRoundResult? roundResult;
+  final Map<String, int> phoneOpenEnds;
+  final int phoneOpenSum;
 
   const MultiplayerGameState({
     required this.gameId,
     required this.roomId,
+    required this.gameMode,
+    required this.gameModeLabel,
+    required this.targetScore,
     required this.status,
     required this.roundNumber,
     required this.version,
@@ -189,6 +203,8 @@ class MultiplayerGameState {
     required this.table,
     required this.players,
     required this.roundResult,
+    required this.phoneOpenEnds,
+    required this.phoneOpenSum,
   });
 
   factory MultiplayerGameState.fromJson(Map<String, dynamic> json) {
@@ -196,10 +212,16 @@ class MultiplayerGameState {
     final rawTable = json['table'] as List<dynamic>? ?? const [];
     final rawPlayers = json['players'] as List<dynamic>? ?? const [];
     final rawRoundResult = json['round_result'];
+    final rawPhoneEnds = json['phone_open_ends'];
+    final gameMode = json['game_mode'] as String? ?? '101';
 
     return MultiplayerGameState(
       gameId: json['game_id'] as int,
       roomId: json['room_id'] as int,
+      gameMode: gameMode,
+      gameModeLabel: json['game_mode_label'] as String? ??
+          (gameMode == 'phone' ? 'Телефон' : '101'),
+      targetScore: json['target_score'] as int? ?? (gameMode == 'phone' ? 72 : 101),
       status: json['status'] as String? ?? 'active',
       roundNumber: json['round_number'] as int? ?? 1,
       version: json['version'] as int? ?? 1,
@@ -237,19 +259,29 @@ class MultiplayerGameState {
               Map<String, dynamic>.from(rawRoundResult),
             )
           : null,
+      phoneOpenEnds: _stringIntMap(rawPhoneEnds),
+      phoneOpenSum: json['phone_open_sum'] as int? ?? 0,
     );
   }
 
+  static Map<String, int> _stringIntMap(dynamic raw) {
+    if (raw is! Map) return const <String, int>{};
+    final result = <String, int>{};
+    for (final entry in raw.entries) {
+      final value = entry.value;
+      if (value is num) result[entry.key.toString()] = value.toInt();
+    }
+    return result;
+  }
+
+  bool get isPhone => gameMode == 'phone';
+  bool get isClassic101 => gameMode == '101';
   bool get isMyTurn => currentPlayerId == myPlayerId;
-
   bool get isActive => status == 'active';
-
   bool get isRoundFinished => status == 'round_finished';
-
   bool get isMatchFinished => status == 'finished';
 
   int? get leftEnd => table.isEmpty ? null : table.first.left;
-
   int? get rightEnd => table.isEmpty ? null : table.last.right;
 
   MultiplayerPlayerState get myPlayer =>
@@ -260,23 +292,25 @@ class MultiplayerGameState {
 
   ServerDomino? get requiredOpeningDomino {
     for (final domino in myHand) {
-      if (domino.id == openingDominoId) {
-        return domino;
-      }
+      if (domino.id == openingDominoId) return domino;
     }
     return null;
   }
 
   Set<String> playableSidesFor(ServerDomino domino) {
-    if (!isMyTurn || !isActive) {
+    if (!isMyTurn || !isActive) return const <String>{};
+
+    if (table.isEmpty) {
+      if (domino.id == openingDominoId) return const {'center'};
       return const <String>{};
     }
 
-    if (table.isEmpty) {
-      if (domino.id == openingDominoId) {
-        return const {'center'};
+    if (isPhone) {
+      final result = <String>{};
+      for (final entry in phoneOpenEnds.entries) {
+        if (domino.containsValue(entry.value)) result.add(entry.key);
       }
-      return const <String>{};
+      return result;
     }
 
     final result = <String>{};
@@ -286,19 +320,15 @@ class MultiplayerGameState {
     if (leftValue != null && domino.containsValue(leftValue)) {
       result.add('left');
     }
-
     if (rightValue != null && domino.containsValue(rightValue)) {
       result.add('right');
     }
-
     return result;
   }
 
   bool get hasPlayableDomino {
     for (final domino in myHand) {
-      if (playableSidesFor(domino).isNotEmpty) {
-        return true;
-      }
+      if (playableSidesFor(domino).isNotEmpty) return true;
     }
     return false;
   }

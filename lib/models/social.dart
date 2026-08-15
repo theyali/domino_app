@@ -23,7 +23,7 @@ class SocialUser {
     required this.username,
     required this.displayName,
     required this.avatarUrl,
-    required this.gender,
+    this.gender,
     required this.isOnline,
     required this.lastSeenAt,
     required this.friendshipStatus,

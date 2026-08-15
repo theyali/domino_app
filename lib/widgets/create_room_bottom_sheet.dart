@@ -29,6 +29,8 @@ class CreateRoomBottomSheet extends StatefulWidget {
 class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
   final TextEditingController _roomNameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _targetScoreController =
+      TextEditingController(text: '72');
 
   String _gameMode = '101';
   int _maxPlayers = 2;
@@ -42,6 +44,7 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
   void dispose() {
     _roomNameController.dispose();
     _passwordController.dispose();
+    _targetScoreController.dispose();
     super.dispose();
   }
 
@@ -51,19 +54,52 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
       if (mode == '101') {
         _maxPlayers = 2;
         _targetScore = 101;
-      } else if (_targetScore == 101) {
-        _targetScore = 72;
+      } else {
+        if (_targetScore == 101) {
+          _targetScore = 72;
+          _targetScoreController.text = '72';
+        }
       }
     });
   }
 
+  void _selectTargetScore(int value) {
+    setState(() {
+      _targetScore = value;
+      _targetScoreController.text = '$value';
+      _targetScoreController.selection = TextSelection.collapsed(
+        offset: _targetScoreController.text.length,
+      );
+    });
+  }
+
   void _submit() {
+    var targetScore = 101;
+    if (_isPhone) {
+      final parsed = int.tryParse(_targetScoreController.text.trim());
+      if (parsed == null || parsed < 5 || parsed > 500) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                _isAz
+                    ? 'Qələbə xalı 5-dən 500-ə qədər olmalıdır.'
+                    : 'Количество очков для победы должно быть от 5 до 500.',
+              ),
+            ),
+          );
+        return;
+      }
+      targetScore = parsed;
+    }
+
     Navigator.of(context).pop(
       CreateRoomRequest(
         roomName: _roomNameController.text.trim(),
         maxPlayers: _maxPlayers,
         gameMode: _gameMode,
-        targetScore: _gameMode == '101' ? 101 : _targetScore,
+        targetScore: targetScore,
         password: _passwordController.text,
       ),
     );
@@ -231,17 +267,40 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      for (final target in const [72, 101]) ...[
-                        if (target != 72) const SizedBox(width: 10),
-                        Expanded(
-                          child: _TargetScoreButton(
-                            value: target,
-                            selected: _targetScore == target,
-                            onTap: () => setState(() => _targetScore = target),
-                          ),
+                      Expanded(
+                        child: _TargetScoreButton(
+                          value: 72,
+                          selected: _targetScore == 72 &&
+                              _targetScoreController.text.trim() == '72',
+                          onTap: () => _selectTargetScore(72),
                         ),
-                      ],
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _TargetScoreButton(
+                          value: 101,
+                          selected: _targetScore == 101 &&
+                              _targetScoreController.text.trim() == '101',
+                          onTap: () => _selectTargetScore(101),
+                        ),
+                      ),
                     ],
+                  ),
+                  const SizedBox(height: 11),
+                  _CartoonTextField(
+                    controller: _targetScoreController,
+                    maxLength: 3,
+                    keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.next,
+                    hintText: _isAz ? 'Başqa xal (5–500)' : 'Другое значение (5–500)',
+                    icon: Icons.tune_rounded,
+                    accentColor: _CreateRoomPalette.yellow,
+                    onChanged: (value) {
+                      final parsed = int.tryParse(value.trim());
+                      if (parsed != null) {
+                        setState(() => _targetScore = parsed);
+                      }
+                    },
                   ),
                 ],
                 const SizedBox(height: 22),
@@ -500,7 +559,9 @@ class _CartoonTextField extends StatelessWidget {
   final Color accentColor;
   final int maxLength;
   final TextInputAction? textInputAction;
+  final TextInputType? keyboardType;
   final bool obscureText;
+  final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
   final Widget? suffix;
 
@@ -511,7 +572,9 @@ class _CartoonTextField extends StatelessWidget {
     required this.accentColor,
     required this.maxLength,
     this.textInputAction,
+    this.keyboardType,
     this.obscureText = false,
+    this.onChanged,
     this.onSubmitted,
     this.suffix,
   });
@@ -539,6 +602,8 @@ class _CartoonTextField extends StatelessWidget {
         maxLength: maxLength,
         obscureText: obscureText,
         textInputAction: textInputAction,
+        keyboardType: keyboardType,
+        onChanged: onChanged,
         onSubmitted: onSubmitted,
         cursorColor: _CreateRoomPalette.ink,
         style: const TextStyle(

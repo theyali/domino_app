@@ -22,18 +22,18 @@ class DominoHandRack extends StatelessWidget {
             AppColors.rackWood,
             AppColors.rackWoodDark,
           ],
-          stops: [0, 0.42, 1],
+          stops: [0, 0.48, 1],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AppColors.brass.withValues(alpha: 0.48),
-          width: 1.3,
+          color: AppColors.ink,
+          width: 2.6,
         ),
         boxShadow: const [
           BoxShadow(
-            color: Colors.black45,
-            blurRadius: 10,
-            offset: Offset(0, 5),
+            color: AppColors.ink,
+            blurRadius: 0,
+            offset: Offset(3, 4),
           ),
         ],
       ),
@@ -41,19 +41,19 @@ class DominoHandRack extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           Positioned(
-            left: 10,
-            right: 10,
-            top: 5,
+            left: 11,
+            right: 11,
+            top: 6,
             child: Container(
-              height: 2,
+              height: 3,
               decoration: BoxDecoration(
-                color: AppColors.brassLight.withValues(alpha: 0.22),
+                color: AppColors.brassLight.withValues(alpha: 0.46),
                 borderRadius: BorderRadius.circular(99),
               ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(7, 8, 7, 15),
+            padding: const EdgeInsets.fromLTRB(7, 9, 7, 16),
             child: child,
           ),
           Positioned(
@@ -61,27 +61,27 @@ class DominoHandRack extends StatelessWidget {
             right: 8,
             bottom: 4,
             child: Container(
-              height: 12,
+              height: 13,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Color(0xFF9B6840),
+                    Color(0xFFC97B43),
                     AppColors.rackWood,
                     AppColors.rackWoodDark,
                   ],
                 ),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppColors.brassDark.withValues(alpha: 0.75),
-                  width: 1,
+                  color: AppColors.ink,
+                  width: 1.5,
                 ),
                 boxShadow: const [
                   BoxShadow(
-                    color: Colors.black38,
-                    blurRadius: 4,
-                    offset: Offset(0, -1),
+                    color: AppColors.ink,
+                    blurRadius: 0,
+                    offset: Offset(0, 2),
                   ),
                 ],
               ),

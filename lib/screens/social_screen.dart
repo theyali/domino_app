@@ -13,10 +13,12 @@ import 'room_lobby_screen.dart';
 
 class SocialScreen extends StatefulWidget {
   final UserAccount currentUser;
+  final ValueChanged<int>? onBadgeChanged;
 
   const SocialScreen({
     super.key,
     required this.currentUser,
+    this.onBadgeChanged,
   });
 
   @override
@@ -66,6 +68,10 @@ class _SocialScreenState extends State<SocialScreen> {
         _overview = overview;
         _error = null;
       });
+      final badgeCount = overview.invitations.length +
+          overview.incomingRequests.length +
+          overview.unreadMessages;
+      widget.onBadgeChanged?.call(badgeCount);
     } on ApiException catch (error) {
       if (!mounted || !initial) return;
       setState(() => _error = error.message);
@@ -144,17 +150,10 @@ class _SocialScreenState extends State<SocialScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
+          automaticallyImplyLeading: false,
           backgroundColor: Colors.transparent,
           surfaceTintColor: Colors.transparent,
           toolbarHeight: 70,
-          leadingWidth: 64,
-          leading: Padding(
-            padding: const EdgeInsets.only(left: 12),
-            child: _TopButton(
-              icon: Icons.arrow_back_ios_new_rounded,
-              onTap: () => Navigator.maybePop(context),
-            ),
-          ),
           centerTitle: true,
           title: Text(
             _isAz ? 'Dostlar və söhbətlər' : 'Друзья и общение',
@@ -323,7 +322,6 @@ class _SocialScreenState extends State<SocialScreen> {
               user: user,
               accent: _SocialPalette.mint,
               trailing: _MessageButton(
-                isAz: _isAz,
                 unread: 0,
                 onTap: () => _openChat(user),
               ),
@@ -351,7 +349,6 @@ class _SocialScreenState extends State<SocialScreen> {
           for (final user in overview.recentPlayers) ...[
             _RecentPlayerCard(
               user: user,
-              isAz: _isAz,
               busy: _busyActions.contains('friend-send-${user.id}'),
               onMessage: () => _openChat(user),
               onAddFriend: user.friendshipStatus == 'none'
@@ -513,7 +510,6 @@ class _PersonCard extends StatelessWidget {
 
 class _RecentPlayerCard extends StatelessWidget {
   final SocialUser user;
-  final bool isAz;
   final bool busy;
   final VoidCallback onMessage;
   final VoidCallback? onAddFriend;
@@ -521,7 +517,6 @@ class _RecentPlayerCard extends StatelessWidget {
 
   const _RecentPlayerCard({
     required this.user,
-    required this.isAz,
     required this.busy,
     required this.onMessage,
     required this.onAddFriend,
@@ -965,11 +960,10 @@ class _WideAction extends StatelessWidget {
 }
 
 class _MessageButton extends StatelessWidget {
-  final bool isAz;
   final int unread;
   final VoidCallback onTap;
 
-  const _MessageButton({required this.isAz, required this.unread, required this.onTap});
+  const _MessageButton({required this.unread, required this.onTap});
 
   @override
   Widget build(BuildContext context) {

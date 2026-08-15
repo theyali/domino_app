@@ -8,6 +8,7 @@ import '../localization/statistics_strings.dart';
 import '../models/restaurant.dart';
 import '../services/api_service.dart';
 import '../theme/app_colors.dart';
+import '../widgets/cartoon_page_background.dart';
 import '../widgets/restaurant_tile.dart';
 import 'restaurant_room_screen.dart';
 
@@ -117,80 +118,82 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        color: AppColors.lime,
-        backgroundColor: AppColors.surfaceRaised,
-        onRefresh: () => _loadRestaurants(),
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
-                child: _PlayLobbyHeader(
-                  restaurantsCount: _restaurants.length,
-                  openTables: openTables,
-                  onlinePlayers: onlinePlayers,
-                  onlyActive: showOnlyActive,
-                  onFilterChanged: (value) {
-                    setState(() {
-                      showOnlyActive = value;
-                    });
-                  },
+      body: CartoonPageBackground(
+        child: RefreshIndicator(
+          color: AppColors.lime,
+          backgroundColor: AppColors.surfaceRaised,
+          onRefresh: () => _loadRestaurants(),
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+                  child: _PlayLobbyHeader(
+                    restaurantsCount: _restaurants.length,
+                    openTables: openTables,
+                    onlinePlayers: onlinePlayers,
+                    onlyActive: showOnlyActive,
+                    onFilterChanged: (value) {
+                      setState(() {
+                        showOnlyActive = value;
+                      });
+                    },
+                  ),
                 ),
               ),
-            ),
-            if (_isLoading && _restaurants.isEmpty)
-              const SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: CircularProgressIndicator(color: AppColors.lime),
-                ),
-              )
-            else if (_errorMessage != null && _restaurants.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: _RestaurantsError(
-                  message: _errorMessage!,
-                  onRetry: () => _loadRestaurants(),
-                ),
-              )
-            else if (visibleRestaurants.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: _PlayEmptyState(
-                  message: context.tr('restaurants_empty'),
-                ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(0, 5, 0, 28),
-                sliver: SliverList.builder(
-                  itemCount: visibleRestaurants.length,
-                  itemBuilder: (context, index) {
-                    final restaurant = visibleRestaurants[index];
+              if (_isLoading && _restaurants.isEmpty)
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: CircularProgressIndicator(color: AppColors.lime),
+                  ),
+                )
+              else if (_errorMessage != null && _restaurants.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _RestaurantsError(
+                    message: _errorMessage!,
+                    onRetry: () => _loadRestaurants(),
+                  ),
+                )
+              else if (visibleRestaurants.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _PlayEmptyState(
+                    message: context.tr('restaurants_empty'),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(0, 5, 0, 28),
+                  sliver: SliverList.builder(
+                    itemCount: visibleRestaurants.length,
+                    itemBuilder: (context, index) {
+                      final restaurant = visibleRestaurants[index];
 
-                    return RestaurantTile(
-                      restaurant: restaurant,
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => RestaurantRoomScreen(
-                              restaurant: restaurant,
+                      return RestaurantTile(
+                        restaurant: restaurant,
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => RestaurantRoomScreen(
+                                restaurant: restaurant,
+                              ),
                             ),
-                          ),
-                        );
+                          );
 
-                        if (mounted) {
-                          await _loadRestaurants(silent: true);
-                        }
-                      },
-                    );
-                  },
+                          if (mounted) {
+                            await _loadRestaurants(silent: true);
+                          }
+                        },
+                      );
+                    },
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -425,7 +428,11 @@ class _PlayEmptyState extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: AppColors.brass, width: 2),
               boxShadow: const [
-                BoxShadow(color: Colors.black38, blurRadius: 12, offset: Offset(0, 7)),
+                BoxShadow(
+                  color: Colors.black38,
+                  blurRadius: 12,
+                  offset: Offset(0, 7),
+                ),
               ],
             ),
             child: const Icon(

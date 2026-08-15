@@ -305,43 +305,10 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
             const SizedBox(width: 12),
           ],
         ),
-        floatingActionButton: Container(
-          decoration: const BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: _RestaurantPalette.ink,
-                blurRadius: 0,
-                offset: Offset(0, 5),
-              ),
-            ],
-          ),
-          child: FloatingActionButton.extended(
-            onPressed: _isSubmitting ? null : _showCreateRoomSheet,
-            elevation: 0,
-            backgroundColor: _RestaurantPalette.lime,
-            foregroundColor: _RestaurantPalette.ink,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-              side: const BorderSide(
-                color: _RestaurantPalette.ink,
-                width: 3,
-              ),
-            ),
-            icon: _isSubmitting
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.2,
-                      color: _RestaurantPalette.ink,
-                    ),
-                  )
-                : const Icon(Icons.add_rounded),
-            label: Text(
-              context.tr('create_table'),
-              style: const TextStyle(fontWeight: FontWeight.w900),
-            ),
-          ),
+        floatingActionButton: _CreateTableFloatingButton(
+          isBusy: _isSubmitting,
+          label: context.tr('create_table'),
+          onTap: _isSubmitting ? null : _showCreateRoomSheet,
         ),
         body: RefreshIndicator(
           color: _RestaurantPalette.ink,
@@ -352,7 +319,7 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
             slivers: [
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 22),
                   child: _RestaurantRoomHeader(
                     restaurant: widget.restaurant,
                     roomsCount: roomsCount,
@@ -361,68 +328,6 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
                   ),
                 ),
               ),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverToBoxAdapter(
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 13,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _RestaurantPalette.cream,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: _RestaurantPalette.ink,
-                            width: 2.6,
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: _RestaurantPalette.ink,
-                              blurRadius: 0,
-                              offset: Offset(2, 3),
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          context.tr('open_tables'),
-                          style: const TextStyle(
-                            color: _RestaurantPalette.ink,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                      if (_rooms.isNotEmpty) ...[
-                        const SizedBox(width: 10),
-                        Container(
-                          width: 38,
-                          height: 38,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: _RestaurantPalette.yellow,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: _RestaurantPalette.ink,
-                              width: 2.6,
-                            ),
-                          ),
-                          child: Text(
-                            '$roomsCount',
-                            style: const TextStyle(
-                              color: _RestaurantPalette.ink,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
               if (_isLoading && _rooms.isEmpty)
                 const SliverFillRemaining(
                   hasScrollBody: false,
@@ -470,6 +375,79 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
                     },
                   ),
                 ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CreateTableFloatingButton extends StatelessWidget {
+  final bool isBusy;
+  final String label;
+  final VoidCallback? onTap;
+
+  const _CreateTableFloatingButton({
+    required this.isBusy,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 160),
+        opacity: onTap == null ? 0.6 : 1,
+        child: Container(
+          height: 56,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            color: _RestaurantPalette.lime,
+            borderRadius: BorderRadius.circular(19),
+            border: Border.all(
+              color: _RestaurantPalette.ink,
+              width: 3,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: _RestaurantPalette.ink,
+                blurRadius: 0,
+                offset: Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (isBusy)
+                const SizedBox(
+                  width: 19,
+                  height: 19,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.4,
+                    color: _RestaurantPalette.ink,
+                  ),
+                )
+              else
+                const Icon(
+                  Icons.add_rounded,
+                  color: _RestaurantPalette.ink,
+                  size: 25,
+                ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: _RestaurantPalette.ink,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ],
           ),
         ),

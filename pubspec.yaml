@@ -21,6 +21,8 @@ dependencies:
   qr_flutter: ^4.1.0
   image_picker: ^1.2.3
   image_cropper: ^12.2.1
+  firebase_core: ^4.12.1
+  firebase_messaging: ^16.4.3
 
 dev_dependencies:
   flutter_test:

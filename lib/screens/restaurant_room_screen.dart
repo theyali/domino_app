@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../localization/app_localizations.dart';
@@ -5,6 +7,7 @@ import '../models/game_room.dart';
 import '../models/restaurant.dart';
 import '../models/room_player.dart';
 import '../services/api_service.dart';
+import '../theme/app_colors.dart';
 import '../widgets/create_room_bottom_sheet.dart';
 import '../widgets/game_room_card.dart';
 import '../widgets/join_room_bottom_sheet.dart';
@@ -22,8 +25,11 @@ class RestaurantRoomScreen extends StatefulWidget {
 
 class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
   static const ApiService _apiService = ApiService();
+  static const Duration _autoRefreshInterval = Duration(seconds: 2);
 
+  Timer? _autoRefreshTimer;
   bool _isLoading = true;
+  bool _isSilentRefreshing = false;
   bool _isSubmitting = false;
   String? _errorMessage;
   List<GameRoom> _rooms = const [];
@@ -32,13 +38,30 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
   void initState() {
     super.initState();
     _loadRooms();
+    _autoRefreshTimer = Timer.periodic(_autoRefreshInterval, (_) {
+      unawaited(_loadRooms(silent: true));
+    });
   }
 
-  Future<void> _loadRooms() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  @override
+  void dispose() {
+    _autoRefreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadRooms({bool silent = false}) async {
+    if (silent && (_isSilentRefreshing || _isLoading || _isSubmitting)) {
+      return;
+    }
+
+    if (silent) {
+      _isSilentRefreshing = true;
+    } else if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
 
     try {
       final rooms = await _apiService.fetchRooms(widget.restaurant.id);
@@ -46,19 +69,22 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
 
       setState(() {
         _rooms = rooms;
+        _errorMessage = null;
       });
     } on ApiException catch (error) {
-      if (!mounted) return;
+      if (!mounted || silent) return;
       setState(() {
         _errorMessage = error.message;
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || silent) return;
       setState(() {
         _errorMessage = context.tr('rooms_load_failed');
       });
     } finally {
-      if (mounted) {
+      if (silent) {
+        _isSilentRefreshing = false;
+      } else if (mounted) {
         setState(() {
           _isLoading = false;
         });
@@ -290,7 +316,7 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
                   title: context.tr('rooms_load_failed_title'),
                   subtitle: _errorMessage!,
                   buttonText: context.tr('retry'),
-                  onPressed: _loadRooms,
+                  onPressed: () => _loadRooms(),
                 ),
               )
             else if (_rooms.isEmpty)
@@ -351,11 +377,7 @@ class _RestaurantRoomHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.restaurant_rounded,
-            size: 34,
-            color: colorScheme.onPrimaryContainer,
-          ),
+          _RestaurantHeaderLogo(restaurant: restaurant),
           const SizedBox(height: 12),
           Text(
             restaurant.name,
@@ -400,6 +422,49 @@ class _RestaurantRoomHeader extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _RestaurantHeaderLogo extends StatelessWidget {
+  final Restaurant restaurant;
+
+  const _RestaurantHeaderLogo({required this.restaurant});
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = restaurant.imageUrl;
+    return Container(
+      width: 58,
+      height: 58,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: AppColors.brass,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: imageUrl?.isNotEmpty == true
+            ? Image.network(
+                imageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const _RestaurantHeaderFallback(),
+              )
+            : const _RestaurantHeaderFallback(),
+      ),
+    );
+  }
+}
+
+class _RestaurantHeaderFallback extends StatelessWidget {
+  const _RestaurantHeaderFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.badge,
+      alignment: Alignment.center,
+      child: const Icon(Icons.restaurant_rounded, size: 30, color: AppColors.cream),
     );
   }
 }

@@ -63,7 +63,7 @@ class MultiplayerPlayerState {
     required this.userId,
     required this.name,
     required this.avatarUrl,
-    required this.gender,
+    this.gender,
     required this.seatIndex,
     required this.isOwner,
     required this.isActive,
@@ -78,15 +78,17 @@ class MultiplayerPlayerState {
     final rawActiveGift = json['active_gift'];
     final id = json['id'] as int;
     final avatarUrl = ApiConfig.resolveUrl(json['avatar_url'] as String?);
+    final gender = UserGender.fromApi(json['gender']);
 
     PlayerAvatarCache.remember(id, avatarUrl);
+    PlayerGenderCache.remember(id, gender);
 
     return MultiplayerPlayerState(
       id: id,
       userId: json['user_id'] as int?,
       name: json['name'] as String,
       avatarUrl: avatarUrl,
-      gender: UserGender.fromApi(json['gender']),
+      gender: gender,
       seatIndex: json['seat_index'] as int,
       isOwner: json['is_owner'] as bool? ?? false,
       isActive: json['is_active'] as bool? ?? true,

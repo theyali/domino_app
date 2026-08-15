@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../localization/app_language.dart';
 import '../localization/app_localizations.dart';
+import '../models/user_gender.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/sound_effects_service.dart';
+import '../theme/gender_style.dart';
 import '../widgets/cartoon_page_background.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -27,6 +29,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _passwordController = TextEditingController();
   final _passwordConfirmController = TextEditingController();
 
+  UserGender? _selectedGender;
   bool _isRegister = false;
   bool _isSubmitting = false;
   bool _obscurePassword = true;
@@ -67,6 +70,15 @@ class _AuthScreenState extends State<AuthScreen> {
     });
   }
 
+  void _selectGender(UserGender gender) {
+    if (_isSubmitting) return;
+    SoundEffectsService.button(alternate: true);
+    setState(() {
+      _selectedGender = gender;
+      _errorMessage = null;
+    });
+  }
+
   Future<void> _submit() async {
     if (_isSubmitting) return;
 
@@ -89,6 +101,15 @@ class _AuthScreenState extends State<AuthScreen> {
       return;
     }
 
+    if (_isRegister && _selectedGender == null) {
+      setState(() {
+        _errorMessage = context.appLanguage.code == 'az'
+            ? 'Cinsini seç.'
+            : 'Выбери пол.';
+      });
+      return;
+    }
+
     SoundEffectsService.button();
     setState(() {
       _isSubmitting = true;
@@ -100,6 +121,7 @@ class _AuthScreenState extends State<AuthScreen> {
           ? await _authService.register(
               username: username,
               email: email,
+              gender: _selectedGender!,
               password: password,
               passwordConfirm: passwordConfirm,
             )
@@ -132,6 +154,7 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final language = context.appLanguage;
+    final isAz = language.code == 'az';
 
     return CartoonPageBackground(
       child: Scaffold(
@@ -231,6 +254,13 @@ class _AuthScreenState extends State<AuthScreen> {
                                   keyboardType: TextInputType.emailAddress,
                                   textInputAction: TextInputAction.next,
                                   autocorrect: false,
+                                ),
+                                const SizedBox(height: 12),
+                                _GenderSelector(
+                                  selected: _selectedGender,
+                                  enabled: !_isSubmitting,
+                                  isAzerbaijani: isAz,
+                                  onSelected: _selectGender,
                                 ),
                               ],
                               const SizedBox(height: 12),
@@ -486,6 +516,143 @@ class _AuthModeButton extends StatelessWidget {
                   size: 18,
                 ),
               ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GenderSelector extends StatelessWidget {
+  final UserGender? selected;
+  final bool enabled;
+  final bool isAzerbaijani;
+  final ValueChanged<UserGender> onSelected;
+
+  const _GenderSelector({
+    required this.selected,
+    required this.enabled,
+    required this.isAzerbaijani,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: _AuthPalette.cream,
+        borderRadius: BorderRadius.circular(19),
+        border: Border.all(color: _AuthPalette.ink, width: 2.8),
+        boxShadow: const [
+          BoxShadow(
+            color: _AuthPalette.ink,
+            blurRadius: 0,
+            offset: Offset(4, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 3),
+            child: Text(
+              isAzerbaijani ? 'Cins' : 'Пол',
+              style: const TextStyle(
+                color: _AuthPalette.inkSoft,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              for (final gender in UserGender.values) ...[
+                Expanded(
+                  child: _GenderChoiceButton(
+                    gender: gender,
+                    selected: selected == gender,
+                    enabled: enabled,
+                    isAzerbaijani: isAzerbaijani,
+                    onTap: () => onSelected(gender),
+                  ),
+                ),
+                if (gender != UserGender.values.last)
+                  const SizedBox(width: 9),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GenderChoiceButton extends StatelessWidget {
+  final UserGender gender;
+  final bool selected;
+  final bool enabled;
+  final bool isAzerbaijani;
+  final VoidCallback onTap;
+
+  const _GenderChoiceButton({
+    required this.gender,
+    required this.selected,
+    required this.enabled,
+    required this.isAzerbaijani,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = GenderStyle.colorFor(gender);
+    return Opacity(
+      opacity: enabled ? 1 : 0.55,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: enabled ? onTap : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: 48,
+          decoration: BoxDecoration(
+            color: selected ? accent : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: _AuthPalette.ink, width: 2.3),
+            boxShadow: selected
+                ? const [
+                    BoxShadow(
+                      color: _AuthPalette.ink,
+                      blurRadius: 0,
+                      offset: Offset(2, 3),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                gender == UserGender.male
+                    ? Icons.male_rounded
+                    : Icons.female_rounded,
+                color: selected ? Colors.white : accent,
+                size: 22,
+              ),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  gender.label(isAzerbaijani: isAzerbaijani),
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: selected ? Colors.white : accent,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
             ],
           ),
         ),

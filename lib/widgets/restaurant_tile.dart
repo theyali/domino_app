@@ -120,28 +120,13 @@ class _RestaurantTileState extends State<RestaurantTile> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(13),
-                    border: Border.all(
-                      color: Colors.white,
-                      width: 2,
-                    ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black38,
-                        blurRadius: 0,
-                        offset: Offset(2, 3),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.arrow_forward_rounded,
-                    color: Colors.white,
-                    size: 23,
+                SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: Image.asset(
+                    'assets/ui/right-arrow.png',
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high,
                   ),
                 ),
               ],

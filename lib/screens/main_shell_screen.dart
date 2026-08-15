@@ -24,6 +24,7 @@ class MainShellScreen extends StatefulWidget {
 
 class _MainShellScreenState extends State<MainShellScreen> {
   int _index = 0;
+  int _statisticsRefreshToken = 0;
   late UserAccount _user;
 
   @override
@@ -51,7 +52,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
     final statsStrings = StatisticsStrings.of(context);
     final screens = [
       const RestaurantsScreen(),
-      const StatisticsScreen(),
+      StatisticsScreen(key: ValueKey(_statisticsRefreshToken)),
       const InventoryScreen(),
       ProfileScreen(
         user: _user,
@@ -70,6 +71,9 @@ class _MainShellScreenState extends State<MainShellScreen> {
         onDestinationSelected: (index) {
           setState(() {
             _index = index;
+            if (index == 1) {
+              _statisticsRefreshToken += 1;
+            }
           });
         },
         destinations: [

@@ -29,24 +29,18 @@ class _PurchasedGiftsScreenState extends State<PurchasedGiftsScreen> {
   }
 
   Future<void> _load() async {
-    if (mounted) {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
-    }
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
     try {
       final summary = await _giftService.fetchPurchaseSummary();
       if (!mounted) return;
-      setState(() {
-        _summary = summary;
-      });
+      setState(() => _summary = summary);
     } on ApiException catch (error) {
       if (!mounted) return;
-      setState(() {
-        _errorMessage = error.message;
-      });
+      setState(() => _errorMessage = error.message);
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -55,11 +49,7 @@ class _PurchasedGiftsScreenState extends State<PurchasedGiftsScreen> {
             : 'Не удалось загрузить историю покупок.';
       });
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -101,7 +91,7 @@ class _PurchasedGiftsScreenState extends State<PurchasedGiftsScreen> {
           actions: [
             _TopButton(
               icon: Icons.refresh_rounded,
-              color: _PurchasePalette.skyBlue,
+              color: _Palette.sky,
               onTap: _isLoading ? null : _load,
             ),
             const SizedBox(width: 12),
@@ -110,25 +100,23 @@ class _PurchasedGiftsScreenState extends State<PurchasedGiftsScreen> {
         body: SafeArea(
           top: false,
           child: RefreshIndicator(
-            color: _PurchasePalette.ink,
-            backgroundColor: _PurchasePalette.cream,
+            color: _Palette.ink,
+            backgroundColor: _Palette.cream,
             onRefresh: _load,
-            child: _buildBody(),
+            child: _body(),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildBody() {
+  Widget _body() {
     if (_isLoading && _summary == null) {
-      return const ListView(
-        physics: AlwaysScrollableScrollPhysics(),
-        children: [
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [
           SizedBox(height: 220),
-          Center(
-            child: CircularProgressIndicator(color: _PurchasePalette.ink),
-          ),
+          Center(child: CircularProgressIndicator(color: _Palette.ink)),
         ],
       );
     }
@@ -136,15 +124,29 @@ class _PurchasedGiftsScreenState extends State<PurchasedGiftsScreen> {
     if (_errorMessage != null && _summary == null) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(18, 36, 18, 40),
+        padding: const EdgeInsets.fromLTRB(18, 40, 18, 40),
         children: [
-          _MessagePanel(
-            icon: Icons.cloud_off_rounded,
-            color: _PurchasePalette.coral,
-            title: _isAz ? 'Yükləmək alınmadı' : 'Не удалось загрузить',
-            text: _errorMessage!,
-            buttonText: _isAz ? 'Yenidən' : 'Повторить',
-            onTap: _load,
+          _Panel(
+            color: _Palette.coral,
+            child: Column(
+              children: [
+                const Icon(Icons.cloud_off_rounded, size: 42),
+                const SizedBox(height: 10),
+                Text(
+                  _errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: _Palette.ink,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                GestureDetector(
+                  onTap: _load,
+                  child: const _SmallButton(label: 'Повторить'),
+                ),
+              ],
+            ),
           ),
         ],
       );
@@ -162,103 +164,85 @@ class _PurchasedGiftsScreenState extends State<PurchasedGiftsScreen> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(18, 12, 18, 42),
       children: [
-        _SummaryPanel(
-          totalSpent: summary.totalSpent,
-          availableCount: summary.availableCount,
-          isAz: _isAz,
-        ),
+        _SummaryCard(summary: summary, isAz: _isAz),
         const SizedBox(height: 20),
         _SectionTitle(
           icon: Icons.card_giftcard_rounded,
-          text: _isAz ? 'Hazırda səndə olanlar' : 'Сейчас у тебя',
-          color: _PurchasePalette.lime,
+          label: _isAz ? 'Hazırda səndə olanlar' : 'Сейчас у тебя',
+          color: _Palette.lime,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 11),
         if (summary.ownedGifts.isEmpty)
-          _SimplePanel(
-            color: _PurchasePalette.cream,
+          _Panel(
+            color: _Palette.cream,
             child: Text(
               _isAz
-                  ? 'Hədiyyə üçün alınmış hədiyyə qalmayıb.'
+                  ? 'Hədiyyə etmək üçün alınmış hədiyyə qalmayıb.'
                   : 'Купленных подарков для отправки сейчас нет.',
               textAlign: TextAlign.center,
               style: const TextStyle(
-                color: _PurchasePalette.inkSoft,
+                color: _Palette.inkSoft,
                 fontWeight: FontWeight.w800,
-                height: 1.3,
               ),
             ),
           )
         else
-          for (final gift in summary.ownedGifts) ...[
-            _OwnedGiftCard(gift: gift, isAz: _isAz),
-            const SizedBox(height: 11),
-          ],
+          ...summary.ownedGifts.map(
+            (gift) => Padding(
+              padding: const EdgeInsets.only(bottom: 11),
+              child: _OwnedGiftCard(gift: gift, isAz: _isAz),
+            ),
+          ),
         const SizedBox(height: 9),
         _SectionTitle(
           icon: Icons.receipt_long_rounded,
-          text: _isAz ? 'Alış tarixçəsi' : 'История покупок',
-          color: _PurchasePalette.yellow,
+          label: _isAz ? 'Alış tarixçəsi' : 'История покупок',
+          color: _Palette.yellow,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 11),
         if (summary.history.isEmpty)
-          _SimplePanel(
-            color: _PurchasePalette.cream,
+          _Panel(
+            color: _Palette.cream,
             child: Text(
               _isAz
                   ? 'Hələ heç bir hədiyyə almamısan.'
                   : 'Ты пока не покупал подарки.',
               textAlign: TextAlign.center,
               style: const TextStyle(
-                color: _PurchasePalette.inkSoft,
+                color: _Palette.inkSoft,
                 fontWeight: FontWeight.w800,
               ),
             ),
           )
         else
-          for (final purchase in summary.history) ...[
-            _PurchaseHistoryCard(purchase: purchase, isAz: _isAz),
-            const SizedBox(height: 11),
-          ],
+          ...summary.history.map(
+            (purchase) => Padding(
+              padding: const EdgeInsets.only(bottom: 11),
+              child: _HistoryCard(purchase: purchase),
+            ),
+          ),
       ],
     );
   }
 }
 
-class _SummaryPanel extends StatelessWidget {
-  final String totalSpent;
-  final int availableCount;
+class _SummaryCard extends StatelessWidget {
+  final GiftPurchaseSummary summary;
   final bool isAz;
 
-  const _SummaryPanel({
-    required this.totalSpent,
-    required this.availableCount,
-    required this.isAz,
-  });
+  const _SummaryCard({required this.summary, required this.isAz});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: _PurchasePalette.skyBlue,
-        borderRadius: BorderRadius.circular(27),
-        border: Border.all(color: _PurchasePalette.ink, width: 3),
-        boxShadow: const [
-          BoxShadow(
-            color: _PurchasePalette.ink,
-            blurRadius: 0,
-            offset: Offset(0, 7),
-          ),
-        ],
-      ),
+    return _Panel(
+      color: _Palette.sky,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             isAz ? 'Hədiyyə alışların' : 'Твои покупки подарков',
             style: const TextStyle(
-              color: _PurchasePalette.ink,
+              color: _Palette.ink,
               fontSize: 24,
               fontWeight: FontWeight.w900,
             ),
@@ -266,33 +250,32 @@ class _SummaryPanel extends StatelessWidget {
           const SizedBox(height: 5),
           Text(
             isAz
-                ? 'Burada nə vaxt və nəyə pul xərclədiyini görə bilərsən.'
+                ? 'Nə vaxt və nəyə pul xərclədiyini burada görə bilərsən.'
                 : 'Здесь видно, когда и на какие подарки ты тратился.',
             style: const TextStyle(
-              color: _PurchasePalette.inkSoft,
+              color: _Palette.inkSoft,
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              height: 1.25,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 15),
           Row(
             children: [
               Expanded(
-                child: _SummaryChip(
-                  icon: Icons.payments_rounded,
-                  value: totalSpent,
+                child: _Metric(
+                  value: summary.totalSpent,
                   label: isAz ? 'Cəmi xərclənib' : 'Всего потрачено',
-                  color: _PurchasePalette.yellow,
+                  icon: Icons.payments_rounded,
+                  color: _Palette.yellow,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 9),
               Expanded(
-                child: _SummaryChip(
-                  icon: Icons.inventory_2_rounded,
-                  value: '$availableCount',
+                child: _Metric(
+                  value: '${summary.availableCount}',
                   label: isAz ? 'Hədiyyə etmək olar' : 'Можно подарить',
-                  color: _PurchasePalette.lime,
+                  icon: Icons.inventory_2_rounded,
+                  color: _Palette.lime,
                 ),
               ),
             ],
@@ -303,57 +286,51 @@ class _SummaryPanel extends StatelessWidget {
   }
 }
 
-class _SummaryChip extends StatelessWidget {
-  final IconData icon;
+class _Metric extends StatelessWidget {
   final String value;
   final String label;
+  final IconData icon;
   final Color color;
 
-  const _SummaryChip({
-    required this.icon,
+  const _Metric({
     required this.value,
     required this.label,
+    required this.icon,
     required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _PurchasePalette.ink, width: 2.6),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: _Palette.ink, width: 2.5),
         boxShadow: const [
-          BoxShadow(
-            color: _PurchasePalette.ink,
-            blurRadius: 0,
-            offset: Offset(2, 3),
-          ),
+          BoxShadow(color: _Palette.ink, blurRadius: 0, offset: Offset(2, 3)),
         ],
       ),
       child: Column(
         children: [
-          Icon(icon, color: _PurchasePalette.ink, size: 22),
-          const SizedBox(height: 5),
+          Icon(icon, size: 21, color: _Palette.ink),
+          const SizedBox(height: 4),
           Text(
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: _PurchasePalette.ink,
-              fontSize: 20,
+              color: _Palette.ink,
+              fontSize: 19,
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 2),
           Text(
             label,
             textAlign: TextAlign.center,
-            maxLines: 2,
             style: const TextStyle(
-              color: _PurchasePalette.inkSoft,
-              fontSize: 10.5,
+              color: _Palette.inkSoft,
+              fontSize: 10,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -371,24 +348,13 @@ class _OwnedGiftCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: _PurchasePalette.cream,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _PurchasePalette.ink, width: 3),
-        boxShadow: const [
-          BoxShadow(
-            color: _PurchasePalette.ink,
-            blurRadius: 0,
-            offset: Offset(0, 5),
-          ),
-        ],
-      ),
+    return _Panel(
+      color: _Palette.cream,
+      padding: const EdgeInsets.all(12),
       child: Row(
         children: [
           _GiftImage(gift: gift),
-          const SizedBox(width: 12),
+          const SizedBox(width: 11),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -398,61 +364,45 @@ class _OwnedGiftCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: _PurchasePalette.ink,
+                    color: _Palette.ink,
                     fontSize: 17,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.restaurant_rounded,
-                      size: 15,
-                      color: _PurchasePalette.inkSoft,
-                    ),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: Text(
-                        gift.restaurantName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _PurchasePalette.inkSoft,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 3),
+                Text(
+                  gift.restaurantName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _Palette.inkSoft,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   '${gift.price} · ${isAz ? 'qalıb' : 'осталось'} ${gift.giftableCount}',
                   style: const TextStyle(
-                    color: _PurchasePalette.inkSoft,
-                    fontSize: 12,
+                    color: _Palette.inkSoft,
+                    fontSize: 11.5,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
           Container(
-            constraints: const BoxConstraints(minWidth: 45, minHeight: 45),
-            padding: const EdgeInsets.symmetric(horizontal: 9),
-            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
             decoration: BoxDecoration(
-              color: _PurchasePalette.lime,
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: _PurchasePalette.ink, width: 2.4),
+              color: _Palette.lime,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _Palette.ink, width: 2.3),
             ),
             child: Text(
               '×${gift.giftableCount}',
               style: const TextStyle(
-                color: _PurchasePalette.ink,
-                fontSize: 16,
+                color: _Palette.ink,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -463,33 +413,20 @@ class _OwnedGiftCard extends StatelessWidget {
   }
 }
 
-class _PurchaseHistoryCard extends StatelessWidget {
+class _HistoryCard extends StatelessWidget {
   final GiftPurchase purchase;
-  final bool isAz;
 
-  const _PurchaseHistoryCard({required this.purchase, required this.isAz});
+  const _HistoryCard({required this.purchase});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: _PurchasePalette.paper,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _PurchasePalette.ink, width: 3),
-        boxShadow: const [
-          BoxShadow(
-            color: _PurchasePalette.ink,
-            blurRadius: 0,
-            offset: Offset(0, 5),
-          ),
-        ],
-      ),
+    return _Panel(
+      color: _Palette.paper,
+      padding: const EdgeInsets.all(12),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _GiftImage(gift: purchase.gift, size: 58),
-          const SizedBox(width: 11),
+          _GiftImage(gift: purchase.gift, size: 56),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -499,27 +436,26 @@ class _PurchaseHistoryCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: _PurchasePalette.ink,
+                    color: _Palette.ink,
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 3),
                 Text(
                   purchase.gift.restaurantName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: _PurchasePalette.inkSoft,
+                    color: _Palette.inkSoft,
                     fontSize: 11.5,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 4),
                 Text(
-                  _formatDate(purchase.purchasedAt, isAz: isAz),
+                  _date(purchase.purchasedAt),
                   style: const TextStyle(
-                    color: _PurchasePalette.inkSoft,
+                    color: _Palette.inkSoft,
                     fontSize: 10.5,
                     fontWeight: FontWeight.w700,
                   ),
@@ -534,25 +470,24 @@ class _PurchaseHistoryCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
                 decoration: BoxDecoration(
-                  color: _PurchasePalette.yellow,
-                  borderRadius: BorderRadius.circular(13),
-                  border: Border.all(color: _PurchasePalette.ink, width: 2.2),
+                  color: _Palette.yellow,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _Palette.ink, width: 2.1),
                 ),
                 child: Text(
                   purchase.totalPrice,
                   style: const TextStyle(
-                    color: _PurchasePalette.ink,
-                    fontSize: 14,
+                    color: _Palette.ink,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 4),
               Text(
                 '${purchase.quantity} × ${purchase.unitPrice}',
                 style: const TextStyle(
-                  color: _PurchasePalette.inkSoft,
-                  fontSize: 10.5,
+                  color: _Palette.inkSoft,
+                  fontSize: 10,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -563,10 +498,10 @@ class _PurchaseHistoryCard extends StatelessWidget {
     );
   }
 
-  static String _formatDate(DateTime? value, {required bool isAz}) {
-    if (value == null) return isAz ? 'Tarix yoxdur' : 'Дата неизвестна';
+  static String _date(DateTime? value) {
+    if (value == null) return '—';
     final date = value.toLocal();
-    String two(int number) => number.toString().padLeft(2, '0');
+    String two(int value) => value.toString().padLeft(2, '0');
     return '${two(date.day)}.${two(date.month)}.${date.year} · '
         '${two(date.hour)}:${two(date.minute)}';
   }
@@ -576,7 +511,7 @@ class _GiftImage extends StatelessWidget {
   final Gift gift;
   final double size;
 
-  const _GiftImage({required this.gift, this.size = 64});
+  const _GiftImage({required this.gift, this.size = 62});
 
   @override
   Widget build(BuildContext context) {
@@ -586,37 +521,31 @@ class _GiftImage extends StatelessWidget {
       padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _PurchasePalette.ink, width: 2.5),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: _Palette.ink, width: 2.4),
       ),
       child: gift.imageUrl?.trim().isNotEmpty == true
           ? Image.network(
               gift.imageUrl!,
               fit: BoxFit.contain,
-              filterQuality: FilterQuality.high,
-              errorBuilder: (context, error, stackTrace) => const Icon(
+              errorBuilder: (_, __, ___) => const Icon(
                 Icons.card_giftcard_rounded,
-                color: _PurchasePalette.ink,
-                size: 30,
+                color: _Palette.ink,
               ),
             )
-          : const Icon(
-              Icons.card_giftcard_rounded,
-              color: _PurchasePalette.ink,
-              size: 30,
-            ),
+          : const Icon(Icons.card_giftcard_rounded, color: _Palette.ink),
     );
   }
 }
 
 class _SectionTitle extends StatelessWidget {
   final IconData icon;
-  final String text;
+  final String label;
   final Color color;
 
   const _SectionTitle({
     required this.icon,
-    required this.text,
+    required this.label,
     required this.color,
   });
 
@@ -629,24 +558,20 @@ class _SectionTitle extends StatelessWidget {
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _PurchasePalette.ink, width: 2.7),
+          border: Border.all(color: _Palette.ink, width: 2.6),
           boxShadow: const [
-            BoxShadow(
-              color: _PurchasePalette.ink,
-              blurRadius: 0,
-              offset: Offset(2, 3),
-            ),
+            BoxShadow(color: _Palette.ink, blurRadius: 0, offset: Offset(2, 3)),
           ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: _PurchasePalette.ink, size: 20),
+            Icon(icon, color: _Palette.ink, size: 20),
             const SizedBox(width: 7),
             Text(
-              text,
+              label,
               style: const TextStyle(
-                color: _PurchasePalette.ink,
+                color: _Palette.ink,
                 fontSize: 17,
                 fontWeight: FontWeight.w900,
               ),
@@ -658,26 +583,27 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _SimplePanel extends StatelessWidget {
+class _Panel extends StatelessWidget {
   final Color color;
   final Widget child;
+  final EdgeInsetsGeometry padding;
 
-  const _SimplePanel({required this.color, required this.child});
+  const _Panel({
+    required this.color,
+    required this.child,
+    this.padding = const EdgeInsets.all(17),
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: padding,
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _PurchasePalette.ink, width: 2.8),
+        borderRadius: BorderRadius.circular(23),
+        border: Border.all(color: _Palette.ink, width: 3),
         boxShadow: const [
-          BoxShadow(
-            color: _PurchasePalette.ink,
-            blurRadius: 0,
-            offset: Offset(0, 4),
-          ),
+          BoxShadow(color: _Palette.ink, blurRadius: 0, offset: Offset(0, 5)),
         ],
       ),
       child: child,
@@ -685,68 +611,26 @@ class _SimplePanel extends StatelessWidget {
   }
 }
 
-class _MessagePanel extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String title;
-  final String text;
-  final String buttonText;
-  final Future<void> Function() onTap;
+class _SmallButton extends StatelessWidget {
+  final String label;
 
-  const _MessagePanel({
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.text,
-    required this.buttonText,
-    required this.onTap,
-  });
+  const _SmallButton({required this.label});
 
   @override
   Widget build(BuildContext context) {
-    return _SimplePanel(
-      color: color,
-      child: Column(
-        children: [
-          Icon(icon, color: _PurchasePalette.ink, size: 44),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            style: const TextStyle(
-              color: _PurchasePalette.ink,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            text,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _PurchasePalette.inkSoft,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 15),
-          GestureDetector(
-            onTap: () => onTap(),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-              decoration: BoxDecoration(
-                color: _PurchasePalette.cream,
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: _PurchasePalette.ink, width: 2.5),
-              ),
-              child: Text(
-                buttonText,
-                style: const TextStyle(
-                  color: _PurchasePalette.ink,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-        ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 9),
+      decoration: BoxDecoration(
+        color: _Palette.cream,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _Palette.ink, width: 2.4),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: _Palette.ink,
+          fontWeight: FontWeight.w900,
+        ),
       ),
     );
   }
@@ -760,7 +644,7 @@ class _TopButton extends StatelessWidget {
   const _TopButton({
     required this.icon,
     required this.onTap,
-    this.color = _PurchasePalette.cream,
+    this.color = _Palette.cream,
   });
 
   @override
@@ -776,29 +660,25 @@ class _TopButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: color,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: _PurchasePalette.ink, width: 2.7),
+            border: Border.all(color: _Palette.ink, width: 2.7),
             boxShadow: const [
-              BoxShadow(
-                color: _PurchasePalette.ink,
-                blurRadius: 0,
-                offset: Offset(2, 3),
-              ),
+              BoxShadow(color: _Palette.ink, blurRadius: 0, offset: Offset(2, 3)),
             ],
           ),
-          child: Icon(icon, color: _PurchasePalette.ink, size: 21),
+          child: Icon(icon, color: _Palette.ink, size: 21),
         ),
       ),
     );
   }
 }
 
-class _PurchasePalette {
-  static const Color ink = Color(0xFF111111);
-  static const Color inkSoft = Color(0xFF51453C);
-  static const Color cream = Color(0xFFFFF5D9);
-  static const Color paper = Color(0xFFFFE8B6);
-  static const Color skyBlue = Color(0xFF79CDF1);
-  static const Color yellow = Color(0xFFFFD65C);
-  static const Color coral = Color(0xFFFF7E70);
-  static const Color lime = Color(0xFF7CFC00);
+class _Palette {
+  static const ink = Color(0xFF111111);
+  static const inkSoft = Color(0xFF51453C);
+  static const cream = Color(0xFFFFF5D9);
+  static const paper = Color(0xFFFFE8B6);
+  static const sky = Color(0xFF79CDF1);
+  static const yellow = Color(0xFFFFD65C);
+  static const coral = Color(0xFFFF7E70);
+  static const lime = Color(0xFF7CFC00);
 }

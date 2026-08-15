@@ -33,6 +33,7 @@ class _MainShellScreenState extends State<MainShellScreen>
 
   int _index = 0;
   int _statisticsRefreshToken = 0;
+  int _socialBadgeCount = 0;
   late UserAccount _user;
   Timer? _heartbeatTimer;
 
@@ -94,6 +95,13 @@ class _MainShellScreenState extends State<MainShellScreen>
     });
   }
 
+  void _handleSocialBadgeChanged(int count) {
+    if (!mounted || count == _socialBadgeCount) return;
+    setState(() {
+      _socialBadgeCount = count;
+    });
+  }
+
   void _selectTab(int index) {
     if (_index == index && index != 1) return;
 
@@ -113,7 +121,10 @@ class _MainShellScreenState extends State<MainShellScreen>
       const RestaurantsScreen(),
       StatisticsScreen(key: ValueKey(_statisticsRefreshToken)),
       const InventoryScreen(),
-      SocialScreen(currentUser: _user),
+      SocialScreen(
+        currentUser: _user,
+        onBadgeChanged: _handleSocialBadgeChanged,
+      ),
       ProfileScreen(
         user: _user,
         onUserUpdated: _handleUserUpdated,
@@ -141,6 +152,7 @@ class _MainShellScreenState extends State<MainShellScreen>
         icon: Icons.groups_rounded,
         label: isAz ? 'Dostlar' : 'Друзья',
         accent: const Color(0xFFC7A7FF),
+        badgeCount: _socialBadgeCount,
       ),
       _NavItemData(
         assetPath: 'assets/icons/profile.png',
@@ -222,6 +234,7 @@ class _CartoonGameDock extends StatelessWidget {
 class _CartoonNavItem extends StatelessWidget {
   static const _ink = Color(0xFF17120D);
   static const _cream = Color(0xFFFFF3CC);
+  static const _badge = Color(0xFFFF6B62);
 
   final _NavItemData data;
   final bool selected;
@@ -267,39 +280,77 @@ class _CartoonNavItem extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                width: selected ? 42 : 37,
-                height: selected ? 37 : 33,
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: selected ? _cream : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: _ink,
-                    width: 2.3,
-                  ),
-                  boxShadow: selected
-                      ? const [
-                          BoxShadow(
-                            color: _ink,
-                            blurRadius: 0,
-                            offset: Offset(2, 2),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: data.assetPath != null
-                    ? Image.asset(
-                        data.assetPath!,
-                        fit: BoxFit.contain,
-                        filterQuality: FilterQuality.high,
-                      )
-                    : Icon(
-                        data.icon,
-                        size: 21,
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    width: selected ? 42 : 37,
+                    height: selected ? 37 : 33,
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: selected ? _cream : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
                         color: _ink,
+                        width: 2.3,
                       ),
+                      boxShadow: selected
+                          ? const [
+                              BoxShadow(
+                                color: _ink,
+                                blurRadius: 0,
+                                offset: Offset(2, 2),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: data.assetPath != null
+                        ? Image.asset(
+                            data.assetPath!,
+                            fit: BoxFit.contain,
+                            filterQuality: FilterQuality.high,
+                          )
+                        : Icon(
+                            data.icon,
+                            size: 21,
+                            color: _ink,
+                          ),
+                  ),
+                  if (data.badgeCount > 0)
+                    Positioned(
+                      top: -8,
+                      right: -11,
+                      child: Container(
+                        constraints: const BoxConstraints(
+                          minWidth: 23,
+                          minHeight: 23,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 5),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: _badge,
+                          borderRadius: BorderRadius.circular(99),
+                          border: Border.all(color: _ink, width: 2.1),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: _ink,
+                              blurRadius: 0,
+                              offset: Offset(1.5, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          data.badgeCount > 99 ? '99+' : '${data.badgeCount}',
+                          style: const TextStyle(
+                            color: _ink,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 4),
               Text(
@@ -325,11 +376,13 @@ class _NavItemData {
   final String? assetPath;
   final String label;
   final Color accent;
+  final int badgeCount;
 
   const _NavItemData({
     this.icon,
     this.assetPath,
     required this.label,
     required this.accent,
+    this.badgeCount = 0,
   }) : assert(icon != null || assetPath != null);
 }

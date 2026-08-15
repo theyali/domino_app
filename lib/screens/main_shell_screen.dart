@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../localization/app_localizations.dart';
+import '../localization/statistics_strings.dart';
 import '../models/user_account.dart';
 import 'inventory_screen.dart';
 import 'profile_screen.dart';
 import 'restaurants_screen.dart';
+import 'statistics_screen.dart';
 
 class MainShellScreen extends StatefulWidget {
   final UserAccount user;
@@ -46,8 +48,10 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final statsStrings = StatisticsStrings.of(context);
     final screens = [
       const RestaurantsScreen(),
+      const StatisticsScreen(),
       const InventoryScreen(),
       ProfileScreen(
         user: _user,
@@ -70,9 +74,14 @@ class _MainShellScreenState extends State<MainShellScreen> {
         },
         destinations: [
           NavigationDestination(
-            icon: const Icon(Icons.restaurant_outlined),
-            selectedIcon: const Icon(Icons.restaurant_rounded),
-            label: context.tr('restaurants'),
+            icon: const Icon(Icons.sports_esports_outlined),
+            selectedIcon: const Icon(Icons.sports_esports_rounded),
+            label: statsStrings.play,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.leaderboard_outlined),
+            selectedIcon: const Icon(Icons.leaderboard_rounded),
+            label: statsStrings.title,
           ),
           NavigationDestination(
             icon: const Icon(Icons.card_giftcard_outlined),

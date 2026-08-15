@@ -6,6 +6,7 @@ import '../localization/app_localizations.dart';
 import '../models/social.dart';
 import '../services/api_service.dart';
 import '../services/social_service.dart';
+import '../theme/gender_style.dart';
 import '../widgets/cartoon_page_background.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -310,6 +311,10 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final user = _currentUser;
+    final genderColor = GenderStyle.colorFor(
+      user.gender,
+      fallback: Colors.white,
+    );
     return CartoonPageBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -338,11 +343,11 @@ class _ChatScreenState extends State<ChatScreen> {
                       user.displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: genderColor,
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
-                        shadows: [
+                        shadows: const [
                           Shadow(
                             color: Colors.black87,
                             offset: Offset(2, 2),
@@ -357,8 +362,10 @@ class _ChatScreenState extends State<ChatScreen> {
                           : '@${user.username}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFFFFE9B9),
+                      style: TextStyle(
+                        color: user.isOnline
+                            ? const Color(0xFFFFE9B9)
+                            : genderColor,
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                       ),
@@ -660,6 +667,10 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final letterColor = GenderStyle.colorFor(
+      user.gender,
+      fallback: _ChatPalette.ink,
+    );
     final letter = user.displayName.trim().isEmpty
         ? '?'
         : user.displayName.trim().substring(0, 1).toUpperCase();
@@ -677,9 +688,10 @@ class _Avatar extends StatelessWidget {
             ? Image.network(
                 user.avatarUrl!,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _AvatarLetter(letter: letter),
+                errorBuilder: (_, __, ___) =>
+                    _AvatarLetter(letter: letter, color: letterColor),
               )
-            : _AvatarLetter(letter: letter),
+            : _AvatarLetter(letter: letter, color: letterColor),
       ),
     );
   }
@@ -687,8 +699,9 @@ class _Avatar extends StatelessWidget {
 
 class _AvatarLetter extends StatelessWidget {
   final String letter;
+  final Color color;
 
-  const _AvatarLetter({required this.letter});
+  const _AvatarLetter({required this.letter, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -697,8 +710,8 @@ class _AvatarLetter extends StatelessWidget {
       child: Center(
         child: Text(
           letter,
-          style: const TextStyle(
-            color: _ChatPalette.ink,
+          style: TextStyle(
+            color: color,
             fontWeight: FontWeight.w900,
           ),
         ),

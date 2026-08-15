@@ -9,6 +9,7 @@ import '../models/restaurant.dart';
 import '../models/room_player.dart';
 import '../services/api_service.dart';
 import '../services/game_socket_service.dart';
+import '../widgets/invite_players_sheet.dart';
 import 'multiplayer_game_screen.dart';
 
 class RoomLobbyScreen extends StatefulWidget {
@@ -280,6 +281,24 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
     }
   }
 
+  Future<void> _showInvitePlayers() async {
+    if (_room.status != 'waiting' || _room.isFull) return;
+    final sent = await InvitePlayersSheet.show(context, roomId: _room.id);
+    if (!mounted || sent == null) return;
+
+    final isAz = context.appLanguage.code == 'az';
+    final message = sent > 0
+        ? (isAz
+            ? '$sent oyunçuya dəvət göndərildi.'
+            : 'Приглашение отправлено: $sent игрок(а).')
+        : (isAz
+            ? 'Dəvət göndərilmədi: seçilən oyunçular artıq onlayn deyil.'
+            : 'Никого не удалось пригласить: выбранные игроки уже не онлайн.');
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final localPlayer = _currentLocalPlayer;
@@ -386,6 +405,15 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                   title: context.tr('players'),
                   count: '${_room.currentPlayers}/${_room.maxPlayers}',
                 ),
+                if (!allPlayersReady && _room.status == 'waiting') ...[
+                  const SizedBox(height: 12),
+                  _InvitePlayersButton(
+                    label: context.appLanguage.code == 'az'
+                        ? 'Onlayn oyunçuları dəvət et'
+                        : 'Пригласить игроков онлайн',
+                    onTap: _showInvitePlayers,
+                  ),
+                ],
                 const SizedBox(height: 14),
                 for (var seat = 0; seat < _room.maxPlayers; seat++)
                   Padding(
@@ -692,6 +720,59 @@ class _LobbySectionTitle extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _InvitePlayersButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _InvitePlayersButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        height: 54,
+        decoration: BoxDecoration(
+          color: _LobbyPalette.lavender,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _LobbyPalette.ink, width: 2.8),
+          boxShadow: const [
+            BoxShadow(
+              color: _LobbyPalette.ink,
+              blurRadius: 0,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.person_add_alt_1_rounded,
+              color: _LobbyPalette.ink,
+              size: 23,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _LobbyPalette.ink,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

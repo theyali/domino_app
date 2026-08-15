@@ -7,7 +7,6 @@ import '../models/game_room.dart';
 import '../models/restaurant.dart';
 import '../models/room_player.dart';
 import '../services/api_service.dart';
-import '../theme/app_colors.dart';
 import '../widgets/cartoon_page_background.dart';
 import '../widgets/create_room_bottom_sheet.dart';
 import '../widgets/game_room_card.dart';
@@ -251,52 +250,113 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final roomsCount = _rooms.length;
+    final waitingPlayers = _rooms.fold<int>(
+      0,
+      (total, room) => total + room.currentPlayers,
+    );
+
     return CartoonPageBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           surfaceTintColor: Colors.transparent,
-          title: Text(widget.restaurant.name),
+          toolbarHeight: 66,
+          leadingWidth: 64,
+          leading: Padding(
+            padding: const EdgeInsets.only(left: 12),
+            child: _TopActionButton(
+              icon: Icons.arrow_back_ios_new_rounded,
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+              onTap: () => Navigator.maybePop(context),
+            ),
+          ),
+          title: Text(
+            widget.restaurant.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              shadows: [
+                Shadow(
+                  color: Colors.black87,
+                  offset: Offset(2, 3),
+                  blurRadius: 0,
+                ),
+              ],
+            ),
+          ),
           actions: [
-            IconButton(
-              onPressed: _showGiftShop,
+            _TopActionButton(
+              icon: Icons.card_giftcard_rounded,
               tooltip: context.tr('restaurant_gifts'),
-              icon: const Icon(Icons.card_giftcard_rounded),
+              onTap: _showGiftShop,
+              color: _RestaurantPalette.mint,
             ),
-            IconButton(
-              onPressed: _isLoading ? null : _loadRooms,
+            const SizedBox(width: 8),
+            _TopActionButton(
+              icon: Icons.refresh_rounded,
               tooltip: context.tr('refresh'),
-              icon: const Icon(Icons.refresh_rounded),
+              onTap: _isLoading ? null : _loadRooms,
+              color: _RestaurantPalette.skyBlue,
             ),
+            const SizedBox(width: 12),
           ],
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: _isSubmitting ? null : _showCreateRoomSheet,
-          icon: _isSubmitting
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.add_rounded),
-          label: Text(context.tr('create_table')),
+        floatingActionButton: Container(
+          decoration: const BoxDecoration(
+            boxShadow: [
+              BoxShadow(
+                color: _RestaurantPalette.ink,
+                blurRadius: 0,
+                offset: Offset(0, 5),
+              ),
+            ],
+          ),
+          child: FloatingActionButton.extended(
+            onPressed: _isSubmitting ? null : _showCreateRoomSheet,
+            elevation: 0,
+            backgroundColor: _RestaurantPalette.lime,
+            foregroundColor: _RestaurantPalette.ink,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+              side: const BorderSide(
+                color: _RestaurantPalette.ink,
+                width: 3,
+              ),
+            ),
+            icon: _isSubmitting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.2,
+                      color: _RestaurantPalette.ink,
+                    ),
+                  )
+                : const Icon(Icons.add_rounded),
+            label: Text(
+              context.tr('create_table'),
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
         ),
         body: RefreshIndicator(
+          color: _RestaurantPalette.ink,
+          backgroundColor: _RestaurantPalette.cream,
           onRefresh: _loadRooms,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
                   child: _RestaurantRoomHeader(
                     restaurant: widget.restaurant,
-                    roomsCount: _rooms.length,
-                    waitingPlayers: _rooms.fold<int>(
-                      0,
-                      (total, room) => total + room.currentPlayers,
-                    ),
+                    roomsCount: roomsCount,
+                    waitingPlayers: waitingPlayers,
                     onOpenGiftShop: _showGiftShop,
                   ),
                 ),
@@ -306,32 +366,71 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
                 sliver: SliverToBoxAdapter(
                   child: Row(
                     children: [
-                      Expanded(
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 13,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _RestaurantPalette.cream,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: _RestaurantPalette.ink,
+                            width: 2.6,
+                          ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: _RestaurantPalette.ink,
+                              blurRadius: 0,
+                              offset: Offset(2, 3),
+                            ),
+                          ],
+                        ),
                         child: Text(
                           context.tr('open_tables'),
                           style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
+                            color: _RestaurantPalette.ink,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
                       ),
-                      if (_rooms.isNotEmpty)
-                        Text(
-                          '${_rooms.length}',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.w800,
+                      if (_rooms.isNotEmpty) ...[
+                        const SizedBox(width: 10),
+                        Container(
+                          width: 38,
+                          height: 38,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: _RestaurantPalette.yellow,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: _RestaurantPalette.ink,
+                              width: 2.6,
+                            ),
+                          ),
+                          child: Text(
+                            '$roomsCount',
+                            style: const TextStyle(
+                              color: _RestaurantPalette.ink,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                         ),
+                      ],
                     ],
                   ),
                 ),
               ),
-              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
               if (_isLoading && _rooms.isEmpty)
                 const SliverFillRemaining(
                   hasScrollBody: false,
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: _RestaurantPalette.ink,
+                    ),
+                  ),
                 )
               else if (_errorMessage != null && _rooms.isEmpty)
                 SliverFillRemaining(
@@ -342,6 +441,7 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
                     subtitle: _errorMessage!,
                     buttonText: context.tr('retry'),
                     onPressed: () => _loadRooms(),
+                    color: _RestaurantPalette.coral,
                   ),
                 )
               else if (_rooms.isEmpty)
@@ -353,11 +453,12 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
                     subtitle: context.tr('create_first_table'),
                     buttonText: context.tr('create_table'),
                     onPressed: _showCreateRoomSheet,
+                    color: _RestaurantPalette.skyBlue,
                   ),
                 )
               else
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
                   sliver: SliverList.builder(
                     itemCount: _rooms.length,
                     itemBuilder: (context, index) {
@@ -392,31 +493,45 @@ class _RestaurantRoomHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(24),
+        color: _RestaurantPalette.yellow,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: _RestaurantPalette.ink, width: 3),
+        boxShadow: const [
+          BoxShadow(
+            color: _RestaurantPalette.ink,
+            blurRadius: 0,
+            offset: Offset(0, 7),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _RestaurantHeaderLogo(restaurant: restaurant),
-          const SizedBox(height: 12),
-          Text(
-            restaurant.name,
-            style: TextStyle(
-              color: colorScheme.onPrimaryContainer,
-              fontSize: 25,
-              fontWeight: FontWeight.w900,
-            ),
+          Row(
+            children: [
+              _RestaurantHeaderLogo(restaurant: restaurant),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Text(
+                  restaurant.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _RestaurantPalette.ink,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: 9,
+            runSpacing: 9,
             children: [
               _StatChip(
                 icon: Icons.table_restaurant,
@@ -434,15 +549,46 @@ class _RestaurantRoomHeader extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.tonalIcon(
-              onPressed: onOpenGiftShop,
-              icon: const Icon(Icons.card_giftcard_rounded),
-              label: Text(
-                context.tr('restaurant_gifts'),
-                style: const TextStyle(fontWeight: FontWeight.w800),
+          const SizedBox(height: 16),
+          GestureDetector(
+            onTap: () {
+              onOpenGiftShop();
+            },
+            child: Container(
+              width: double.infinity,
+              height: 52,
+              decoration: BoxDecoration(
+                color: _RestaurantPalette.lime,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: _RestaurantPalette.ink,
+                  width: 3,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: _RestaurantPalette.ink,
+                    blurRadius: 0,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.card_giftcard_rounded,
+                    color: _RestaurantPalette.ink,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    context.tr('restaurant_gifts'),
+                    style: const TextStyle(
+                      color: _RestaurantPalette.ink,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -461,15 +607,23 @@ class _RestaurantHeaderLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     final imageUrl = restaurant.imageUrl;
     return Container(
-      width: 58,
-      height: 58,
-      padding: const EdgeInsets.all(2),
+      width: 72,
+      height: 72,
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        color: AppColors.brass,
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _RestaurantPalette.ink, width: 3),
+        boxShadow: const [
+          BoxShadow(
+            color: _RestaurantPalette.ink,
+            blurRadius: 0,
+            offset: Offset(3, 4),
+          ),
+        ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         child: imageUrl?.isNotEmpty == true
             ? Image.network(
                 imageUrl!,
@@ -489,12 +643,12 @@ class _RestaurantHeaderFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.badge,
+      color: _RestaurantPalette.cream,
       alignment: Alignment.center,
       child: const Icon(
         Icons.restaurant_rounded,
-        size: 30,
-        color: AppColors.cream,
+        size: 34,
+        color: _RestaurantPalette.ink,
       ),
     );
   }
@@ -508,21 +662,71 @@ class _StatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.68),
-        borderRadius: BorderRadius.circular(99),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: _RestaurantPalette.ink, width: 2.3),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 17, color: colorScheme.primary),
+          Icon(icon, size: 17, color: _RestaurantPalette.ink),
           const SizedBox(width: 5),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: _RestaurantPalette.ink,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _TopActionButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onTap;
+  final Color color;
+
+  const _TopActionButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.color = _RestaurantPalette.cream,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Opacity(
+          opacity: onTap == null ? 0.45 : 1,
+          child: Container(
+            width: 42,
+            height: 42,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _RestaurantPalette.ink, width: 2.6),
+              boxShadow: const [
+                BoxShadow(
+                  color: _RestaurantPalette.ink,
+                  blurRadius: 0,
+                  offset: Offset(2, 3),
+                ),
+              ],
+            ),
+            child: Icon(icon, color: _RestaurantPalette.ink, size: 21),
+          ),
+        ),
       ),
     );
   }
@@ -534,6 +738,7 @@ class _RoomListMessage extends StatelessWidget {
   final String subtitle;
   final String buttonText;
   final Future<void> Function() onPressed;
+  final Color color;
 
   const _RoomListMessage({
     required this.icon,
@@ -541,38 +746,118 @@ class _RoomListMessage extends StatelessWidget {
     required this.subtitle,
     required this.buttonText,
     required this.onPressed,
+    required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 120),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 60,
-            color: Theme.of(context).colorScheme.primary,
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 125),
+      child: Center(
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: _RestaurantPalette.ink, width: 3),
+            boxShadow: const [
+              BoxShadow(
+                color: _RestaurantPalette.ink,
+                blurRadius: 0,
+                offset: Offset(0, 7),
+              ),
+            ],
           ),
-          const SizedBox(height: 14),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 76,
+                height: 76,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: _RestaurantPalette.ink,
+                    width: 3,
+                  ),
+                ),
+                child: Icon(
+                  icon,
+                  size: 40,
+                  color: _RestaurantPalette.ink,
+                ),
+              ),
+              const SizedBox(height: 15),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _RestaurantPalette.ink,
+                  fontSize: 21,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _RestaurantPalette.inkSoft,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 20),
+              GestureDetector(
+                onTap: () {
+                  onPressed();
+                },
+                child: Container(
+                  height: 48,
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: _RestaurantPalette.lime,
+                    borderRadius: BorderRadius.circular(17),
+                    border: Border.all(
+                      color: _RestaurantPalette.ink,
+                      width: 3,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: _RestaurantPalette.ink,
+                        blurRadius: 0,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    buttonText,
+                    style: const TextStyle(
+                      color: _RestaurantPalette.ink,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 7),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 20),
-          FilledButton(onPressed: onPressed, child: Text(buttonText)),
-        ],
+        ),
       ),
     );
   }
+}
+
+class _RestaurantPalette {
+  static const Color ink = Color(0xFF111111);
+  static const Color inkSoft = Color(0xFF4A4037);
+  static const Color cream = Color(0xFFFFF5D9);
+  static const Color yellow = Color(0xFFFFD65C);
+  static const Color skyBlue = Color(0xFF79CDF1);
+  static const Color mint = Color(0xFF8CDD79);
+  static const Color coral = Color(0xFFFF8A79);
+  static const Color lime = Color(0xFF7CFC00);
 }

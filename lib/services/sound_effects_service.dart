@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 
 /// Общие короткие звуки интерфейса.
 ///
@@ -24,42 +25,52 @@ class SoundEffectsService {
   const SoundEffectsService._();
 
   static void button({bool alternate = false}) {
-    unawaited(
-      _buttonPlayer.play(
-        AssetSource(alternate ? _buttonAltSound : _buttonSound),
-        volume: alternate ? 0.72 : 0.78,
-        mode: PlayerMode.lowLatency,
-      ),
+    _play(
+      player: _buttonPlayer,
+      assetPath: alternate ? _buttonAltSound : _buttonSound,
+      volume: alternate ? 0.72 : 0.78,
     );
   }
 
   static void quitGame() {
-    unawaited(
-      _actionPlayer.play(
-        AssetSource(_quitSound),
-        volume: 0.92,
-        mode: PlayerMode.lowLatency,
-      ),
+    _play(
+      player: _actionPlayer,
+      assetPath: _quitSound,
+      volume: 0.92,
     );
   }
 
   static void victory() {
-    unawaited(
-      _resultPlayer.play(
-        AssetSource(_victorySound),
-        volume: 0.96,
-        mode: PlayerMode.lowLatency,
-      ),
+    _play(
+      player: _resultPlayer,
+      assetPath: _victorySound,
+      volume: 0.96,
     );
   }
 
   static void defeat() {
+    _play(
+      player: _resultPlayer,
+      assetPath: _defeatSound,
+      volume: 0.9,
+    );
+  }
+
+  static void _play({
+    required AudioPlayer player,
+    required String assetPath,
+    required double volume,
+  }) {
     unawaited(
-      _resultPlayer.play(
-        AssetSource(_defeatSound),
-        volume: 0.9,
-        mode: PlayerMode.lowLatency,
-      ),
+      player
+          .play(
+            AssetSource(assetPath),
+            volume: volume,
+            mode: PlayerMode.lowLatency,
+          )
+          .catchError((Object error, StackTrace stackTrace) {
+        debugPrint('Sound asset failed to play: $assetPath ($error)');
+      }),
     );
   }
 }

@@ -22,20 +22,20 @@ class GameTableDecorations extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(23),
                   border: Border.all(
-                    color: AppColors.brassLight.withValues(alpha: 0.22),
-                    width: 1.2,
+                    color: AppColors.brassLight.withValues(alpha: 0.52),
+                    width: 2,
                   ),
                 ),
               ),
             ),
           ),
-          const Positioned(left: 13, top: 13, child: _BrassFastener()),
-          const Positioned(right: 13, top: 13, child: _BrassFastener()),
-          const Positioned(left: 13, bottom: 13, child: _BrassFastener()),
-          const Positioned(right: 13, bottom: 13, child: _BrassFastener()),
+          const Positioned(left: 12, top: 12, child: _CartoonFastener()),
+          const Positioned(right: 12, top: 12, child: _CartoonFastener()),
+          const Positioned(left: 12, bottom: 12, child: _CartoonFastener()),
+          const Positioned(right: 12, bottom: 12, child: _CartoonFastener()),
           Center(
             child: Opacity(
-              opacity: 0.065,
+              opacity: 0.08,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -66,34 +66,26 @@ class GameTableDecorations extends StatelessWidget {
   }
 }
 
-class _BrassFastener extends StatelessWidget {
-  const _BrassFastener();
+class _CartoonFastener extends StatelessWidget {
+  const _CartoonFastener();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 15,
-      height: 15,
+      width: 17,
+      height: 17,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: const RadialGradient(
-          center: Alignment(-0.35, -0.35),
-          radius: 0.95,
-          colors: [
-            AppColors.brassLight,
-            AppColors.brass,
-            AppColors.brassDark,
-          ],
-        ),
+        color: AppColors.cartoonYellow,
         border: Border.all(
-          color: AppColors.ink.withValues(alpha: 0.82),
-          width: 1,
+          color: AppColors.ink,
+          width: 1.7,
         ),
         boxShadow: const [
           BoxShadow(
-            color: Colors.black45,
-            blurRadius: 3,
-            offset: Offset(0, 2),
+            color: AppColors.ink,
+            blurRadius: 0,
+            offset: Offset(1.5, 2),
           ),
         ],
       ),
@@ -101,10 +93,10 @@ class _BrassFastener extends StatelessWidget {
         child: Transform.rotate(
           angle: -0.55,
           child: Container(
-            width: 7,
-            height: 1.3,
+            width: 8,
+            height: 1.8,
             decoration: BoxDecoration(
-              color: AppColors.brassDark,
+              color: AppColors.ink,
               borderRadius: BorderRadius.circular(99),
             ),
           ),
@@ -128,7 +120,7 @@ class _DominoWatermark extends StatelessWidget {
           borderRadius: BorderRadius.circular(7),
           border: Border.all(
             color: AppColors.cream,
-            width: 2,
+            width: 2.2,
           ),
         ),
         child: Column(
@@ -141,7 +133,7 @@ class _DominoWatermark extends StatelessWidget {
                 ],
               ),
             ),
-            Container(height: 2, color: AppColors.cream),
+            Container(height: 2.2, color: AppColors.cream),
             Expanded(
               child: Stack(
                 children: const [

@@ -80,17 +80,17 @@ class _MainShellScreenState extends State<MainShellScreen> {
         accent: const Color(0xFF66C7F0),
       ),
       _NavItemData(
-        icon: Icons.bar_chart_rounded,
+        assetPath: 'assets/icons/leagues.png',
         label: statsStrings.title,
         accent: const Color(0xFFFFD85A),
       ),
       _NavItemData(
-        icon: Icons.card_giftcard_rounded,
+        assetPath: 'assets/icons/gift.png',
         label: context.tr('inventory'),
         accent: const Color(0xFF82D66E),
       ),
       _NavItemData(
-        icon: Icons.person_rounded,
+        assetPath: 'assets/icons/profile.png',
         label: context.tr('profile'),
         accent: const Color(0xFFFF806F),
       ),

@@ -573,7 +573,7 @@ class _RoundOutcomeFlash extends StatelessWidget {
             duration: const Duration(milliseconds: 1050),
             curve: Curves.easeOutBack,
             builder: (context, progress, child) {
-              final entry = progress.clamp(0.0, 1.0);
+              final entry = progress.clamp(0.0, 1.0).toDouble();
               final shake = isWinner
                   ? 0.0
                   : math.sin(progress * math.pi * 8) *
@@ -732,7 +732,8 @@ class _RoundOutcomeFlash extends StatelessWidget {
                       angle: (isWinner ? 0.06 : -0.06) +
                           math.sin(value * math.pi * 3) * 0.045,
                       child: Transform.scale(
-                        scale: 0.8 + value.clamp(0.0, 1.0) * 0.2,
+                        scale: 0.8 +
+                            value.clamp(0.0, 1.0).toDouble() * 0.2,
                         child: child,
                       ),
                     ),
@@ -826,7 +827,9 @@ class _OutcomeBurst extends StatelessWidget {
                   math.sin((math.pi * 2 / 20) * index) * 120 * progress,
                 ),
                 child: Opacity(
-                  opacity: (1.0 - progress * 0.7).clamp(0.0, 1.0),
+                  opacity: (1.0 - progress * 0.7)
+                      .clamp(0.0, 1.0)
+                      .toDouble(),
                   child: Transform.rotate(
                     angle: progress * (index.isEven ? 1.8 : -1.8),
                     child: Icon(

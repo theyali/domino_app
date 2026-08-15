@@ -31,6 +31,7 @@ class _PhoneBranchState {
   final bool onDrift;
   final bool axisForward;
   final bool previousWasDouble;
+  final bool hasTurned;
   final double usedUnits;
 
   const _PhoneBranchState({
@@ -42,6 +43,7 @@ class _PhoneBranchState {
     required this.onDrift,
     required this.axisForward,
     required this.previousWasDouble,
+    required this.hasTurned,
     required this.usedUnits,
   });
 }
@@ -77,21 +79,21 @@ class _PhoneLayoutDraft {
   double get heightUnits => maxY - minY;
 }
 
-/// Игровое поле режима «Телефон».
+/// Визуальная змейка режима «Телефон».
 ///
-/// Сервер по-прежнему хранит четыре независимые логические ветки
-/// (`top/right/bottom/left`) и остаётся источником истины для допустимых ходов.
-/// Визуально каждая ветка теперь после выхода от центрального дубля сворачивает
-/// в собственную змейку. Поэтому длинные ветки больше не тянутся прямой линией
-/// через весь экран и не пересекают соседние ветки.
+/// Сервер продолжает хранить четыре независимых логических конца
+/// (`top/right/bottom/left`). Здесь меняется только отображение: каждая ветка
+/// выходит из центрального дубля, а затем укладывается змейкой в своём секторе.
+/// Логика ходов и подсчёта очков остаётся серверной.
 class MultiplayerPhoneCross extends StatelessWidget {
   static const double _safeMargin = 14;
   static const double _preferredShortSide = 29;
 
-  // Каждая ветка занимает свой сектор вокруг центрального дубля.
-  // По основной оси она ходит туда-обратно на 5 квадратов, а между рядами
-  // сдвигается на 3 квадрата. Это оставляет место и для поперечных дублей.
-  static const double _axisRunUnits = 5;
+  // Первый луч уходит достаточно далеко от центра, чтобы четыре ветки не
+  // пересекались. После первого поворота змейка ходит туда-обратно короче,
+  // сохраняя свободный крест вокруг центрального дубля.
+  static const double _initialAxisRunUnits = 8;
+  static const double _returnAxisRunUnits = 4;
   static const double _driftRunUnits = 3;
 
   final List<ServerDomino> dominoes;
@@ -173,8 +175,9 @@ class MultiplayerPhoneCross extends StatelessWidget {
       };
 
   _PhoneDirection _driftDirectionFor(String side) => switch (side) {
-        // Ветки специально расходятся по четырём разным секторам:
-        // top -> вправо, right -> вниз, bottom -> влево, left -> вверх.
+        // Каждая ветка получает свой сектор:
+        // top -> верх-право, right -> низ-право,
+        // bottom -> низ-лево, left -> верх-лево.
         'top' => _PhoneDirection.right,
         'right' => _PhoneDirection.bottom,
         'bottom' => _PhoneDirection.left,
@@ -201,12 +204,14 @@ class MultiplayerPhoneCross extends StatelessWidget {
   double _pathUnits(Domino domino) => domino.left == domino.right ? 1 : 2;
 
   Offset _openingConnectionUnits(_PhoneDirection direction) {
-    // Центральный дубль всегда занимает 1 x 2 условных квадрата.
+    // connectionUnits — это центр последнего соединительного квадрата, а не
+    // физический край кости. Такая модель позволяет делать поворот без
+    // наложения одной костяшки на другую.
     return switch (direction) {
-      _PhoneDirection.top => const Offset(0, -1),
-      _PhoneDirection.bottom => const Offset(0, 1),
-      _PhoneDirection.left => const Offset(-0.5, 0),
-      _PhoneDirection.right => const Offset(0.5, 0),
+      _PhoneDirection.top => const Offset(0, -0.5),
+      _PhoneDirection.bottom => const Offset(0, 0.5),
+      _PhoneDirection.left => Offset.zero,
+      _PhoneDirection.right => Offset.zero,
     };
   }
 
@@ -221,6 +226,7 @@ class MultiplayerPhoneCross extends StatelessWidget {
       onDrift: false,
       axisForward: true,
       previousWasDouble: false,
+      hasTurned: false,
       usedUnits: 0,
     );
   }
@@ -234,9 +240,15 @@ class MultiplayerPhoneCross extends StatelessWidget {
     var direction = state.direction;
     var onDrift = state.onDrift;
     var axisForward = state.axisForward;
+    var hasTurned = state.hasTurned;
     var usedUnits = state.usedUnits;
 
-    final currentLimit = onDrift ? _driftRunUnits : _axisRunUnits;
+    final currentLimit = onDrift
+        ? _driftRunUnits
+        : hasTurned
+            ? _returnAxisRunUnits
+            : _initialAxisRunUnits;
+
     if (usedUnits + requiredUnits > currentLimit) {
       if (onDrift) {
         onDrift = false;
@@ -247,11 +259,13 @@ class MultiplayerPhoneCross extends StatelessWidget {
       } else {
         onDrift = true;
         direction = state.driftDirection;
+        hasTurned = true;
       }
       usedUnits = 0;
 
-      // Если поворот начинается сразу после дубля, соединение должно выйти
-      // за его внешний край. Иначе следующая кость залезает на половину дубля.
+      // После дубля connectionUnits находится в центре дубля. При повороте
+      // сдвигаем точку соединения к нужной половине его длинной стороны,
+      // чтобы следующая костяшка только касалась дубля, а не перекрывала его.
       if (state.previousWasDouble && direction != state.previousDirection) {
         connectionUnits += _vector(direction) * 0.5;
       }
@@ -266,6 +280,7 @@ class MultiplayerPhoneCross extends StatelessWidget {
       onDrift: onDrift,
       axisForward: axisForward,
       previousWasDouble: state.previousWasDouble,
+      hasTurned: hasTurned,
       usedUnits: usedUnits,
     );
   }
@@ -276,9 +291,18 @@ class MultiplayerPhoneCross extends StatelessWidget {
     required _PhoneDirection direction,
   }) {
     final vector = _vector(direction);
-    final length = _pathUnits(domino);
-    final center = connectionUnits + vector * (length / 2);
-    final nextConnection = center + vector * (length / 2);
+    final isDouble = domino.left == domino.right;
+
+    if (isDouble) {
+      final center = connectionUnits + vector;
+      return (center, center);
+    }
+
+    // Сначала находим центр половинки, которая касается предыдущей кости.
+    // Вторая половинка продолжает путь ещё на один квадрат.
+    final connectingSquareCenter = connectionUnits + vector;
+    final center = connectingSquareCenter + vector * 0.5;
+    final nextConnection = center + vector * 0.5;
     return (center, nextConnection);
   }
 
@@ -320,6 +344,7 @@ class MultiplayerPhoneCross extends StatelessWidget {
         onDrift: prepared.onDrift,
         axisForward: prepared.axisForward,
         previousWasDouble: serverDomino.isDouble,
+        hasTurned: prepared.hasTurned,
         usedUnits: prepared.usedUnits + requiredUnits,
       );
     }
@@ -348,8 +373,8 @@ class MultiplayerPhoneCross extends StatelessWidget {
     Domino domino,
     _PhoneDirection direction,
   ) {
-    // Сервер хранит left = значение у предыдущей кости, right = новый конец.
-    // Когда экранная змейка идёт вверх или влево, изображение переворачиваем.
+    // Сервер хранит left = значение возле предыдущей кости, right = новый
+    // открытый конец. На экранных направлениях вверх/влево переворачиваем.
     if (direction == _PhoneDirection.top || direction == _PhoneDirection.left) {
       return Domino(left: domino.right, right: domino.left);
     }
@@ -372,8 +397,7 @@ class MultiplayerPhoneCross extends StatelessWidget {
     );
   }
 
-  ({Offset centerUnits, Size sizeUnits, _PhoneDirection direction})
-      _targetGeometryUnits({
+  ({Offset centerUnits, Size sizeUnits}) _targetGeometryUnits({
     required _PhoneBranchState state,
     required Domino domino,
   }) {
@@ -389,7 +413,6 @@ class MultiplayerPhoneCross extends StatelessWidget {
         domino: domino,
         direction: prepared.direction,
       ),
-      direction: prepared.direction,
     );
   }
 

@@ -35,6 +35,10 @@
 	<string>Domino APP использует локальную сеть для подключения к тестовому игровому серверу на Mac.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Domino APP использует галерею, чтобы вы могли выбрать фотографию для аватара профиля.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

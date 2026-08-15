@@ -24,7 +24,6 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
   static const Duration _refreshInterval = Duration(seconds: 4);
 
   Timer? _refreshTimer;
-  bool showOnlyActive = false;
   bool _isLoading = true;
   bool _isRefreshingSilently = false;
   String? _errorMessage;
@@ -88,15 +87,15 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final visibleRestaurants = showOnlyActive
-        ? _restaurants.where((restaurant) => restaurant.active).toList()
-        : _restaurants;
+    final visibleRestaurants = _restaurants
+        .where((restaurant) => restaurant.active)
+        .toList(growable: false);
     final navigationStrings = StatisticsStrings.of(context);
-    final onlinePlayers = _restaurants.fold<int>(
+    final onlinePlayers = visibleRestaurants.fold<int>(
       0,
       (total, restaurant) => total + restaurant.players,
     );
-    final openTables = _restaurants.fold<int>(
+    final openTables = visibleRestaurants.fold<int>(
       0,
       (total, restaurant) => total + restaurant.waitingRooms,
     );
@@ -142,15 +141,9 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
                   child: _PlayLobbyHeader(
-                    restaurantsCount: _restaurants.length,
+                    restaurantsCount: visibleRestaurants.length,
                     openTables: openTables,
                     onlinePlayers: onlinePlayers,
-                    onlyActive: showOnlyActive,
-                    onFilterChanged: (value) {
-                      setState(() {
-                        showOnlyActive = value;
-                      });
-                    },
                   ),
                 ),
               ),
@@ -216,15 +209,11 @@ class _PlayLobbyHeader extends StatelessWidget {
   final int restaurantsCount;
   final int openTables;
   final int onlinePlayers;
-  final bool onlyActive;
-  final ValueChanged<bool> onFilterChanged;
 
   const _PlayLobbyHeader({
     required this.restaurantsCount,
     required this.openTables,
     required this.onlinePlayers,
-    required this.onlyActive,
-    required this.onFilterChanged,
   });
 
   @override
@@ -246,118 +235,41 @@ class _PlayLobbyHeader extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF6B6B),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.black, width: 2.5),
-                ),
-                child: const Icon(
-                  Icons.sports_esports_rounded,
-                  color: Colors.black,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Wrap(
-                  spacing: 7,
-                  runSpacing: 7,
-                  children: [
-                    _LobbyCounter(
-                      icon: Icons.restaurant_rounded,
-                      value: '$restaurantsCount',
-                    ),
-                    _LobbyCounter(
-                      icon: Icons.table_restaurant_rounded,
-                      value: '$openTables',
-                    ),
-                    _LobbyCounter(
-                      icon: Icons.groups_rounded,
-                      value: '$onlinePlayers',
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF6B6B),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.black, width: 2.5),
+            ),
+            child: const Icon(
+              Icons.sports_esports_rounded,
+              color: Colors.black,
+              size: 28,
+            ),
           ),
-          const SizedBox(height: 13),
-          GestureDetector(
-            onTap: () => onFilterChanged(!onlyActive),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.black,
-                  width: 2.4,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Wrap(
+              spacing: 7,
+              runSpacing: 7,
+              children: [
+                _LobbyCounter(
+                  icon: Icons.restaurant_rounded,
+                  value: '$restaurantsCount',
                 ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          context.tr('only_active_restaurants'),
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          context.tr('only_available_rooms'),
-                          style: const TextStyle(
-                            color: Colors.black54,
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 170),
-                    width: 50,
-                    height: 29,
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      color: onlyActive
-                          ? const Color(0xFF7CFC00)
-                          : const Color(0xFFE8E8E8),
-                      borderRadius: BorderRadius.circular(99),
-                      border: Border.all(
-                        color: Colors.black,
-                        width: 2,
-                      ),
-                    ),
-                    child: AnimatedAlign(
-                      duration: const Duration(milliseconds: 170),
-                      alignment: onlyActive
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      child: Container(
-                        width: 19,
-                        height: 19,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                _LobbyCounter(
+                  icon: Icons.table_restaurant_rounded,
+                  value: '$openTables',
+                ),
+                _LobbyCounter(
+                  icon: Icons.groups_rounded,
+                  value: '$onlinePlayers',
+                ),
+              ],
             ),
           ),
         ],

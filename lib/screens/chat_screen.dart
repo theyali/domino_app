@@ -258,7 +258,11 @@ class _ChatScreenState extends State<ChatScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.chat_bubble_outline_rounded, size: 48),
+              const Icon(
+                Icons.chat_bubble_outline_rounded,
+                size: 48,
+                color: _ChatPalette.ink,
+              ),
               const SizedBox(height: 10),
               Text(
                 _isAz
@@ -380,9 +384,20 @@ class _Composer extends StatelessWidget {
                 minLines: 1,
                 maxLines: 4,
                 textCapitalization: TextCapitalization.sentences,
+                cursorColor: _ChatPalette.ink,
+                style: const TextStyle(
+                  color: _ChatPalette.ink,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
                 onSubmitted: (_) => onSend(),
                 decoration: InputDecoration(
                   hintText: isAz ? 'Mesaj...' : 'Сообщение...',
+                  hintStyle: const TextStyle(
+                    color: _ChatPalette.inkSoft,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
                   filled: true,
                   fillColor: _ChatPalette.cream,
                   contentPadding: const EdgeInsets.symmetric(
@@ -401,6 +416,13 @@ class _Composer extends StatelessWidget {
                     borderSide: const BorderSide(
                       color: _ChatPalette.ink,
                       width: 3,
+                    ),
+                  ),
+                  disabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: const BorderSide(
+                      color: _ChatPalette.ink,
+                      width: 2.5,
                     ),
                   ),
                 ),
@@ -432,7 +454,11 @@ class _Composer extends StatelessWidget {
                           color: _ChatPalette.ink,
                         ),
                       )
-                    : const Icon(Icons.send_rounded, size: 25),
+                    : const Icon(
+                        Icons.send_rounded,
+                        size: 25,
+                        color: _ChatPalette.ink,
+                      ),
               ),
             ),
           ],
@@ -546,7 +572,10 @@ class _ErrorBox extends StatelessWidget {
       child: Text(
         text,
         textAlign: TextAlign.center,
-        style: const TextStyle(fontWeight: FontWeight.w800),
+        style: const TextStyle(
+          color: _ChatPalette.ink,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }

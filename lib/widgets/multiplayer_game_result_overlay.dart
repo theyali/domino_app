@@ -95,7 +95,12 @@ class _MultiplayerGameResultOverlayState
   }
 
   bool _isPlayedRoundResult(MultiplayerRoundResult result) {
-    return result.reason == 'domino' || result.reason == 'fish';
+    if (result.reason == 'domino' || result.reason == 'fish') {
+      return true;
+    }
+
+    return _isLocalWinner(result) &&
+        (result.reason == 'surrender' || result.reason == 'player_left');
   }
 
   String get _outcomeSoundKey =>

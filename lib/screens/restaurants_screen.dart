@@ -123,204 +123,160 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
         decoration: const BoxDecoration(
           gradient: PlayPalette.pageGradient,
         ),
-        child: Stack(
-          children: [
-            const Positioned(
-              top: -130,
-              right: -90,
-              child: _AmbientGlow(size: 300, color: Color(0x33268CFF)),
-            ),
-            const Positioned(
-              top: 340,
-              left: -110,
-              child: _AmbientGlow(size: 260, color: Color(0x2243D8FF)),
-            ),
-            SafeArea(
-              bottom: false,
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 7, 12, 6),
-                    child: Row(
-                      children: [
-                        const SizedBox(width: 50, height: 48),
-                        Expanded(
-                          child: Text(
-                            navigationStrings.play,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 25,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 7, 12, 6),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 50, height: 48),
+                    Expanded(
+                      child: Text(
+                        navigationStrings.play,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 25,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.5,
                         ),
-                        _HeaderButton(
-                          icon: Icons.refresh_rounded,
-                          loading: _isLoading,
-                          tooltip: context.tr('refresh'),
-                          onTap: _isLoading ? null : () => _loadRestaurants(),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: RefreshIndicator(
-                      color: PlayPalette.blue,
-                      backgroundColor: PlayPalette.white,
-                      onRefresh: () => _loadRestaurants(),
-                      child: CustomScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        slivers: [
-                          SliverToBoxAdapter(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(14, 9, 14, 8),
-                              child: _PlayLobbyHeader(
-                                restaurantsCount: visibleRestaurants.length,
-                                openTables: openTables,
-                                onlinePlayers: onlinePlayers,
-                                isAz: isAz,
-                              ),
-                            ),
-                          ),
-                          SliverToBoxAdapter(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 11, 16, 9),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          isAz ? 'Restoranlar' : 'Рестораны',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing: -0.35,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 3),
-                                        Text(
-                                          isAz
-                                              ? 'Oynamaq istədiyiniz məkanı seçin'
-                                              : 'Выбери место, где хочешь играть',
-                                          style: const TextStyle(
-                                            color: PlayPalette.muted,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 11,
-                                      vertical: 7,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0x22268CFF),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: const Color(0x3343B8FF),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      '${visibleRestaurants.length}',
-                                      style: const TextStyle(
-                                        color: PlayPalette.blueSoft,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          if (_isLoading && _restaurants.isEmpty)
-                            const SliverFillRemaining(
-                              hasScrollBody: false,
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  color: PlayPalette.blueBright,
-                                ),
-                              ),
-                            )
-                          else if (_errorMessage != null && _restaurants.isEmpty)
-                            SliverFillRemaining(
-                              hasScrollBody: false,
-                              child: _RestaurantsError(
-                                message: _errorMessage!,
-                                onRetry: () => _loadRestaurants(),
-                              ),
-                            )
-                          else if (visibleRestaurants.isEmpty)
-                            SliverFillRemaining(
-                              hasScrollBody: false,
-                              child: _PlayEmptyState(
-                                message: context.tr('restaurants_empty'),
-                              ),
-                            )
-                          else
-                            SliverPadding(
-                              padding: const EdgeInsets.fromLTRB(14, 4, 14, 30),
-                              sliver: SliverGrid.builder(
-                                itemCount: visibleRestaurants.length,
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: columns,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  mainAxisExtent: 206,
-                                ),
-                                itemBuilder: (context, index) {
-                                  final restaurant = visibleRestaurants[index];
-                                  return RestaurantTile(
-                                    restaurant: restaurant,
-                                    onTap: () => _openRestaurant(restaurant),
-                                  );
-                                },
-                              ),
-                            ),
-                        ],
                       ),
                     ),
-                  ),
-                ],
+                    _HeaderButton(
+                      icon: Icons.refresh_rounded,
+                      loading: _isLoading,
+                      tooltip: context.tr('refresh'),
+                      onTap: _isLoading ? null : () => _loadRestaurants(),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AmbientGlow extends StatelessWidget {
-  final double size;
-  final Color color;
-
-  const _AmbientGlow({required this.size, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-          boxShadow: [
-            BoxShadow(
-              color: color,
-              blurRadius: 90,
-              spreadRadius: 20,
-            ),
-          ],
+              Expanded(
+                child: RefreshIndicator(
+                  color: PlayPalette.blue,
+                  backgroundColor: PlayPalette.white,
+                  onRefresh: () => _loadRestaurants(),
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 9, 14, 8),
+                          child: _PlayLobbyHeader(
+                            restaurantsCount: visibleRestaurants.length,
+                            openTables: openTables,
+                            onlinePlayers: onlinePlayers,
+                            isAz: isAz,
+                          ),
+                        ),
+                      ),
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 11, 16, 9),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      isAz ? 'Restoranlar' : 'Рестораны',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: -0.35,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      isAz
+                                          ? 'Oynamaq istədiyiniz məkanı seçin'
+                                          : 'Выбери место, где хочешь играть',
+                                      style: const TextStyle(
+                                        color: PlayPalette.muted,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 11,
+                                  vertical: 7,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: PlayPalette.navySoft,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: PlayPalette.blue),
+                                ),
+                                child: Text(
+                                  '${visibleRestaurants.length}',
+                                  style: const TextStyle(
+                                    color: PlayPalette.blue,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (_isLoading && _restaurants.isEmpty)
+                        const SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: PlayPalette.blue,
+                            ),
+                          ),
+                        )
+                      else if (_errorMessage != null && _restaurants.isEmpty)
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: _RestaurantsError(
+                            message: _errorMessage!,
+                            onRetry: () => _loadRestaurants(),
+                          ),
+                        )
+                      else if (visibleRestaurants.isEmpty)
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: _PlayEmptyState(
+                            message: context.tr('restaurants_empty'),
+                          ),
+                        )
+                      else
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(14, 4, 14, 30),
+                          sliver: SliverGrid.builder(
+                            itemCount: visibleRestaurants.length,
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: columns,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                              mainAxisExtent: 206,
+                            ),
+                            itemBuilder: (context, index) {
+                              final restaurant = visibleRestaurants[index];
+                              return RestaurantTile(
+                                restaurant: restaurant,
+                                onTap: () => _openRestaurant(restaurant),
+                              );
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -353,7 +309,7 @@ class _HeaderButton extends StatelessWidget {
             color: PlayPalette.navySoft,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: const Color(0x3343B8FF),
+              color: PlayPalette.blue,
               width: 1.2,
             ),
           ),
@@ -362,7 +318,7 @@ class _HeaderButton extends StatelessWidget {
                   padding: EdgeInsets.all(14),
                   child: CircularProgressIndicator(
                     strokeWidth: 2.3,
-                    color: PlayPalette.blueBright,
+                    color: PlayPalette.blue,
                   ),
                 )
               : Icon(icon, color: Colors.white, size: 25),
@@ -390,15 +346,15 @@ class _PlayLobbyHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 15),
       decoration: BoxDecoration(
-        gradient: PlayPalette.cardGradient,
+        color: PlayPalette.navySoft,
         borderRadius: BorderRadius.circular(26),
         border: Border.all(
-          color: const Color(0x558FE6FF),
+          color: PlayPalette.blue,
           width: 1.3,
         ),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x44268CFF),
+            color: Color(0x33000000),
             blurRadius: 24,
             offset: Offset(0, 10),
           ),
@@ -413,7 +369,7 @@ class _PlayLobbyHeader extends StatelessWidget {
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  color: const Color(0xECFFFFFF),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: const Icon(
@@ -441,7 +397,7 @@ class _PlayLobbyHeader extends StatelessWidget {
                           ? 'Restoranı seç və masaya keç'
                           : 'Выбери ресторан и переходи к столу',
                       style: const TextStyle(
-                        color: Color(0xDDFFFFFF),
+                        color: PlayPalette.muted,
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
                       ),
@@ -502,7 +458,7 @@ class _LobbyCounter extends StatelessWidget {
       height: 47,
       padding: const EdgeInsets.symmetric(horizontal: 9),
       decoration: BoxDecoration(
-        color: const Color(0xDFFFFFFF),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -531,7 +487,7 @@ class _LobbyCounter extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Color(0xAA10182A),
+                    color: Color(0xAA121212),
                     fontSize: 8.5,
                     fontWeight: FontWeight.w700,
                   ),
@@ -561,20 +517,13 @@ class _PlayEmptyState extends StatelessWidget {
             width: 82,
             height: 82,
             decoration: BoxDecoration(
-              gradient: PlayPalette.cardGradient,
+              color: PlayPalette.navySoft,
               borderRadius: BorderRadius.circular(25),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x44268CFF),
-                  blurRadius: 24,
-                  offset: Offset(0, 10),
-                ),
-              ],
             ),
             child: const Icon(
               Icons.table_restaurant_rounded,
               size: 40,
-              color: Colors.white,
+              color: PlayPalette.blue,
             ),
           ),
           const SizedBox(height: 18),

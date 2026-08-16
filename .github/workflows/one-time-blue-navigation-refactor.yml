@@ -33,29 +33,31 @@ jobs:
 
           start = text.index('    final items = [')
           end = text.index('    ];', start) + len('    ];')
-          items_block = '''    final items = [
-      GameBottomNavItemData(
-        assetPath: 'assets/icons/domino.png',
-        label: statsStrings.play,
-      ),
-      GameBottomNavItemData(
-        assetPath: 'assets/icons/leagues.png',
-        label: statsStrings.title,
-      ),
-      GameBottomNavItemData(
-        assetPath: 'assets/icons/gift.png',
-        label: context.tr('inventory'),
-      ),
-      GameBottomNavItemData(
-        icon: Icons.groups_rounded,
-        label: isAz ? 'Dostlar' : 'Друзья',
-        badgeCount: _socialBadgeCount,
-      ),
-      GameBottomNavItemData(
-        assetPath: 'assets/icons/profile.png',
-        label: context.tr('profile'),
-      ),
-    ];'''
+          items_block = "\n".join([
+              "    final items = [",
+              "      GameBottomNavItemData(",
+              "        assetPath: 'assets/icons/domino.png',",
+              "        label: statsStrings.play,",
+              "      ),",
+              "      GameBottomNavItemData(",
+              "        assetPath: 'assets/icons/leagues.png',",
+              "        label: statsStrings.title,",
+              "      ),",
+              "      GameBottomNavItemData(",
+              "        assetPath: 'assets/icons/gift.png',",
+              "        label: context.tr('inventory'),",
+              "      ),",
+              "      GameBottomNavItemData(",
+              "        icon: Icons.groups_rounded,",
+              "        label: isAz ? 'Dostlar' : 'Друзья',",
+              "        badgeCount: _socialBadgeCount,",
+              "      ),",
+              "      GameBottomNavItemData(",
+              "        assetPath: 'assets/icons/profile.png',",
+              "        label: context.tr('profile'),",
+              "      ),",
+              "    ];",
+          ])
           text = text[:start] + items_block + text[end:]
 
           if 'bottomNavigationBar: _CartoonGameDock(' not in text:

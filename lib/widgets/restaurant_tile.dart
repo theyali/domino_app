@@ -20,9 +20,9 @@ class RestaurantTile extends StatefulWidget {
 class _RestaurantTileState extends State<RestaurantTile> {
   bool _pressed = false;
 
-  int get _longIndex {
+  int get _blockIndex {
     final mixed = widget.restaurant.id * 1103515245 + 12345;
-    return (mixed.abs() % 5) + 1;
+    return (mixed.abs() % 4) + 1;
   }
 
   @override
@@ -61,7 +61,7 @@ class _RestaurantTileState extends State<RestaurantTile> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      _RestaurantLongBackground(longIndex: _longIndex),
+                      _RestaurantBlockBackground(blockIndex: _blockIndex),
                       Positioned(
                         left: 13,
                         top: 13,
@@ -152,14 +152,15 @@ class _RestaurantTileState extends State<RestaurantTile> {
   }
 }
 
-class _RestaurantLongBackground extends StatelessWidget {
-  final int longIndex;
+class _RestaurantBlockBackground extends StatelessWidget {
+  final int blockIndex;
 
-  const _RestaurantLongBackground({required this.longIndex});
+  const _RestaurantBlockBackground({required this.blockIndex});
 
   @override
   Widget build(BuildContext context) {
-    final webpPath = 'assets/ui/long_$longIndex.webp';
+    final webpPath = 'assets/ui/block_$blockIndex.webp';
+    final pngPath = 'assets/ui/block_$blockIndex.png';
 
     return ColoredBox(
       color: PlayPalette.blue,
@@ -167,9 +168,16 @@ class _RestaurantLongBackground extends StatelessWidget {
         webpPath,
         fit: BoxFit.cover,
         filterQuality: FilterQuality.high,
-        errorBuilder: (context, error, stackTrace) => const ColoredBox(
-          color: PlayPalette.blue,
-        ),
+        errorBuilder: (context, error, stackTrace) {
+          return Image.asset(
+            pngPath,
+            fit: BoxFit.cover,
+            filterQuality: FilterQuality.high,
+            errorBuilder: (context, error, stackTrace) => const ColoredBox(
+              color: PlayPalette.blue,
+            ),
+          );
+        },
       ),
     );
   }

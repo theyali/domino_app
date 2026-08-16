@@ -6,7 +6,7 @@ class CartoonPageBackground extends StatelessWidget {
   final Widget child;
 
   /// Kept for backward compatibility with older call sites.
-  /// The new wooden background is intentionally rendered at full opacity.
+  /// The app background is now intentionally flat, without texture/noise.
   final double noiseOpacity;
 
   const CartoonPageBackground({
@@ -19,24 +19,7 @@ class CartoonPageBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     return ColoredBox(
       color: AppColors.background,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Image.asset(
-                'assets/ui/background_noise.avif',
-                fit: BoxFit.cover,
-                alignment: Alignment.center,
-                filterQuality: FilterQuality.medium,
-                errorBuilder: (context, error, stackTrace) =>
-                    const SizedBox.expand(),
-              ),
-            ),
-          ),
-          child,
-        ],
-      ),
+      child: child,
     );
   }
 }

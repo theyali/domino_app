@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -338,7 +339,7 @@ class _HeaderButton extends StatelessWidget {
   }
 }
 
-class _PlayLobbyHeader extends StatelessWidget {
+class _PlayLobbyHeader extends StatefulWidget {
   final int restaurantsCount;
   final int openTables;
   final int onlinePlayers;
@@ -352,9 +353,22 @@ class _PlayLobbyHeader extends StatelessWidget {
   });
 
   @override
+  State<_PlayLobbyHeader> createState() => _PlayLobbyHeaderState();
+}
+
+class _PlayLobbyHeaderState extends State<_PlayLobbyHeader> {
+  late final int _longIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _longIndex = Random().nextInt(5) + 1;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 15),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: PlayPalette.blue,
         borderRadius: BorderRadius.circular(26),
@@ -370,80 +384,98 @@ class _PlayLobbyHeader extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: const Icon(
-                  Icons.sports_esports_rounded,
-                  color: PlayPalette.blue,
-                  size: 27,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          Positioned.fill(
+            child: Image.asset(
+              'assets/ui/long_$_longIndex.webp',
+              fit: BoxFit.cover,
+              filterQuality: FilterQuality.high,
+              errorBuilder: (context, error, stackTrace) =>
+                  const ColoredBox(color: PlayPalette.blue),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 15),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Text(
-                      isAz ? 'Oyuna qoşul' : 'Присоединяйся к игре',
-                      style: const TextStyle(
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
                         color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: const Icon(
+                        Icons.sports_esports_rounded,
+                        color: PlayPalette.blue,
+                        size: 27,
                       ),
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      isAz
-                          ? 'Restoranı seç və masaya keç'
-                          : 'Выбери ресторан и переходи к столу',
-                      style: const TextStyle(
-                        color: PlayPalette.muted,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.isAz
+                                ? 'Oyuna qoşul'
+                                : 'Присоединяйся к игре',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            widget.isAz
+                                ? 'Restoranı seç və masaya keç'
+                                : 'Выбери ресторан и переходи к столу',
+                            style: const TextStyle(
+                              color: PlayPalette.muted,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _LobbyCounter(
-                  icon: Icons.restaurant_rounded,
-                  value: '$restaurantsCount',
-                  label: isAz ? 'məkan' : 'мест',
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _LobbyCounter(
+                        icon: Icons.restaurant_rounded,
+                        value: '${widget.restaurantsCount}',
+                        label: widget.isAz ? 'məkan' : 'мест',
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _LobbyCounter(
+                        icon: Icons.table_restaurant_rounded,
+                        value: '${widget.openTables}',
+                        label: widget.isAz ? 'masa' : 'столов',
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _LobbyCounter(
+                        icon: Icons.groups_rounded,
+                        value: '${widget.onlinePlayers}',
+                        label: 'online',
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _LobbyCounter(
-                  icon: Icons.table_restaurant_rounded,
-                  value: '$openTables',
-                  label: isAz ? 'masa' : 'столов',
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _LobbyCounter(
-                  icon: Icons.groups_rounded,
-                  value: '$onlinePlayers',
-                  label: 'online',
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

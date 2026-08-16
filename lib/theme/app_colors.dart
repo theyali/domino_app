@@ -5,11 +5,8 @@ abstract final class AppColors {
   static const limeDark = Color(0xFF4EA900);
   static const limeSoft = Color(0xFFB7FF72);
 
-  // Тёплая игровая палитра вместо холодных синих панелей.
-  // Эти оттенки специально остаются достаточно тёмными, чтобы старые
-  // белые подписи продолжали читаться, но визуально экран стал ближе
-  // к cartoon / board-game стилю.
-  static const background = Color(0xFF2B1B14);
+  // Единый фон приложения. Старую деревянную/тёплую подложку больше не используем.
+  static const background = Color(0xFF121212);
   static const surface = Color(0xFF3A241A);
   static const surfaceRaised = Color(0xFF5A3825);
   static const panelTop = Color(0xFF6E4329);

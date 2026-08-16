@@ -508,6 +508,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
     final activeGiftImageUrl =
         realtimeGift?.imageUrl ?? widget.activeGiftImageUrl;
     final activeGiftName = realtimeGift?.name ?? widget.activeGiftName;
+    final activeGiftLevel = realtimeGift?.level;
     final hasActiveGift =
         (activeGiftImageUrl?.trim().isNotEmpty ?? false) ||
         (activeGiftName?.trim().isNotEmpty ?? false);
@@ -546,7 +547,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                         child: Container(
                           width: frameSize,
                           height: frameSize,
-                          padding: const EdgeInsets.all(3.5),
+                          padding: const EdgeInsets.all(1.8),
                           decoration: BoxDecoration(
                             color: frameColor,
                             shape: BoxShape.circle,
@@ -562,22 +563,14 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                               ),
                             ],
                           ),
-                          child: Container(
-                            clipBehavior: Clip.antiAlias,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.cream,
-                              border: Border.all(
-                                color: AppColors.ink,
-                                width: 1.8,
+                          child: ClipOval(
+                            child: SizedBox.expand(
+                              child: _AvatarFace(
+                                avatarUrl: avatarUrl,
+                                letter: avatarLetter,
+                                compact: widget.compact,
+                                letterColor: nameColor,
                               ),
-                            ),
-                            alignment: Alignment.center,
-                            child: _AvatarFace(
-                              avatarUrl: avatarUrl,
-                              letter: avatarLetter,
-                              compact: widget.compact,
-                              letterColor: nameColor,
                             ),
                           ),
                         ),
@@ -657,6 +650,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
                               child: _ActiveGiftImage(
                                 imageUrl: activeGiftImageUrl,
                                 name: activeGiftName,
+                                level: activeGiftLevel,
                               ),
                             )
                           : const SizedBox.shrink(
@@ -771,11 +765,13 @@ class _AvatarFace extends StatelessWidget {
 class _ActiveGiftImage extends StatefulWidget {
   final String? imageUrl;
   final String? name;
+  final int? level;
 
   const _ActiveGiftImage({
     super.key,
     required this.imageUrl,
     required this.name,
+    required this.level,
   });
 
   @override
@@ -811,35 +807,75 @@ class _ActiveGiftImageState extends State<_ActiveGiftImage>
 
   @override
   Widget build(BuildContext context) {
-    final fallbackName =
-        context.appLanguage.code == 'az' ? 'Hədiyyə' : 'Подарок';
+    final isAzerbaijani = context.appLanguage.code == 'az';
+    final fallbackName = isAzerbaijani ? 'Hədiyyə' : 'Подарок';
+    final giftName =
+        widget.name?.trim().isNotEmpty == true ? widget.name! : fallbackName;
+    final tooltipMessage = widget.level == null
+        ? giftName
+        : '$giftName · ${isAzerbaijani ? 'səviyyə' : 'уровень'} ${widget.level}';
 
     return Tooltip(
-      message:
-          widget.name?.trim().isNotEmpty == true ? widget.name! : fallbackName,
+      message: tooltipMessage,
       child: AnimatedBuilder(
         animation: _controller,
         child: SizedBox(
-          width: 24,
-          height: 24,
-          child: widget.imageUrl?.trim().isNotEmpty == true
-              ? Image.network(
-                  widget.imageUrl!,
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.high,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(
-                      Icons.card_giftcard_rounded,
-                      color: AppColors.cartoonCoral,
-                      size: 20,
-                    );
-                  },
-                )
-              : const Icon(
-                  Icons.card_giftcard_rounded,
-                  color: AppColors.cartoonCoral,
-                  size: 20,
+          width: 30,
+          height: 30,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                left: 0,
+                bottom: 0,
+                width: 24,
+                height: 24,
+                child: widget.imageUrl?.trim().isNotEmpty == true
+                    ? Image.network(
+                        widget.imageUrl!,
+                        fit: BoxFit.contain,
+                        filterQuality: FilterQuality.high,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(
+                            Icons.card_giftcard_rounded,
+                            color: AppColors.cartoonCoral,
+                            size: 20,
+                          );
+                        },
+                      )
+                    : const Icon(
+                        Icons.card_giftcard_rounded,
+                        color: AppColors.cartoonCoral,
+                        size: 20,
+                      ),
+              ),
+              if (widget.level != null)
+                Positioned(
+                  right: -3,
+                  top: -3,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.cartoonYellow,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.ink, width: 1.2),
+                    ),
+                    child: Text(
+                      '★${widget.level}',
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 7,
+                        height: 1,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
                 ),
+            ],
+          ),
         ),
         builder: (context, child) {
           return Transform.translate(

@@ -697,7 +697,7 @@ class _LevelBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stars = '★' * level;
+    final stars = List<String>.filled(level, '★').join();
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),

@@ -35,7 +35,7 @@ class GameBottomNavBar extends StatelessWidget {
       decoration: const BoxDecoration(
         color: PlayPalette.navy,
         border: Border(
-          top: BorderSide(color: Color(0x553EDBFF), width: 1.5),
+          top: BorderSide(color: PlayPalette.blue, width: 1.2),
         ),
         boxShadow: [
           BoxShadow(
@@ -97,23 +97,16 @@ class _GameBottomNavItem extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
           padding: const EdgeInsets.fromLTRB(3, 6, 3, 4),
           decoration: BoxDecoration(
-            gradient: selected
-                ? const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [PlayPalette.blueBright, PlayPalette.blue],
-                  )
-                : null,
-            color: selected ? null : Colors.transparent,
+            color: selected ? PlayPalette.blue : Colors.transparent,
             borderRadius: BorderRadius.circular(19),
             border: Border.all(
-              color: selected ? const Color(0x669DE8FF) : Colors.transparent,
-              width: 1.4,
+              color: selected ? PlayPalette.blue : Colors.transparent,
+              width: 1.2,
             ),
             boxShadow: selected
                 ? const [
                     BoxShadow(
-                      color: Color(0x44268CFF),
+                      color: Color(0x44000000),
                       blurRadius: 14,
                       offset: Offset(0, 5),
                     ),
@@ -132,14 +125,8 @@ class _GameBottomNavItem extends StatelessWidget {
                     height: selected ? 36 : 33,
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: selected ? PlayPalette.white : PlayPalette.ice,
+                      color: PlayPalette.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: selected
-                            ? const Color(0x55268CFF)
-                            : const Color(0x2243B8FF),
-                        width: 1.2,
-                      ),
                     ),
                     child: data.assetPath != null
                         ? Image.asset(

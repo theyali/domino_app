@@ -63,7 +63,6 @@ class _SocialScreenState extends State<SocialScreen> {
         _error = null;
       });
     }
-
     try {
       final overview = await _service.fetchOverview();
       if (!mounted) return;
@@ -71,10 +70,11 @@ class _SocialScreenState extends State<SocialScreen> {
         _overview = overview;
         _error = null;
       });
-      final badgeCount = overview.invitations.length +
-          overview.incomingRequests.length +
-          overview.unreadMessages;
-      widget.onBadgeChanged?.call(badgeCount);
+      widget.onBadgeChanged?.call(
+        overview.invitations.length +
+            overview.incomingRequests.length +
+            overview.unreadMessages,
+      );
     } on ApiException catch (error) {
       if (!mounted || !initial) return;
       setState(() => _error = error.message);
@@ -98,13 +98,13 @@ class _SocialScreenState extends State<SocialScreen> {
       await action();
       await _load(initial: false);
     } on ApiException catch (error) {
-      if (!mounted) return;
-      _showMessage(error.message);
+      if (mounted) _showMessage(error.message);
     } catch (_) {
-      if (!mounted) return;
-      _showMessage(
-        _isAz ? 'Əməliyyat alınmadı.' : 'Не удалось выполнить действие.',
-      );
+      if (mounted) {
+        _showMessage(
+          _isAz ? 'Əməliyyat alınmadı.' : 'Не удалось выполнить действие.',
+        );
+      }
     } finally {
       if (mounted) setState(() => _busyActions.remove(key));
     }
@@ -156,19 +156,7 @@ class _SocialScreenState extends State<SocialScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: _SocialPalette.surfaceRaised,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: const Icon(
-                  Icons.person_remove_rounded,
-                  color: Colors.white,
-                  size: 29,
-                ),
-              ),
+              const _SquareIcon(icon: Icons.person_remove_rounded, size: 56),
               const SizedBox(height: 14),
               Text(
                 _isAz ? 'Dostlardan silinsin?' : 'Удалить из друзей?',
@@ -198,7 +186,6 @@ class _SocialScreenState extends State<SocialScreen> {
                     child: _WideAction(
                       label: _isAz ? 'Ləğv et' : 'Отмена',
                       icon: Icons.arrow_back_rounded,
-                      primary: false,
                       busy: false,
                       onTap: () => Navigator.pop(dialogContext, false),
                     ),
@@ -229,8 +216,7 @@ class _SocialScreenState extends State<SocialScreen> {
   }
 
   Future<void> _acceptInvitation(RoomInvitationItem invitation) async {
-    final key = 'invite-accept-${invitation.id}';
-    await _runAction(key, () async {
+    await _runAction('invite-accept-${invitation.id}', () async {
       final result = await _service.acceptInvitation(invitation.id);
       if (!mounted) return;
       await Navigator.push(
@@ -354,7 +340,7 @@ class _SocialScreenState extends State<SocialScreen> {
                 () => _service.declineInvitation(invitation.id),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 9),
           ],
           const SizedBox(height: 12),
         ],
@@ -559,10 +545,7 @@ class _SectionHeader extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: _SocialPalette.border),
           ),
-          child: const IconTheme(
-            data: IconThemeData(color: Colors.white, size: 23),
-            child: SizedBox.shrink(),
-          ),
+          child: Icon(icon, color: Colors.white, size: 23),
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -650,10 +633,7 @@ class _RecentPlayerCard extends StatelessWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _MiniAction(
-            icon: Icons.chat_bubble_rounded,
-            onTap: onMessage,
-          ),
+          _MiniAction(icon: Icons.chat_bubble_rounded, onTap: onMessage),
           const SizedBox(width: 7),
           if (user.isFriend)
             const _StatusChip(icon: Icons.people_alt_rounded, label: '✓')
@@ -697,7 +677,6 @@ class _ConversationCard extends StatelessWidget {
       chat.user.gender,
       fallback: Colors.white,
     );
-
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -793,7 +772,6 @@ class _InvitationCard extends StatelessWidget {
       item.sender.gender,
       fallback: Colors.white,
     );
-
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -855,7 +833,6 @@ class _InvitationCard extends StatelessWidget {
                 child: _WideAction(
                   label: isAz ? 'Rədd et' : 'Отклонить',
                   icon: Icons.close_rounded,
-                  primary: false,
                   busy: declineBusy,
                   onTap: onDecline,
                 ),
@@ -879,7 +856,6 @@ class _UserText extends StatelessWidget {
       user.gender,
       fallback: Colors.white,
     );
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -941,7 +917,6 @@ class _Avatar extends StatelessWidget {
     final letter = user.displayName.trim().isEmpty
         ? '?'
         : user.displayName.trim().substring(0, 1).toUpperCase();
-
     return Container(
       width: size,
       height: size,
@@ -1046,7 +1021,7 @@ class _WideAction extends StatelessWidget {
     required this.icon,
     required this.onTap,
     required this.busy,
-    required this.primary,
+    this.primary = false,
   });
 
   @override
@@ -1155,16 +1130,7 @@ class _EmptyPanel extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 52,
-            height: 52,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: _SocialPalette.surfaceRaised,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(icon, size: 27, color: Colors.white),
-          ),
+          _SquareIcon(icon: icon, size: 52),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -1193,6 +1159,27 @@ class _EmptyPanel extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SquareIcon extends StatelessWidget {
+  final IconData icon;
+  final double size;
+
+  const _SquareIcon({required this.icon, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: _SocialPalette.surfaceRaised,
+        borderRadius: BorderRadius.circular(size * 0.31),
+      ),
+      child: Icon(icon, color: Colors.white, size: size * 0.52),
     );
   }
 }

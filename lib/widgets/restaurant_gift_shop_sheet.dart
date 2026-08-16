@@ -4,6 +4,7 @@ import '../localization/app_localizations.dart';
 import '../models/gift.dart';
 import '../services/api_service.dart';
 import '../services/gift_service.dart';
+import '../theme/play_palette.dart';
 
 class RestaurantGiftShopSheet extends StatefulWidget {
   final int restaurantId;
@@ -26,7 +27,7 @@ class RestaurantGiftShopSheet extends StatefulWidget {
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.55),
+      barrierColor: Colors.black.withValues(alpha: 0.62),
       builder: (context) => RestaurantGiftShopSheet(
         restaurantId: restaurantId,
         restaurantName: restaurantName,
@@ -84,9 +85,7 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
   Future<void> _buy(Gift gift) async {
     if (_buyingGiftId != null) return;
 
-    setState(() {
-      _buyingGiftId = gift.id;
-    });
+    setState(() => _buyingGiftId = gift.id);
 
     try {
       final count = await _giftService.purchaseGift(
@@ -121,19 +120,11 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
           ),
         );
     } on ApiException catch (error) {
-      if (mounted) {
-        _showMessage(error.message);
-      }
+      if (mounted) _showMessage(error.message);
     } catch (_) {
-      if (mounted) {
-        _showMessage(context.tr('gift_add_failed'));
-      }
+      if (mounted) _showMessage(context.tr('gift_add_failed'));
     } finally {
-      if (mounted) {
-        setState(() {
-          _buyingGiftId = null;
-        });
-      }
+      if (mounted) setState(() => _buyingGiftId = null);
     }
   }
 
@@ -152,12 +143,12 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
         child: Container(
           width: double.infinity,
           decoration: const BoxDecoration(
-            color: _GiftShopPalette.cream,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(34)),
+            color: _GiftShopPalette.background,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
             border: Border(
-              top: BorderSide(color: _GiftShopPalette.ink, width: 3),
-              left: BorderSide(color: _GiftShopPalette.ink, width: 3),
-              right: BorderSide(color: _GiftShopPalette.ink, width: 3),
+              top: BorderSide(color: _GiftShopPalette.border),
+              left: BorderSide(color: _GiftShopPalette.border),
+              right: BorderSide(color: _GiftShopPalette.border),
             ),
           ),
           child: SafeArea(
@@ -169,36 +160,26 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
                 children: [
                   Center(
                     child: Container(
-                      width: 54,
-                      height: 7,
+                      width: 46,
+                      height: 5,
                       decoration: BoxDecoration(
-                        color: _GiftShopPalette.ink,
-                        borderRadius: BorderRadius.circular(20),
+                        color: _GiftShopPalette.handle,
+                        borderRadius: BorderRadius.circular(99),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 17),
+                  const SizedBox(height: 18),
                   _GiftShopHeader(
                     restaurantName: widget.restaurantName,
                     onClose: () => Navigator.of(context).pop(),
                   ),
                   const SizedBox(height: 14),
                   Container(
-                    padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                     decoration: BoxDecoration(
-                      color: _GiftShopPalette.paper,
+                      color: PlayPalette.navy,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: _GiftShopPalette.ink,
-                        width: 2.5,
-                      ),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: _GiftShopPalette.ink,
-                          blurRadius: 0,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
+                      border: Border.all(color: _GiftShopPalette.border),
                     ),
                     child: Column(
                       children: [
@@ -206,33 +187,32 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
                           context.tr('gift_shop_description'),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                            color: _GiftShopPalette.inkSoft,
+                            color: PlayPalette.muted,
                             fontSize: 12.5,
                             height: 1.35,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(height: 9),
+                        const SizedBox(height: 10),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,
-                            vertical: 6,
+                            vertical: 7,
                           ),
                           decoration: BoxDecoration(
-                            color: _GiftShopPalette.mint,
-                            borderRadius: BorderRadius.circular(13),
+                            color: const Color(0xFF1D3C72),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: _GiftShopPalette.ink,
-                              width: 2,
+                              color: const Color(0xFF28559C),
                             ),
                           ),
                           child: Text(
                             context.tr('gift_shop_test_mode'),
                             textAlign: TextAlign.center,
                             style: const TextStyle(
-                              color: _GiftShopPalette.ink,
+                              color: Colors.white,
                               fontSize: 11.5,
-                              fontWeight: FontWeight.w900,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),
@@ -242,10 +222,9 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
                   const SizedBox(height: 16),
                   Expanded(child: _buildBody()),
                   const SizedBox(height: 12),
-                  _CartoonBottomButton(
+                  _SiteBottomButton(
                     label: context.tr('done'),
                     icon: Icons.check_circle_rounded,
-                    color: _GiftShopPalette.lime,
                     onTap: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -261,7 +240,7 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
     if (_isLoading) {
       return const _GiftShopMessage(
         child: CircularProgressIndicator(
-          color: _GiftShopPalette.ink,
+          color: PlayPalette.blue,
           strokeWidth: 3,
         ),
       );
@@ -269,26 +248,25 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
 
     if (_errorMessage != null) {
       return _GiftShopMessage(
-        color: _GiftShopPalette.coral,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
               Icons.cloud_off_rounded,
               size: 42,
-              color: _GiftShopPalette.ink,
+              color: PlayPalette.coral,
             ),
             const SizedBox(height: 10),
             Text(
               _errorMessage!,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                color: _GiftShopPalette.ink,
+                color: Colors.white,
                 fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 14),
-            _SmallCartoonButton(
+            _SmallSiteButton(
               label: context.tr('retry'),
               icon: Icons.refresh_rounded,
               onTap: _load,
@@ -300,21 +278,20 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
 
     if (_gifts.isEmpty) {
       return _GiftShopMessage(
-        color: _GiftShopPalette.skyBlue,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
               Icons.card_giftcard_rounded,
               size: 44,
-              color: _GiftShopPalette.ink,
+              color: PlayPalette.blue,
             ),
             const SizedBox(height: 10),
             Text(
               context.tr('gift_shop_empty'),
               textAlign: TextAlign.center,
               style: const TextStyle(
-                color: _GiftShopPalette.ink,
+                color: Colors.white,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -327,18 +304,16 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
       padding: const EdgeInsets.fromLTRB(1, 1, 1, 8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        mainAxisSpacing: 14,
+        mainAxisSpacing: 12,
         crossAxisSpacing: 12,
         childAspectRatio: 0.76,
       ),
       itemCount: _gifts.length,
       itemBuilder: (context, index) {
         final gift = _gifts[index];
-        final isBuying = _buyingGiftId == gift.id;
-
         return _GiftShopCard(
           gift: gift,
-          isBuying: isBuying,
+          isBuying: _buyingGiftId == gift.id,
           onBuy: () => _buy(gift),
         );
       },
@@ -360,28 +335,24 @@ class _GiftShopHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Transform.rotate(
-          angle: -0.08,
-          child: Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              color: _GiftShopPalette.yellow,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _GiftShopPalette.ink, width: 3),
-              boxShadow: const [
-                BoxShadow(
-                  color: _GiftShopPalette.ink,
-                  blurRadius: 0,
-                  offset: Offset(3, 4),
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.card_giftcard_rounded,
-              color: _GiftShopPalette.ink,
-              size: 28,
-            ),
+        Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            color: PlayPalette.blue,
+            borderRadius: BorderRadius.circular(17),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x44000000),
+                blurRadius: 16,
+                offset: Offset(0, 7),
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.card_giftcard_rounded,
+            color: Colors.white,
+            size: 27,
           ),
         ),
         const SizedBox(width: 13),
@@ -394,35 +365,31 @@ class _GiftShopHeader extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: _GiftShopPalette.ink,
-              fontSize: 23,
-              height: 1.05,
+              color: Colors.white,
+              fontSize: 22,
+              height: 1.08,
               fontWeight: FontWeight.w900,
-              letterSpacing: -0.35,
+              letterSpacing: -0.4,
             ),
           ),
         ),
         const SizedBox(width: 8),
         GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: onClose,
           child: Container(
             width: 42,
             height: 42,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: _GiftShopPalette.coral,
-              borderRadius: BorderRadius.circular(13),
-              border: Border.all(color: _GiftShopPalette.ink, width: 2.6),
-              boxShadow: const [
-                BoxShadow(
-                  color: _GiftShopPalette.ink,
-                  blurRadius: 0,
-                  offset: Offset(2, 3),
-                ),
-              ],
+              color: PlayPalette.navy,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _GiftShopPalette.border),
             ),
             child: const Icon(
               Icons.close_rounded,
-              color: _GiftShopPalette.ink,
+              color: Colors.white,
+              size: 24,
             ),
           ),
         ),
@@ -442,30 +409,19 @@ class _GiftShopCard extends StatelessWidget {
     required this.onBuy,
   });
 
-  Color get _cardColor {
-    const colors = [
-      _GiftShopPalette.skyBlue,
-      _GiftShopPalette.yellow,
-      _GiftShopPalette.mint,
-      _GiftShopPalette.coral,
-      _GiftShopPalette.lavender,
-    ];
-    return colors[gift.id.abs() % colors.length];
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 11),
       decoration: BoxDecoration(
-        color: _cardColor,
+        color: PlayPalette.navy,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _GiftShopPalette.ink, width: 3),
+        border: Border.all(color: _GiftShopPalette.border),
         boxShadow: const [
           BoxShadow(
-            color: _GiftShopPalette.ink,
-            blurRadius: 0,
-            offset: Offset(0, 6),
+            color: Color(0x33000000),
+            blurRadius: 16,
+            offset: Offset(0, 7),
           ),
         ],
       ),
@@ -476,9 +432,9 @@ class _GiftShopCard extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: _GiftShopPalette.paper,
+                color: const Color(0xFF1B1B1D),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _GiftShopPalette.ink, width: 2.4),
+                border: Border.all(color: _GiftShopPalette.border),
               ),
               child: Center(
                 child: gift.imageUrl?.trim().isNotEmpty == true
@@ -490,13 +446,13 @@ class _GiftShopCard extends StatelessWidget {
                             const Icon(
                           Icons.card_giftcard_rounded,
                           size: 52,
-                          color: _GiftShopPalette.ink,
+                          color: PlayPalette.blue,
                         ),
                       )
                     : const Icon(
                         Icons.card_giftcard_rounded,
                         size: 52,
-                        color: _GiftShopPalette.ink,
+                        color: PlayPalette.blue,
                       ),
               ),
             ),
@@ -507,19 +463,18 @@ class _GiftShopCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: _GiftShopPalette.ink,
+              color: Colors.white,
               fontSize: 15.5,
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 6),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.82),
+              color: const Color(0xFF323234),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _GiftShopPalette.ink, width: 1.8),
             ),
             child: Text(
               context.tr(
@@ -533,32 +488,26 @@ class _GiftShopCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                color: _GiftShopPalette.inkSoft,
+                color: PlayPalette.muted,
                 fontSize: 11,
                 height: 1.15,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
           const SizedBox(height: 9),
           GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: isBuying ? null : onBuy,
-            child: Opacity(
-              opacity: isBuying ? 0.65 : 1,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 140),
+              opacity: isBuying ? 0.62 : 1,
               child: Container(
                 width: double.infinity,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: _GiftShopPalette.lime,
+                  color: PlayPalette.blue,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: _GiftShopPalette.ink, width: 2.5),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: _GiftShopPalette.ink,
-                      blurRadius: 0,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -569,13 +518,13 @@ class _GiftShopCard extends StatelessWidget {
                         height: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2.4,
-                          color: _GiftShopPalette.ink,
+                          color: Colors.white,
                         ),
                       )
                     else
                       const Icon(
                         Icons.add_shopping_cart_rounded,
-                        color: _GiftShopPalette.ink,
+                        color: Colors.white,
                         size: 19,
                       ),
                     const SizedBox(width: 6),
@@ -585,7 +534,7 @@ class _GiftShopCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: _GiftShopPalette.ink,
+                          color: Colors.white,
                           fontSize: 13.5,
                           fontWeight: FontWeight.w900,
                         ),
@@ -604,12 +553,8 @@ class _GiftShopCard extends StatelessWidget {
 
 class _GiftShopMessage extends StatelessWidget {
   final Widget child;
-  final Color color;
 
-  const _GiftShopMessage({
-    required this.child,
-    this.color = _GiftShopPalette.paper,
-  });
+  const _GiftShopMessage({required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -618,16 +563,9 @@ class _GiftShopMessage extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: _GiftShopPalette.ink, width: 3),
-          boxShadow: const [
-            BoxShadow(
-              color: _GiftShopPalette.ink,
-              blurRadius: 0,
-              offset: Offset(0, 6),
-            ),
-          ],
+          color: PlayPalette.navy,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: _GiftShopPalette.border),
         ),
         child: Center(child: child),
       ),
@@ -635,12 +573,12 @@ class _GiftShopMessage extends StatelessWidget {
   }
 }
 
-class _SmallCartoonButton extends StatelessWidget {
+class _SmallSiteButton extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback onTap;
 
-  const _SmallCartoonButton({
+  const _SmallSiteButton({
     required this.label,
     required this.icon,
     required this.onTap,
@@ -649,30 +587,23 @@ class _SmallCartoonButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: _GiftShopPalette.lime,
+          color: PlayPalette.blue,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _GiftShopPalette.ink, width: 2.5),
-          boxShadow: const [
-            BoxShadow(
-              color: _GiftShopPalette.ink,
-              blurRadius: 0,
-              offset: Offset(0, 4),
-            ),
-          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: _GiftShopPalette.ink, size: 19),
+            Icon(icon, color: Colors.white, size: 19),
             const SizedBox(width: 6),
             Text(
               label,
               style: const TextStyle(
-                color: _GiftShopPalette.ink,
+                color: Colors.white,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -683,16 +614,14 @@ class _SmallCartoonButton extends StatelessWidget {
   }
 }
 
-class _CartoonBottomButton extends StatelessWidget {
+class _SiteBottomButton extends StatelessWidget {
   final String label;
   final IconData icon;
-  final Color color;
   final VoidCallback onTap;
 
-  const _CartoonBottomButton({
+  const _SiteBottomButton({
     required this.label,
     required this.icon,
-    required this.color,
     required this.onTap,
   });
 
@@ -702,28 +631,27 @@ class _CartoonBottomButton extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        height: 58,
+        height: 56,
         decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(19),
-          border: Border.all(color: _GiftShopPalette.ink, width: 3),
+          color: PlayPalette.blue,
+          borderRadius: BorderRadius.circular(18),
           boxShadow: const [
             BoxShadow(
-              color: _GiftShopPalette.ink,
-              blurRadius: 0,
-              offset: Offset(0, 6),
+              color: Color(0x55000000),
+              blurRadius: 18,
+              offset: Offset(0, 8),
             ),
           ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: _GiftShopPalette.ink, size: 23),
+            Icon(icon, color: Colors.white, size: 22),
             const SizedBox(width: 8),
             Text(
               label,
               style: const TextStyle(
-                color: _GiftShopPalette.ink,
+                color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.w900,
               ),
@@ -736,14 +664,7 @@ class _CartoonBottomButton extends StatelessWidget {
 }
 
 class _GiftShopPalette {
-  static const Color ink = Color(0xFF111111);
-  static const Color inkSoft = Color(0xFF574C42);
-  static const Color cream = Color(0xFFFFE8B6);
-  static const Color paper = Color(0xFFFFF8E8);
-  static const Color lime = Color(0xFF7CFC00);
-  static const Color yellow = Color(0xFFFFD65C);
-  static const Color skyBlue = Color(0xFF79CDF1);
-  static const Color mint = Color(0xFF8CDD79);
-  static const Color coral = Color(0xFFFF8A79);
-  static const Color lavender = Color(0xFFC7A7FF);
+  static const Color background = Color(0xFF121212);
+  static const Color border = Color(0xFF353538);
+  static const Color handle = Color(0xFF55555A);
 }

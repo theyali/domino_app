@@ -6,6 +6,7 @@ import '../models/gift.dart';
 import '../services/api_service.dart';
 import '../services/gift_service.dart';
 import '../widgets/cartoon_page_background.dart';
+import '../widgets/site_image_panel.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -61,7 +62,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       useSafeArea: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.48),
+      barrierColor: Colors.black.withValues(alpha: 0.72),
       builder: (context) => _InventoryGiftDetails(item: item),
     );
   }
@@ -76,7 +77,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(18, 8, 18, 10),
+                padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
                 child: Row(
                   children: [
                     Expanded(
@@ -86,18 +87,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           color: Colors.white,
                           fontSize: 25,
                           fontWeight: FontWeight.w900,
-                          letterSpacing: -0.5,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black54,
-                              offset: Offset(0, 2),
-                              blurRadius: 0,
-                            ),
-                          ],
+                          letterSpacing: -0.55,
                         ),
                       ),
                     ),
-                    _CartoonIconButton(
+                    _SiteIconButton(
                       onTap: _isLoading ? null : _load,
                       icon: Icons.refresh_rounded,
                     ),
@@ -106,8 +100,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
               ),
               Expanded(
                 child: RefreshIndicator(
-                  color: _InventoryPalette.ink,
-                  backgroundColor: _InventoryPalette.cream,
+                  color: _InventoryPalette.blue,
+                  backgroundColor: _InventoryPalette.surface,
                   onRefresh: _load,
                   child: _buildBody(),
                 ),
@@ -127,7 +121,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           SizedBox(height: 250),
           Center(
             child: CircularProgressIndicator(
-              color: _InventoryPalette.ink,
+              color: _InventoryPalette.blue,
               strokeWidth: 3,
             ),
           ),
@@ -138,36 +132,36 @@ class _InventoryScreenState extends State<InventoryScreen> {
     if (_errorMessage != null && _items.isEmpty) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(26, 120, 26, 140),
+        padding: const EdgeInsets.fromLTRB(18, 92, 18, 140),
         children: [
-          const _InventoryStateIcon(
-            icon: Icons.cloud_off_rounded,
-            accent: _InventoryPalette.coral,
-          ),
-          const SizedBox(height: 20),
-          Text(
-            _errorMessage!,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.w900,
-              shadows: [
-                Shadow(
-                  color: Colors.black54,
-                  offset: Offset(0, 2),
-                  blurRadius: 0,
+          SiteImagePanel(
+            assetPath: 'assets/ui/long_5.webp',
+            overlayColor: const Color(0xC0121212),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+            child: Column(
+              children: [
+                const _StateIcon(
+                  icon: Icons.cloud_off_rounded,
+                  color: _InventoryPalette.danger,
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  _errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    height: 1.35,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _SiteActionButton(
+                  onTap: _load,
+                  icon: Icons.refresh_rounded,
+                  label: context.tr('retry'),
                 ),
               ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          Center(
-            child: _CartoonButton(
-              onTap: _load,
-              color: _InventoryPalette.yellow,
-              icon: Icons.refresh_rounded,
-              label: context.tr('retry'),
             ),
           ),
         ],
@@ -177,41 +171,39 @@ class _InventoryScreenState extends State<InventoryScreen> {
     if (_items.isEmpty) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(28, 100, 28, 140),
+        padding: const EdgeInsets.fromLTRB(18, 84, 18, 140),
         children: [
-          const _EmptyGiftBox(),
-          const SizedBox(height: 22),
-          Text(
-            context.tr('received_gifts_empty'),
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.5,
-              shadows: [
-                Shadow(
-                  color: Colors.black54,
-                  offset: Offset(0, 2),
-                  blurRadius: 0,
+          SiteImagePanel(
+            assetPath: 'assets/ui/long_5.webp',
+            overlayColor: const Color(0xB8121212),
+            padding: const EdgeInsets.fromLTRB(24, 30, 24, 30),
+            child: Column(
+              children: [
+                const _StateIcon(
+                  icon: Icons.card_giftcard_rounded,
+                  color: _InventoryPalette.blue,
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 9),
-          Text(
-            context.tr('received_gifts_empty_description'),
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              height: 1.45,
-              fontWeight: FontWeight.w700,
-              shadows: [
-                Shadow(
-                  color: Colors.black45,
-                  offset: Offset(0, 1),
-                  blurRadius: 0,
+                const SizedBox(height: 20),
+                Text(
+                  context.tr('received_gifts_empty'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 23,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.45,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  context.tr('received_gifts_empty_description'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: _InventoryPalette.muted,
+                    fontSize: 13.5,
+                    height: 1.45,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -224,12 +216,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 124),
       itemCount: _items.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 14),
+      separatorBuilder: (context, index) => const SizedBox(height: 13),
       itemBuilder: (context, index) {
         final item = _items[index];
-        return _CartoonGiftCard(
+        return _GiftCard(
           item: item,
-          colorIndex: index,
+          index: index,
           onTap: () => _showGift(item),
         );
       },
@@ -237,30 +229,29 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 }
 
-class _CartoonGiftCard extends StatefulWidget {
+class _GiftCard extends StatefulWidget {
   final InventoryGift item;
-  final int colorIndex;
+  final int index;
   final VoidCallback onTap;
 
-  const _CartoonGiftCard({
+  const _GiftCard({
     required this.item,
-    required this.colorIndex,
+    required this.index,
     required this.onTap,
   });
 
   @override
-  State<_CartoonGiftCard> createState() => _CartoonGiftCardState();
+  State<_GiftCard> createState() => _GiftCardState();
 }
 
-class _CartoonGiftCardState extends State<_CartoonGiftCard> {
+class _GiftCardState extends State<_GiftCard> {
   bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
-    final gift = item.gift;
     final redeemed = item.status == 'redeemed';
-    final cardColor = _InventoryPalette.cardColor(widget.colorIndex);
+    final assetIndex = (widget.index % 5) + 1;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -274,35 +265,25 @@ class _CartoonGiftCardState extends State<_CartoonGiftCard> {
         scale: _pressed ? 0.985 : 1,
         duration: const Duration(milliseconds: 100),
         curve: Curves.easeOut,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 138),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: _InventoryPalette.ink,
-              width: 3,
-            ),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x77000000),
-                blurRadius: 0,
-                offset: Offset(0, 6),
-              ),
-            ],
-          ),
+        child: SiteImagePanel(
+          assetPath: 'assets/ui/long_$assetIndex.webp',
+          borderRadius: 24,
+          overlayColor: redeemed
+              ? const Color(0xD0121212)
+              : const Color(0xA5121212),
+          borderColor: redeemed
+              ? const Color(0x2AFFFFFF)
+              : const Color(0x55106CFF),
+          padding: const EdgeInsets.all(13),
           child: Row(
             children: [
               _GiftArtworkBox(
-                imageUrl: gift.imageUrl,
-                size: 76,
+                imageUrl: item.gift.imageUrl,
+                size: 78,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _GiftInfo(item: item),
-              ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 13),
+              Expanded(child: _GiftInfo(item: item)),
+              const SizedBox(width: 9),
               _QrPanel(
                 qrCode: item.qrCode,
                 redeemed: redeemed,
@@ -336,30 +317,30 @@ class _GiftInfo extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
-            color: _InventoryPalette.ink,
+            color: Colors.white,
             fontSize: 18,
             fontWeight: FontWeight.w900,
             letterSpacing: -0.25,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 5),
         Row(
           children: [
             const Icon(
               Icons.restaurant_rounded,
               size: 14,
-              color: _InventoryPalette.ink,
+              color: Colors.white,
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 5),
             Expanded(
               child: Text(
                 gift.restaurantName,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: _InventoryPalette.inkSoft,
+                  color: _InventoryPalette.muted,
                   fontSize: 11.5,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
@@ -374,29 +355,26 @@ class _GiftInfo extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
-            color: _InventoryPalette.ink,
+            color: Colors.white,
             fontSize: 12,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w800,
           ),
         ),
         if (item.giftedAt != null) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: 7),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
             decoration: BoxDecoration(
-              color: _InventoryPalette.cream,
+              color: _InventoryPalette.surfaceRaised,
               borderRadius: BorderRadius.circular(99),
-              border: Border.all(
-                color: _InventoryPalette.ink,
-                width: 2,
-              ),
+              border: Border.all(color: _InventoryPalette.border),
             ),
             child: Text(
               _formatDate(item.giftedAt!),
               style: const TextStyle(
-                color: _InventoryPalette.ink,
+                color: Colors.white,
                 fontSize: 9.5,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ),
@@ -425,18 +403,15 @@ class _QrPanel extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Opacity(
-            opacity: redeemed ? 0.45 : 1,
+            opacity: redeemed ? 0.42 : 1,
             child: Container(
               width: 68,
               height: 68,
               padding: const EdgeInsets.all(5),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(
-                  color: _InventoryPalette.ink,
-                  width: 3,
-                ),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0x22000000)),
               ),
               child: QrImageView(
                 data: qrCode,
@@ -444,27 +419,23 @@ class _QrPanel extends StatelessWidget {
                 backgroundColor: Colors.white,
                 eyeStyle: const QrEyeStyle(
                   eyeShape: QrEyeShape.square,
-                  color: _InventoryPalette.ink,
+                  color: Colors.black,
                 ),
                 dataModuleStyle: const QrDataModuleStyle(
                   dataModuleShape: QrDataModuleShape.square,
-                  color: _InventoryPalette.ink,
+                  color: Colors.black,
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 7),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
             decoration: BoxDecoration(
               color: redeemed
-                  ? _InventoryPalette.gray
-                  : _InventoryPalette.lime,
+                  ? _InventoryPalette.surfaceRaised
+                  : _InventoryPalette.blue,
               borderRadius: BorderRadius.circular(99),
-              border: Border.all(
-                color: _InventoryPalette.ink,
-                width: 2,
-              ),
             ),
             child: Text(
               status,
@@ -472,7 +443,7 @@ class _QrPanel extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                color: _InventoryPalette.ink,
+                color: Colors.white,
                 fontSize: 9,
                 fontWeight: FontWeight.w900,
               ),
@@ -498,14 +469,12 @@ class _GiftArtworkBox extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      padding: const EdgeInsets.all(7),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: _InventoryPalette.cream,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: _InventoryPalette.ink,
-          width: 3,
-        ),
+        // Изображения подарков всегда лежат на чистом белом фоне.
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0x22FFFFFF)),
       ),
       child: imageUrl?.trim().isNotEmpty == true
           ? Image.network(
@@ -527,7 +496,7 @@ class _GiftFallback extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Icon(
       Icons.card_giftcard_rounded,
-      color: _InventoryPalette.ink,
+      color: _InventoryPalette.blue,
       size: 42,
     );
   }
@@ -544,24 +513,15 @@ class _InventoryGiftDetails extends StatelessWidget {
     final redeemed = item.status == 'redeemed';
 
     return FractionallySizedBox(
-      heightFactor: 0.80,
+      heightFactor: 0.82,
       child: Container(
         decoration: const BoxDecoration(
-          color: _InventoryPalette.yellow,
+          color: _InventoryPalette.background,
           borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
           border: Border(
-            top: BorderSide(
-              color: _InventoryPalette.ink,
-              width: 3,
-            ),
-            left: BorderSide(
-              color: _InventoryPalette.ink,
-              width: 3,
-            ),
-            right: BorderSide(
-              color: _InventoryPalette.ink,
-              width: 3,
-            ),
+            top: BorderSide(color: _InventoryPalette.border),
+            left: BorderSide(color: _InventoryPalette.border),
+            right: BorderSide(color: _InventoryPalette.border),
           ),
         ),
         child: SafeArea(
@@ -570,75 +530,57 @@ class _InventoryGiftDetails extends StatelessWidget {
             children: [
               const SizedBox(height: 10),
               Container(
-                width: 56,
-                height: 6,
+                width: 48,
+                height: 5,
                 decoration: BoxDecoration(
-                  color: _InventoryPalette.ink,
+                  color: _InventoryPalette.muted,
                   borderRadius: BorderRadius.circular(99),
                 ),
               ),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
+                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 30),
                   child: Column(
                     children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: _InventoryPalette.skyBlue,
-                          borderRadius: BorderRadius.circular(26),
-                          border: Border.all(
-                            color: _InventoryPalette.ink,
-                            width: 3,
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x77000000),
-                              blurRadius: 0,
-                              offset: Offset(0, 6),
-                            ),
-                          ],
-                        ),
+                      SiteImagePanel(
+                        assetPath: 'assets/ui/block_1.webp',
+                        overlayColor: const Color(0xA5121212),
+                        padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
                         child: Column(
                           children: [
                             _GiftArtworkBox(
                               imageUrl: gift.imageUrl,
                               size: 112,
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 13),
                             Text(
                               gift.name,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
-                                color: _InventoryPalette.ink,
+                                color: Colors.white,
                                 fontSize: 24,
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 5),
                             Text(
                               gift.restaurantName,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
-                                color: _InventoryPalette.inkSoft,
+                                color: _InventoryPalette.muted,
                                 fontSize: 13,
-                                fontWeight: FontWeight.w800,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 17),
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: _InventoryPalette.ink,
-                                  width: 3,
-                                ),
                               ),
                               child: Opacity(
-                                opacity: redeemed ? 0.45 : 1,
+                                opacity: redeemed ? 0.42 : 1,
                                 child: QrImageView(
                                   data: item.qrCode,
                                   size: 190,
@@ -646,16 +588,16 @@ class _InventoryGiftDetails extends StatelessWidget {
                                   backgroundColor: Colors.white,
                                   eyeStyle: const QrEyeStyle(
                                     eyeShape: QrEyeShape.square,
-                                    color: _InventoryPalette.ink,
+                                    color: Colors.black,
                                   ),
                                   dataModuleStyle: const QrDataModuleStyle(
                                     dataModuleShape: QrDataModuleShape.square,
-                                    color: _InventoryPalette.ink,
+                                    color: Colors.black,
                                   ),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 13),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 14,
@@ -663,13 +605,9 @@ class _InventoryGiftDetails extends StatelessWidget {
                               ),
                               decoration: BoxDecoration(
                                 color: redeemed
-                                    ? _InventoryPalette.gray
-                                    : _InventoryPalette.lime,
+                                    ? _InventoryPalette.surfaceRaised
+                                    : _InventoryPalette.blue,
                                 borderRadius: BorderRadius.circular(99),
-                                border: Border.all(
-                                  color: _InventoryPalette.ink,
-                                  width: 2.5,
-                                ),
                               ),
                               child: Text(
                                 context.tr(
@@ -678,7 +616,7 @@ class _InventoryGiftDetails extends StatelessWidget {
                                       : 'gift_available',
                                 ),
                                 style: const TextStyle(
-                                  color: _InventoryPalette.ink,
+                                  color: Colors.white,
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),
@@ -686,23 +624,20 @@ class _InventoryGiftDetails extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 16),
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: _InventoryPalette.cream,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: _InventoryPalette.ink,
-                            width: 3,
-                          ),
+                          color: _InventoryPalette.surface,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: _InventoryPalette.border),
                         ),
                         child: Row(
                           children: [
                             const Icon(
                               Icons.person_rounded,
-                              color: _InventoryPalette.ink,
+                              color: Colors.white,
                               size: 22,
                             ),
                             const SizedBox(width: 10),
@@ -713,8 +648,8 @@ class _InventoryGiftDetails extends StatelessWidget {
                                   arguments: {'name': item.senderLabel},
                                 ),
                                 style: const TextStyle(
-                                  color: _InventoryPalette.ink,
-                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
                             ),
@@ -722,9 +657,9 @@ class _InventoryGiftDetails extends StatelessWidget {
                               Text(
                                 _formatDate(item.giftedAt!),
                                 style: const TextStyle(
-                                  color: _InventoryPalette.inkSoft,
+                                  color: _InventoryPalette.muted,
                                   fontSize: 11.5,
-                                  fontWeight: FontWeight.w800,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                           ],
@@ -739,10 +674,10 @@ class _InventoryGiftDetails extends StatelessWidget {
                         ),
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          color: _InventoryPalette.ink,
+                          color: _InventoryPalette.muted,
                           fontSize: 12.5,
                           height: 1.45,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -757,59 +692,51 @@ class _InventoryGiftDetails extends StatelessWidget {
   }
 }
 
-class _CartoonIconButton extends StatelessWidget {
-  final VoidCallback? onTap;
+class _SiteIconButton extends StatelessWidget {
+  final Future<void> Function()? onTap;
   final IconData icon;
 
-  const _CartoonIconButton({
+  const _SiteIconButton({
     required this.onTap,
     required this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Opacity(
-        opacity: onTap == null ? 0.45 : 1,
+    return Opacity(
+      opacity: onTap == null ? 0.45 : 1,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap == null ? null : () => onTap!(),
         child: Container(
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: _InventoryPalette.cream,
+            color: _InventoryPalette.surface,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: _InventoryPalette.ink,
-              width: 3,
-            ),
+            border: Border.all(color: _InventoryPalette.border),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x77000000),
-                blurRadius: 0,
-                offset: Offset(0, 4),
+                color: Color(0x44000000),
+                blurRadius: 12,
+                offset: Offset(0, 5),
               ),
             ],
           ),
-          child: Icon(
-            icon,
-            color: _InventoryPalette.ink,
-            size: 25,
-          ),
+          child: Icon(icon, color: Colors.white, size: 24),
         ),
       ),
     );
   }
 }
 
-class _CartoonButton extends StatelessWidget {
+class _SiteActionButton extends StatelessWidget {
   final Future<void> Function() onTap;
-  final Color color;
   final IconData icon;
   final String label;
 
-  const _CartoonButton({
+  const _SiteActionButton({
     required this.onTap,
-    required this.color,
     required this.icon,
     required this.label,
   });
@@ -821,29 +748,25 @@ class _CartoonButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
         decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: _InventoryPalette.ink,
-            width: 3,
-          ),
+          color: _InventoryPalette.blue,
+          borderRadius: BorderRadius.circular(16),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x77000000),
-              blurRadius: 0,
-              offset: Offset(0, 5),
+              color: Color(0x44000000),
+              blurRadius: 12,
+              offset: Offset(0, 6),
             ),
           ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: _InventoryPalette.ink),
+            Icon(icon, color: Colors.white),
             const SizedBox(width: 8),
             Text(
               label,
               style: const TextStyle(
-                color: _InventoryPalette.ink,
+                color: Colors.white,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -854,102 +777,38 @@ class _CartoonButton extends StatelessWidget {
   }
 }
 
-class _InventoryStateIcon extends StatelessWidget {
+class _StateIcon extends StatelessWidget {
   final IconData icon;
-  final Color accent;
+  final Color color;
 
-  const _InventoryStateIcon({
+  const _StateIcon({
     required this.icon,
-    required this.accent,
+    required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 84,
-        height: 84,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: accent,
-          border: Border.all(
-            color: _InventoryPalette.ink,
-            width: 3,
-          ),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x77000000),
-              blurRadius: 0,
-              offset: Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Icon(
-          icon,
-          color: _InventoryPalette.ink,
-          size: 42,
-        ),
+    return Container(
+      width: 78,
+      height: 78,
+      decoration: BoxDecoration(
+        color: _InventoryPalette.surface,
+        shape: BoxShape.circle,
+        border: Border.all(color: _InventoryPalette.border),
       ),
+      child: Icon(icon, color: color, size: 39),
     );
   }
 }
 
-class _EmptyGiftBox extends StatelessWidget {
-  const _EmptyGiftBox();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 138,
-        height: 118,
-        decoration: BoxDecoration(
-          color: _InventoryPalette.yellow,
-          borderRadius: BorderRadius.circular(26),
-          border: Border.all(
-            color: _InventoryPalette.ink,
-            width: 3,
-          ),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x77000000),
-              blurRadius: 0,
-              offset: Offset(0, 7),
-            ),
-          ],
-        ),
-        child: const Icon(
-          Icons.card_giftcard_rounded,
-          size: 66,
-          color: _InventoryPalette.ink,
-        ),
-      ),
-    );
-  }
-}
-
-class _InventoryPalette {
-  static const Color ink = Color(0xFF111111);
-  static const Color inkSoft = Color(0xFF3F3F3F);
-  static const Color cream = Color(0xFFFFF7E6);
-  static const Color yellow = Color(0xFFFFD65A);
-  static const Color skyBlue = Color(0xFF72CEF2);
-  static const Color mint = Color(0xFF88D978);
-  static const Color coral = Color(0xFFFF7E70);
-  static const Color lavender = Color(0xFFCDB7FF);
-  static const Color lime = Color(0xFF7CFC00);
-  static const Color gray = Color(0xFFD8D8D8);
-
-  static Color cardColor(int index) {
-    const colors = [
-      skyBlue,
-      yellow,
-      mint,
-      coral,
-      lavender,
-    ];
-    return colors[index % colors.length];
-  }
+abstract final class _InventoryPalette {
+  static const background = Color(0xFF121212);
+  static const surface = Color(0xFF262628);
+  static const surfaceRaised = Color(0xFF303033);
+  static const border = Color(0xFF3A3A3E);
+  static const blue = Color(0xFF106CFF);
+  static const muted = Color(0xFFA7A7AD);
+  static const danger = Color(0xFFFF6F6F);
 }
 
 String _formatDate(DateTime value) {

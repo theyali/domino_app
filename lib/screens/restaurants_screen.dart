@@ -210,14 +210,14 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
                                   vertical: 7,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: PlayPalette.navySoft,
+                                  color: PlayPalette.blue,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(color: PlayPalette.blue),
                                 ),
                                 child: Text(
                                   '${visibleRestaurants.length}',
                                   style: const TextStyle(
-                                    color: PlayPalette.blue,
+                                    color: Colors.white,
                                     fontWeight: FontWeight.w900,
                                   ),
                                 ),
@@ -306,7 +306,7 @@ class _HeaderButton extends StatelessWidget {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: PlayPalette.navySoft,
+            color: PlayPalette.blue,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: PlayPalette.blue,
@@ -346,7 +346,7 @@ class _PlayLobbyHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 15),
       decoration: BoxDecoration(
-        color: PlayPalette.navySoft,
+        color: PlayPalette.blue,
         borderRadius: BorderRadius.circular(26),
         border: Border.all(
           color: PlayPalette.blue,

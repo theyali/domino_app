@@ -1,0 +1,118 @@
+name: One-time blue play accents
+
+on:
+  push:
+    paths:
+      - .github/workflows/one-time-blue-play-accents.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply requested blue accents
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/screens/restaurants_screen.dart')
+          text = path.read_text()
+
+          old_count = '''                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 11,
+                                  vertical: 7,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: PlayPalette.navySoft,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: PlayPalette.blue),
+                                ),
+                                child: Text(
+                                  '${visibleRestaurants.length}',
+                                  style: const TextStyle(
+                                    color: PlayPalette.blue,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),'''
+          new_count = '''                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 11,
+                                  vertical: 7,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: PlayPalette.blue,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${visibleRestaurants.length}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),'''
+          if old_count not in text:
+              raise SystemExit('Restaurant count badge block not found')
+          text = text.replace(old_count, new_count, 1)
+
+          old_header_button = '''          decoration: BoxDecoration(
+            color: PlayPalette.navySoft,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: PlayPalette.blue,
+              width: 1.2,
+            ),
+          ),'''
+          new_header_button = '''          decoration: BoxDecoration(
+            color: PlayPalette.blue,
+            borderRadius: BorderRadius.circular(16),
+          ),'''
+          if old_header_button not in text:
+              raise SystemExit('Refresh button decoration not found')
+          text = text.replace(old_header_button, new_header_button, 1)
+
+          old_lobby = '''      decoration: BoxDecoration(
+        color: PlayPalette.navySoft,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(
+          color: PlayPalette.blue,
+          width: 1.3,
+        ),'''
+          new_lobby = '''      decoration: BoxDecoration(
+        color: PlayPalette.blue,
+        borderRadius: BorderRadius.circular(26),'''
+          if old_lobby not in text:
+              raise SystemExit('Play lobby header decoration not found')
+          text = text.replace(old_lobby, new_lobby, 1)
+
+          old_subtitle = '''                      style: const TextStyle(
+                        color: PlayPalette.muted,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                      ),'''
+          new_subtitle = '''                      style: const TextStyle(
+                        color: Color(0xD9FFFFFF),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                      ),'''
+          if old_subtitle not in text:
+              raise SystemExit('Play lobby subtitle style not found')
+          text = text.replace(old_subtitle, new_subtitle, 1)
+
+          path.write_text(text)
+          PY
+
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/screens/restaurants_screen.dart
+          git commit -m 'Use blue accents for play controls'
+          git push

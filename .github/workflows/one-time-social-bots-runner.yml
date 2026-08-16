@@ -1,0 +1,42 @@
+name: One-time social and bot UI runner
+
+on:
+  push:
+    paths:
+      - .github/workflows/one-time-social-bots-runner.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply patch script
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          workflow = Path('.github/workflows/one-time-social-bots.yml').read_text()
+          start_marker = "          python3 - <<'PY'\n"
+          end_marker = "\n          PY\n\n          dart_files="
+          if start_marker not in workflow or end_marker not in workflow:
+              raise SystemExit('Could not locate patch script in source workflow')
+
+          script = workflow.split(start_marker, 1)[1].split(end_marker, 1)[0]
+          script = textwrap.dedent(script)
+          exec(compile(script, 'social-bots-patch.py', 'exec'))
+          PY
+
+          git diff --check
+          git status --short
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib
+          git commit -m 'Add friend request cancellation and bot room settings'
+          git push

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../localization/app_localizations.dart';
 import '../models/restaurant.dart';
 import '../theme/play_palette.dart';
 
@@ -39,12 +38,8 @@ class _RestaurantTileState extends State<RestaurantTile> {
         curve: Curves.easeOutCubic,
         child: Container(
           decoration: BoxDecoration(
-            color: PlayPalette.blue,
+            color: PlayPalette.navySoft,
             borderRadius: BorderRadius.circular(25),
-            border: Border.all(
-              color: const Color(0x33FFFFFF),
-              width: 1.2,
-            ),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x52000000),
@@ -54,34 +49,38 @@ class _RestaurantTileState extends State<RestaurantTile> {
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: Stack(
+            borderRadius: BorderRadius.circular(25),
+            child: Column(
               children: [
-                Positioned(
-                  top: -38,
-                  right: -32,
+                Expanded(
                   child: Container(
-                    width: 115,
-                    height: 115,
-                    decoration: const BoxDecoration(
-                      color: Color(0x12FFFFFF),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(13, 13, 13, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _RestaurantLogo(restaurant: restaurant),
-                          const Spacer(),
-                          Container(
-                            width: 31,
-                            height: 31,
+                    width: double.infinity,
+                    color: PlayPalette.blue,
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          top: -42,
+                          right: -34,
+                          child: Container(
+                            width: 122,
+                            height: 122,
+                            decoration: const BoxDecoration(
+                              color: Color(0x12FFFFFF),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: 13,
+                          top: 13,
+                          child: _RestaurantLogo(restaurant: restaurant),
+                        ),
+                        Positioned(
+                          right: 13,
+                          top: 13,
+                          child: Container(
+                            width: 34,
+                            height: 34,
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(11),
@@ -89,69 +88,75 @@ class _RestaurantTileState extends State<RestaurantTile> {
                             child: const Icon(
                               Icons.arrow_forward_rounded,
                               color: PlayPalette.blue,
-                              size: 19,
+                              size: 21,
                             ),
                           ),
-                        ],
-                      ),
-                      const Spacer(),
-                      Text(
-                        restaurant.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16.5,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.25,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Container(
+                  height: 58,
+                  width: double.infinity,
+                  color: PlayPalette.navySoft,
+                  padding: const EdgeInsets.symmetric(horizontal: 13),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          restaurant.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.25,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _RestaurantStatBadge(
-                              icon: Icons.table_restaurant_rounded,
-                              value: '${restaurant.waitingRooms}',
-                            ),
-                          ),
-                          const SizedBox(width: 7),
-                          Expanded(
-                            child: _RestaurantStatBadge(
-                              icon: Icons.groups_rounded,
-                              value: '${restaurant.players}',
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Container(
-                            width: 7,
-                            height: 7,
-                            decoration: const BoxDecoration(
-                              color: PlayPalette.green,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              context.tr(
-                                'players_online',
-                                arguments: {'count': restaurant.players},
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF323234),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: const BoxDecoration(
+                                color: PlayPalette.green,
+                                shape: BoxShape.circle,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              '${restaurant.players}',
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 10.2,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Text(
+                              'online',
+                              style: TextStyle(
+                                color: Color(0xFFB8B8BD),
+                                fontSize: 9.5,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -160,47 +165,6 @@ class _RestaurantTileState extends State<RestaurantTile> {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _RestaurantStatBadge extends StatelessWidget {
-  final IconData icon;
-  final String value;
-
-  const _RestaurantStatBadge({
-    required this.icon,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 31,
-      padding: const EdgeInsets.symmetric(horizontal: 7),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(11),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 14, color: PlayPalette.ink),
-          const SizedBox(width: 5),
-          Flexible(
-            child: Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: PlayPalette.ink,
-                fontSize: 11.5,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -216,12 +180,12 @@ class _RestaurantLogo extends StatelessWidget {
     final imageUrl = restaurant.imageUrl;
 
     return Container(
-      width: 68,
-      height: 68,
+      width: 76,
+      height: 76,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(21),
         boxShadow: const [
           BoxShadow(
             color: Color(0x33000000),
@@ -231,7 +195,7 @@ class _RestaurantLogo extends StatelessWidget {
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(17),
         child: imageUrl?.isNotEmpty == true
             ? Image.network(
                 imageUrl!,
@@ -257,7 +221,7 @@ class _LogoFallback extends StatelessWidget {
       child: const Icon(
         Icons.restaurant_rounded,
         color: PlayPalette.blue,
-        size: 30,
+        size: 32,
       ),
     );
   }

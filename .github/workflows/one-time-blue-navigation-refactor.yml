@@ -1,0 +1,84 @@
+name: One-time blue navigation refactor
+
+on:
+  push:
+    paths:
+      - .github/workflows/one-time-blue-navigation-refactor.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Move main shell to new blue dock
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/screens/main_shell_screen.dart')
+          text = path.read_text()
+
+          old_import = "import '../widgets/cartoon_page_background.dart';\n"
+          new_import = old_import + "import '../widgets/navigation/game_bottom_nav_bar.dart';\n"
+          if "game_bottom_nav_bar.dart" not in text:
+              if old_import not in text:
+                  raise SystemExit('Could not find main shell widget imports')
+              text = text.replace(old_import, new_import, 1)
+
+          start = text.index('    final items = [')
+          end = text.index('    ];', start) + len('    ];')
+          items_block = '''    final items = [
+      GameBottomNavItemData(
+        assetPath: 'assets/icons/domino.png',
+        label: statsStrings.play,
+      ),
+      GameBottomNavItemData(
+        assetPath: 'assets/icons/leagues.png',
+        label: statsStrings.title,
+      ),
+      GameBottomNavItemData(
+        assetPath: 'assets/icons/gift.png',
+        label: context.tr('inventory'),
+      ),
+      GameBottomNavItemData(
+        icon: Icons.groups_rounded,
+        label: isAz ? 'Dostlar' : 'Друзья',
+        badgeCount: _socialBadgeCount,
+      ),
+      GameBottomNavItemData(
+        assetPath: 'assets/icons/profile.png',
+        label: context.tr('profile'),
+      ),
+    ];'''
+          text = text[:start] + items_block + text[end:]
+
+          if 'bottomNavigationBar: _CartoonGameDock(' not in text:
+              raise SystemExit('Could not find old bottom navigation')
+          text = text.replace(
+              'bottomNavigationBar: _CartoonGameDock(',
+              'bottomNavigationBar: GameBottomNavBar(',
+              1,
+          )
+
+          marker = '\nclass _CartoonGameDock extends StatelessWidget {'
+          if marker not in text:
+              raise SystemExit('Could not find old dock implementation')
+          text = text[:text.index(marker)].rstrip() + '\n'
+
+          path.write_text(text)
+          PY
+
+          dart format lib/screens/main_shell_screen.dart lib/widgets/navigation/game_bottom_nav_bar.dart lib/theme/play_palette.dart lib/screens/restaurants_screen.dart lib/widgets/restaurant_tile.dart
+          git diff --check
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/screens/main_shell_screen.dart lib/widgets/navigation/game_bottom_nav_bar.dart lib/theme/play_palette.dart lib/screens/restaurants_screen.dart lib/widgets/restaurant_tile.dart
+          git commit -m 'Redesign play screen and bottom navigation'
+          git push

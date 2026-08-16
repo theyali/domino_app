@@ -66,6 +66,29 @@ class GameSocketService with WidgetsBindingObserver {
     final playerId = _playerId;
     if (roomId == null || playerId == null) return;
 
+    // iOS can emit `resumed` after short system/UI interruptions even when the
+    // existing WebSocket is still perfectly healthy. Recreating it here caused
+    // an unnecessary visible reconnect. Keep a recent healthy connection and
+    // only probe it with a heartbeat; reconnect only if it is stale or gone.
+    final channel = _channel;
+    final lastPongAt = _lastPongAt;
+    final hasRecentServerActivity = lastPongAt != null &&
+        DateTime.now().difference(lastPongAt) <= _heartbeatTimeout;
+
+    if (_status == SocketConnectionStatus.connected &&
+        channel != null &&
+        hasRecentServerActivity) {
+      channel.sink.add(jsonEncode(const {'type': 'ping'}));
+      return;
+    }
+
+    // There is already a connection attempt in progress. Starting another one
+    // would close the first socket and create a reconnect loop of our own.
+    if (_status == SocketConnectionStatus.connecting ||
+        _status == SocketConnectionStatus.reconnecting) {
+      return;
+    }
+
     unawaited(
       connectToRoom(
         roomId: roomId,

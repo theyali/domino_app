@@ -69,13 +69,33 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
 
   bool get _isAzerbaijani => context.appLanguage.code == 'az';
 
+  List<MultiplayerPlayerState> get _availableRecipients => widget.players
+      .where((player) => player.isActive && player.userId != null)
+      .toList(growable: false);
+
+  Gift? get _selectedGift {
+    final selectedId = _selectedGiftId;
+    if (selectedId == null) return null;
+
+    for (final gift in _gifts) {
+      if (gift.id == selectedId) return gift;
+    }
+    return null;
+  }
+
+  int get _missingCount {
+    final gift = _selectedGift;
+    if (gift == null || _recipientIds.isEmpty) return 0;
+    final missing = _recipientIds.length - gift.giftableCount;
+    return missing > 0 ? missing : 0;
+  }
+
   @override
   void initState() {
     super.initState();
 
     for (final player in widget.players) {
       if (player.id == widget.initialRecipientPlayerId &&
-          player.id != widget.myPlayerId &&
           player.isActive &&
           player.userId != null) {
         _recipientIds.add(player.id);
@@ -116,35 +136,7 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
     }
   }
 
-  List<MultiplayerPlayerState> get _availableRecipients => widget.players
-      .where(
-        (player) =>
-            player.id != widget.myPlayerId &&
-            player.isActive &&
-            player.userId != null,
-      )
-      .toList(growable: false);
-
-  Gift? get _selectedGift {
-    final selectedId = _selectedGiftId;
-    if (selectedId == null) return null;
-
-    for (final gift in _gifts) {
-      if (gift.id == selectedId) return gift;
-    }
-    return null;
-  }
-
-  int get _missingCount {
-    final gift = _selectedGift;
-    if (gift == null || _recipientIds.isEmpty) return 0;
-    final missing = _recipientIds.length - gift.giftableCount;
-    return missing > 0 ? missing : 0;
-  }
-
   void _toggleRecipient(int playerId) {
-    if (playerId == widget.myPlayerId) return;
-
     setState(() {
       if (_recipientIds.contains(playerId)) {
         _recipientIds.remove(playerId);
@@ -158,17 +150,9 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
     final gift = _selectedGift;
     if (gift == null || _recipientIds.isEmpty || _isPreparingGift) return;
 
-    if (_recipientIds.contains(widget.myPlayerId)) {
-      _recipientIds.remove(widget.myPlayerId);
-      if (_recipientIds.isEmpty) return;
-    }
-
     final missing = _missingCount;
-
     if (missing > 0) {
-      setState(() {
-        _isPreparingGift = true;
-      });
+      setState(() => _isPreparingGift = true);
 
       try {
         final newCount = await _giftService.purchaseGift(
@@ -200,11 +184,7 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
         }
         return;
       } finally {
-        if (mounted) {
-          setState(() {
-            _isPreparingGift = false;
-          });
-        }
+        if (mounted) setState(() => _isPreparingGift = false);
       }
     }
 
@@ -225,13 +205,12 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final recipients = _availableRecipients;
     final selectedGift = _selectedGift;
-    final canContinue = selectedGift != null && _recipientIds.isNotEmpty;
     final missing = _missingCount;
+    final canContinue = selectedGift != null && _recipientIds.isNotEmpty;
 
     return FractionallySizedBox(
-      heightFactor: 0.82,
+      heightFactor: 0.84,
       child: Material(
         color: Colors.transparent,
         child: Container(
@@ -262,194 +241,13 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 17),
+                  _buildHeader(),
                   const SizedBox(height: 18),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Transform.rotate(
-                        angle: -0.06,
-                        child: Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: _GiftPalette.yellow,
-                            borderRadius: BorderRadius.circular(17),
-                            border: Border.all(
-                              color: _GiftPalette.ink,
-                              width: 3,
-                            ),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: _GiftPalette.ink,
-                                blurRadius: 0,
-                                offset: Offset(3, 4),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.card_giftcard_rounded,
-                            color: _GiftPalette.ink,
-                            size: 30,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _isAzerbaijani
-                                  ? 'Hədiyyə göndər'
-                                  : 'Отправить подарок',
-                              style: const TextStyle(
-                                color: _GiftPalette.ink,
-                                fontSize: 27,
-                                height: 1,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 9),
-                            Text(
-                              _isAzerbaijani
-                                  ? 'Bir və ya bir neçə başqa oyunçu seçin.'
-                                  : 'Выбери одного или нескольких других игроков.',
-                              style: const TextStyle(
-                                color: _GiftPalette.inkSoft,
-                                fontSize: 13,
-                                height: 1.35,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Container(
-                        width: 33,
-                        height: 33,
-                        decoration: BoxDecoration(
-                          color: _GiftPalette.skyBlue,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: _GiftPalette.ink,
-                            width: 2.3,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.groups_rounded,
-                          color: _GiftPalette.ink,
-                          size: 19,
-                        ),
-                      ),
-                      const SizedBox(width: 9),
-                      Text(
-                        _isAzerbaijani ? 'Qəbul edənlər' : 'Получатели',
-                        style: const TextStyle(
-                          color: _GiftPalette.ink,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
+                  _buildRecipients(),
+                  const SizedBox(height: 18),
+                  _buildCatalogHeader(),
                   const SizedBox(height: 10),
-                  if (recipients.isEmpty)
-                    _InfoCard(
-                      color: _GiftPalette.skyBlue,
-                      text: _isAzerbaijani
-                          ? 'Hədiyyə göndərmək üçün başqa oyunçu yoxdur.'
-                          : 'Сейчас нет другого игрока, которому можно отправить подарок.',
-                    )
-                  else
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.only(bottom: 5),
-                      child: Row(
-                        children: [
-                          for (var index = 0;
-                              index < recipients.length;
-                              index++) ...[
-                            if (index != 0) const SizedBox(width: 9),
-                            _RecipientChip(
-                              player: recipients[index],
-                              selected:
-                                  _recipientIds.contains(recipients[index].id),
-                              onTap: () => _toggleRecipient(recipients[index].id),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 33,
-                              height: 33,
-                              decoration: BoxDecoration(
-                                color: _GiftPalette.coral,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: _GiftPalette.ink,
-                                  width: 2.3,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.redeem_rounded,
-                                color: _GiftPalette.ink,
-                                size: 19,
-                              ),
-                            ),
-                            const SizedBox(width: 9),
-                            Flexible(
-                              child: Text(
-                                context.tr('restaurant_gifts'),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: _GiftPalette.ink,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 9,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _GiftPalette.mint,
-                          borderRadius: BorderRadius.circular(13),
-                          border: Border.all(
-                            color: _GiftPalette.ink,
-                            width: 2,
-                          ),
-                        ),
-                        child: Text(
-                          _isAzerbaijani ? 'ödənişsiz · test' : 'без оплаты · тест',
-                          style: const TextStyle(
-                            color: _GiftPalette.ink,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 11),
                   Expanded(child: _buildGiftList()),
                   if (selectedGift != null && _recipientIds.isNotEmpty) ...[
                     const SizedBox(height: 10),
@@ -462,11 +260,11 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
                               ? 'Göndərməyə hazırdır: ${selectedGift.giftableCount} əd.'
                               : 'Готово к отправке: ${selectedGift.giftableCount} шт.')
                           : (_isAzerbaijani
-                              ? 'Daha $missing əd. «${selectedGift.name}» lazımdır. Onlar avtomatik əlavə ediləcək.'
-                              : 'Нужно ещё $missing шт. «${selectedGift.name}». Они будут добавлены автоматически.'),
+                              ? 'Daha $missing əd. «${selectedGift.name}» lazımdır. Avtomatik əlavə ediləcək.'
+                              : 'Нужно ещё $missing шт. «${selectedGift.name}». Добавим автоматически.'),
                     ),
                   ],
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 11),
                   _CartoonSendButton(
                     enabled: canContinue && !_isPreparingGift,
                     loading: _isPreparingGift,
@@ -484,6 +282,139 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
     );
   }
 
+  Widget _buildHeader() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Transform.rotate(
+          angle: -0.06,
+          child: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: _GiftPalette.yellow,
+              borderRadius: BorderRadius.circular(17),
+              border: Border.all(color: _GiftPalette.ink, width: 3),
+              boxShadow: const [
+                BoxShadow(
+                  color: _GiftPalette.ink,
+                  blurRadius: 0,
+                  offset: Offset(3, 4),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.card_giftcard_rounded,
+              color: _GiftPalette.ink,
+              size: 30,
+            ),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _isAzerbaijani ? 'Hədiyyə göndər' : 'Отправить подарок',
+                style: const TextStyle(
+                  color: _GiftPalette.ink,
+                  fontSize: 27,
+                  height: 1,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 9),
+              Text(
+                _isAzerbaijani
+                    ? 'Bir və ya bir neçə oyunçu seçin. Özünüzü də seçə bilərsiniz.'
+                    : 'Выбери одного или нескольких игроков. Можно выбрать и себя.',
+                style: const TextStyle(
+                  color: _GiftPalette.inkSoft,
+                  fontSize: 13,
+                  height: 1.35,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecipients() {
+    final recipients = _availableRecipients;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(
+          icon: Icons.groups_rounded,
+          color: _GiftPalette.skyBlue,
+          text: _isAzerbaijani ? 'Qəbul edənlər' : 'Получатели',
+        ),
+        const SizedBox(height: 9),
+        if (recipients.isEmpty)
+          _InfoCard(
+            color: _GiftPalette.skyBlue,
+            text: _isAzerbaijani
+                ? 'Hədiyyə göndərmək üçün aktiv oyunçu yoxdur.'
+                : 'Нет активного игрока для отправки подарка.',
+          )
+        else
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.only(bottom: 5),
+            child: Row(
+              children: [
+                for (var index = 0; index < recipients.length; index++) ...[
+                  if (index != 0) const SizedBox(width: 9),
+                  _RecipientChip(
+                    player: recipients[index],
+                    selected: _recipientIds.contains(recipients[index].id),
+                    isMe: recipients[index].id == widget.myPlayerId,
+                    onTap: () => _toggleRecipient(recipients[index].id),
+                  ),
+                ],
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCatalogHeader() {
+    return Row(
+      children: [
+        Expanded(
+          child: _SectionTitle(
+            icon: Icons.redeem_rounded,
+            color: _GiftPalette.coral,
+            text: _isAzerbaijani ? 'Hədiyyələr' : 'Подарки',
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+          decoration: BoxDecoration(
+            color: _GiftPalette.mint,
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: _GiftPalette.ink, width: 2),
+          ),
+          child: Text(
+            _isAzerbaijani ? 'ödənişsiz · test' : 'без оплаты · тест',
+            style: const TextStyle(
+              color: _GiftPalette.ink,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildGiftList() {
     if (_isLoading) {
       return const Center(
@@ -496,70 +427,17 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
 
     if (_errorMessage != null) {
       return Center(
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: _GiftPalette.coral,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: _GiftPalette.ink, width: 2.8),
-            boxShadow: const [
-              BoxShadow(
-                color: _GiftPalette.ink,
-                blurRadius: 0,
-                offset: Offset(0, 5),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: _GiftPalette.ink,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 12),
-              GestureDetector(
-                onTap: _loadCatalog,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _GiftPalette.paper,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: _GiftPalette.ink,
-                      width: 2.3,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.refresh_rounded,
-                        color: _GiftPalette.ink,
-                        size: 19,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        context.tr('retry'),
-                        style: const TextStyle(
-                          color: _GiftPalette.ink,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _InfoCard(color: _GiftPalette.coral, text: _errorMessage!),
+            const SizedBox(height: 10),
+            TextButton.icon(
+              onPressed: _loadCatalog,
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text(context.tr('retry')),
+            ),
+          ],
         ),
       );
     }
@@ -579,115 +457,264 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
         crossAxisCount: 3,
         mainAxisSpacing: 11,
         crossAxisSpacing: 11,
-        childAspectRatio: 0.76,
+        childAspectRatio: 0.68,
       ),
       itemCount: _gifts.length,
       itemBuilder: (context, index) {
         final gift = _gifts[index];
-        final selected = _selectedGiftId == gift.id;
-        final color = selected
-            ? _GiftPalette.lime
-            : _giftCardColors[index % _giftCardColors.length];
+        return _GiftCard(
+          gift: gift,
+          selected: _selectedGiftId == gift.id,
+          color: _giftCardColors[index % _giftCardColors.length],
+          isAzerbaijani: _isAzerbaijani,
+          onTap: () => setState(() => _selectedGiftId = gift.id),
+        );
+      },
+    );
+  }
+}
 
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () {
-            setState(() {
-              _selectedGiftId = gift.id;
-            });
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            curve: Curves.easeOut,
-            transform: Matrix4.translationValues(0, selected ? -2 : 0, 0),
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(19),
-              border: Border.all(
-                color: _GiftPalette.ink,
-                width: selected ? 3.2 : 2.6,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: _GiftPalette.ink,
-                  blurRadius: 0,
-                  offset: Offset(0, selected ? 6 : 4),
-                ),
-              ],
+class _SectionTitle extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String text;
+
+  const _SectionTitle({
+    required this.icon,
+    required this.color,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 33,
+          height: 33,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(color: _GiftPalette.ink, width: 2.3),
+          ),
+          child: Icon(icon, color: _GiftPalette.ink, size: 19),
+        ),
+        const SizedBox(width: 9),
+        Flexible(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: _GiftPalette.ink,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
             ),
-            child: Column(
-              children: [
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: _GiftPalette.paper,
-                      borderRadius: BorderRadius.circular(13),
-                      border: Border.all(
-                        color: _GiftPalette.ink,
-                        width: 1.8,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GiftCard extends StatelessWidget {
+  final Gift gift;
+  final bool selected;
+  final Color color;
+  final bool isAzerbaijani;
+  final VoidCallback onTap;
+
+  const _GiftCard({
+    required this.gift,
+    required this.selected,
+    required this.color,
+    required this.isAzerbaijani,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cardColor = selected ? _GiftPalette.lime : color;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
+        transform: Matrix4.translationValues(0, selected ? -2 : 0, 0),
+        padding: const EdgeInsets.all(7),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(19),
+          border: Border.all(
+            color: _GiftPalette.ink,
+            width: selected ? 3.2 : 2.6,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: _GiftPalette.ink,
+              blurRadius: 0,
+              offset: Offset(0, selected ? 6 : 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned.fill(
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: _GiftPalette.paper,
+                        borderRadius: BorderRadius.circular(13),
+                        border: Border.all(color: _GiftPalette.ink, width: 1.8),
                       ),
-                    ),
-                    child: Center(
-                      child: gift.imageUrl?.trim().isNotEmpty == true
-                          ? Image.network(
-                              gift.imageUrl!,
-                              fit: BoxFit.contain,
-                              filterQuality: FilterQuality.high,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(
+                      child: Center(
+                        child: gift.imageUrl?.trim().isNotEmpty == true
+                            ? Image.network(
+                                gift.imageUrl!,
+                                fit: BoxFit.contain,
+                                filterQuality: FilterQuality.high,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Icon(
+                                  Icons.card_giftcard_rounded,
+                                  color: _GiftPalette.ink,
+                                  size: 42,
+                                ),
+                              )
+                            : const Icon(
                                 Icons.card_giftcard_rounded,
                                 color: _GiftPalette.ink,
                                 size: 42,
                               ),
-                            )
-                          : const Icon(
-                              Icons.card_giftcard_rounded,
-                              color: _GiftPalette.ink,
-                              size: 42,
-                            ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 7),
-                Text(
-                  gift.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _GiftPalette.ink,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
+                  Positioned(
+                    top: 5,
+                    left: 5,
+                    child: _LevelBadge(level: gift.level),
                   ),
+                  if (gift.isGlobal)
+                    Positioned(
+                      right: 5,
+                      top: 5,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _GiftPalette.skyBlue,
+                          borderRadius: BorderRadius.circular(9),
+                          border: Border.all(color: _GiftPalette.ink, width: 1.5),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.public_rounded,
+                              size: 10,
+                              color: _GiftPalette.ink,
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              isAzerbaijani ? 'hamı' : 'везде',
+                              style: const TextStyle(
+                                color: _GiftPalette.ink,
+                                fontSize: 8,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 7),
+            Text(
+              gift.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: _GiftPalette.ink,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.favorite_rounded,
+                  color: _GiftPalette.coral,
+                  size: 12,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  gift.price,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _GiftPalette.inkSoft,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  _isAzerbaijani
-                      ? 'var ${gift.giftableCount}'
-                      : 'есть ${gift.giftableCount}',
-                  style: const TextStyle(
-                    color: _GiftPalette.ink,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
+                const SizedBox(width: 3),
+                Flexible(
+                  child: Text(
+                    gift.price,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _GiftPalette.inkSoft,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-        );
-      },
+            const SizedBox(height: 2),
+            Text(
+              isAzerbaijani
+                  ? 'var ${gift.giftableCount}'
+                  : 'есть ${gift.giftableCount}',
+              style: const TextStyle(
+                color: _GiftPalette.ink,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LevelBadge extends StatelessWidget {
+  final int level;
+
+  const _LevelBadge({required this.level});
+
+  @override
+  Widget build(BuildContext context) {
+    final stars = '★' * level;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+      decoration: BoxDecoration(
+        color: _GiftPalette.yellow,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: _GiftPalette.ink, width: 1.5),
+      ),
+      child: Text(
+        stars,
+        style: const TextStyle(
+          color: _GiftPalette.ink,
+          fontSize: 8,
+          height: 1,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
     );
   }
 }
@@ -695,11 +722,13 @@ class _MultiplayerGiftSheetState extends State<MultiplayerGiftSheet> {
 class _RecipientChip extends StatelessWidget {
   final MultiplayerPlayerState player;
   final bool selected;
+  final bool isMe;
   final VoidCallback onTap;
 
   const _RecipientChip({
     required this.player,
     required this.selected,
+    required this.isMe,
     required this.onTap,
   });
 
@@ -707,6 +736,7 @@ class _RecipientChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final trimmedName = player.name.trim();
     final letter = trimmedName.isEmpty ? '?' : trimmedName[0].toUpperCase();
+    final isAzerbaijani = context.appLanguage.code == 'az';
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -739,10 +769,7 @@ class _RecipientChip extends StatelessWidget {
               decoration: BoxDecoration(
                 color: selected ? _GiftPalette.mint : _GiftPalette.skyBlue,
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: _GiftPalette.ink,
-                  width: 2,
-                ),
+                border: Border.all(color: _GiftPalette.ink, width: 2),
               ),
               child: Text(
                 letter,
@@ -764,7 +791,9 @@ class _RecipientChip extends StatelessWidget {
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 110),
               child: Text(
-                player.name,
+                isMe
+                    ? '${player.name} (${isAzerbaijani ? 'Sən' : 'Ты'})'
+                    : player.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
@@ -798,10 +827,7 @@ class _InfoCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _GiftPalette.ink,
-          width: 2.2,
-        ),
+        border: Border.all(color: _GiftPalette.ink, width: 2.2),
       ),
       child: Text(
         text,
@@ -862,10 +888,7 @@ class _CartoonSendButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: _GiftPalette.lime,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: _GiftPalette.ink,
-              width: 3,
-            ),
+            border: Border.all(color: _GiftPalette.ink, width: 3),
             boxShadow: const [
               BoxShadow(
                 color: _GiftPalette.ink,

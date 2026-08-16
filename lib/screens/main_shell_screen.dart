@@ -10,6 +10,7 @@ import '../services/push_notification_service.dart';
 import '../services/social_service.dart';
 import '../services/sound_effects_service.dart';
 import '../widgets/cartoon_page_background.dart';
+import '../widgets/navigation/game_bottom_nav_bar.dart';
 import 'inventory_screen.dart';
 import 'profile_screen.dart';
 import 'restaurants_screen.dart';
@@ -206,31 +207,26 @@ class _MainShellScreenState extends State<MainShellScreen>
     );
 
     final items = [
-      _NavItemData(
+      GameBottomNavItemData(
         assetPath: 'assets/icons/domino.png',
         label: statsStrings.play,
-        accent: const Color(0xFF66C7F0),
       ),
-      _NavItemData(
+      GameBottomNavItemData(
         assetPath: 'assets/icons/leagues.png',
         label: statsStrings.title,
-        accent: const Color(0xFFFFD85A),
       ),
-      _NavItemData(
+      GameBottomNavItemData(
         assetPath: 'assets/icons/gift.png',
         label: context.tr('inventory'),
-        accent: const Color(0xFF82D66E),
       ),
-      _NavItemData(
+      GameBottomNavItemData(
         icon: Icons.groups_rounded,
         label: isAz ? 'Dostlar' : 'Друзья',
-        accent: const Color(0xFFC7A7FF),
         badgeCount: _socialBadgeCount,
       ),
-      _NavItemData(
+      GameBottomNavItemData(
         assetPath: 'assets/icons/profile.png',
         label: context.tr('profile'),
-        accent: const Color(0xFFFF806F),
       ),
     ];
 
@@ -261,7 +257,7 @@ class _MainShellScreenState extends State<MainShellScreen>
               )
             : null,
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-        bottomNavigationBar: _CartoonGameDock(
+        bottomNavigationBar: GameBottomNavBar(
           selectedIndex: _index,
           items: items,
           onSelected: _selectTab,
@@ -457,216 +453,4 @@ class _SocialManageButton extends StatelessWidget {
       ),
     );
   }
-}
-
-class _CartoonGameDock extends StatelessWidget {
-  static const _dockColor = Color(0xFFF5CE79);
-  static const _ink = Color(0xFF17120D);
-
-  final int selectedIndex;
-  final List<_NavItemData> items;
-  final ValueChanged<int> onSelected;
-
-  const _CartoonGameDock({
-    required this.selectedIndex,
-    required this.items,
-    required this.onSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: _dockColor,
-        border: Border(
-          top: BorderSide(color: _ink, width: 3),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x99000000),
-            blurRadius: 0,
-            offset: Offset(0, -4),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.fromLTRB(6, 7, 6, 5),
-        child: SizedBox(
-          height: 78,
-          child: Row(
-            children: [
-              for (var index = 0; index < items.length; index++)
-                Expanded(
-                  child: _CartoonNavItem(
-                    data: items[index],
-                    selected: selectedIndex == index,
-                    onTap: () => onSelected(index),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CartoonNavItem extends StatelessWidget {
-  static const _ink = Color(0xFF17120D);
-  static const _cream = Color(0xFFFFF3CC);
-  static const _badge = Color(0xFFFF6B62);
-
-  final _NavItemData data;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _CartoonNavItem({
-    required this.data,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: data.label,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          SoundEffectsService.button(alternate: true);
-          onTap();
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeOut,
-          margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
-          padding: const EdgeInsets.fromLTRB(3, 5, 3, 3),
-          decoration: BoxDecoration(
-            color: selected ? data.accent : Colors.transparent,
-            borderRadius: BorderRadius.circular(17),
-            border: Border.all(
-              color: selected ? _ink : Colors.transparent,
-              width: selected ? 2.5 : 0,
-            ),
-            boxShadow: selected
-                ? const [
-                    BoxShadow(
-                      color: _ink,
-                      blurRadius: 0,
-                      offset: Offset(3, 4),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    width: selected ? 42 : 37,
-                    height: selected ? 37 : 33,
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: selected ? _cream : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _ink,
-                        width: 2.3,
-                      ),
-                      boxShadow: selected
-                          ? const [
-                              BoxShadow(
-                                color: _ink,
-                                blurRadius: 0,
-                                offset: Offset(2, 2),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: data.assetPath != null
-                        ? Image.asset(
-                            data.assetPath!,
-                            fit: BoxFit.contain,
-                            filterQuality: FilterQuality.high,
-                          )
-                        : Icon(
-                            data.icon,
-                            size: 21,
-                            color: _ink,
-                          ),
-                  ),
-                  if (data.badgeCount > 0)
-                    Positioned(
-                      top: -8,
-                      right: -11,
-                      child: Container(
-                        constraints: const BoxConstraints(
-                          minWidth: 23,
-                          minHeight: 23,
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 5),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: _badge,
-                          borderRadius: BorderRadius.circular(99),
-                          border: Border.all(color: _ink, width: 2.1),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: _ink,
-                              blurRadius: 0,
-                              offset: Offset(1.5, 2),
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          data.badgeCount > 99 ? '99+' : '${data.badgeCount}',
-                          style: const TextStyle(
-                            color: _ink,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                data.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: _ink,
-                  fontSize: 9.2,
-                  fontWeight: selected ? FontWeight.w900 : FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NavItemData {
-  final IconData? icon;
-  final String? assetPath;
-  final String label;
-  final Color accent;
-  final int badgeCount;
-
-  const _NavItemData({
-    this.icon,
-    this.assetPath,
-    required this.label,
-    required this.accent,
-    this.badgeCount = 0,
-  }) : assert(icon != null || assetPath != null);
 }

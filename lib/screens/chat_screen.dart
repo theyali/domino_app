@@ -149,21 +149,21 @@ class _ChatScreenState extends State<ChatScreen> {
   }) async {
     final result = await showDialog<bool>(
       context: context,
-      barrierColor: Colors.black54,
+      barrierColor: Colors.black.withValues(alpha: 0.72),
       builder: (dialogContext) => Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 28),
         child: Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: _ChatPalette.cream,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: _ChatPalette.ink, width: 3),
+            color: _ChatPalette.surface,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: _ChatPalette.border),
             boxShadow: const [
               BoxShadow(
-                color: _ChatPalette.ink,
-                blurRadius: 0,
-                offset: Offset(5, 6),
+                color: Color(0x66000000),
+                blurRadius: 24,
+                offset: Offset(0, 10),
               ),
             ],
           ),
@@ -171,22 +171,21 @@ class _ChatScreenState extends State<ChatScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 60,
-                height: 60,
+                width: 54,
+                height: 54,
                 decoration: BoxDecoration(
                   color: color,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: _ChatPalette.ink, width: 3),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(icon, color: _ChatPalette.ink, size: 31),
+                child: Icon(icon, color: Colors.white, size: 28),
               ),
               const SizedBox(height: 13),
               Text(
                 title,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  color: _ChatPalette.ink,
-                  fontSize: 20,
+                  color: Colors.white,
+                  fontSize: 19,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -195,9 +194,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 subtitle,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  color: _ChatPalette.inkSoft,
-                  height: 1.25,
-                  fontWeight: FontWeight.w700,
+                  color: _ChatPalette.muted,
+                  height: 1.3,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 16),
@@ -206,7 +205,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   Expanded(
                     child: _DialogButton(
                       label: _isAz ? 'Ləğv et' : 'Отмена',
-                      color: _ChatPalette.cream,
+                      color: _ChatPalette.surfaceRaised,
                       onTap: () => Navigator.pop(dialogContext, false),
                     ),
                   ),
@@ -235,7 +234,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final confirmed = await _confirmSocialAction(
       icon: Icons.person_remove_rounded,
-      color: _ChatPalette.coral,
+      color: _ChatPalette.red,
       title: _isAz ? 'Dostlardan silinsin?' : 'Удалить из друзей?',
       subtitle: _isAz
           ? '${user.displayName} artıq dostlar siyahısında olmayacaq.'
@@ -270,7 +269,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final confirmed = await _confirmSocialAction(
       icon: Icons.block_rounded,
-      color: _ChatPalette.yellow,
+      color: _ChatPalette.orange,
       title: _isAz ? 'Qara siyahıya əlavə edilsin?' : 'Добавить в чёрный список?',
       subtitle: _isAz
           ? '${user.displayName} sizə yaza, dostluq sorğusu və oyun dəvəti göndərə bilməyəcək.'
@@ -315,14 +314,16 @@ class _ChatScreenState extends State<ChatScreen> {
       user.gender,
       fallback: Colors.white,
     );
+
     return CartoonPageBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           surfaceTintColor: Colors.transparent,
-          toolbarHeight: 70,
-          leadingWidth: 64,
+          elevation: 0,
+          toolbarHeight: 72,
+          leadingWidth: 66,
           leading: Padding(
             padding: const EdgeInsets.only(left: 12),
             child: _TopButton(
@@ -333,7 +334,7 @@ class _ChatScreenState extends State<ChatScreen> {
           titleSpacing: 6,
           title: Row(
             children: [
-              _Avatar(user: user, size: 42),
+              _Avatar(user: user, size: 43),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -345,30 +346,39 @@ class _ChatScreenState extends State<ChatScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: genderColor,
-                        fontSize: 18,
+                        fontSize: 17.5,
                         fontWeight: FontWeight.w900,
-                        shadows: const [
-                          Shadow(
-                            color: Colors.black87,
-                            offset: Offset(2, 2),
-                            blurRadius: 0,
-                          ),
-                        ],
                       ),
                     ),
-                    Text(
-                      user.isOnline
-                          ? (_isAz ? 'Onlayn' : 'Онлайн')
-                          : '@${user.username}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: user.isOnline
-                            ? const Color(0xFFFFE9B9)
-                            : genderColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        if (user.isOnline) ...[
+                          Container(
+                            width: 7,
+                            height: 7,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF5FE2A0),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                        ],
+                        Expanded(
+                          child: Text(
+                            user.isOnline
+                                ? (_isAz ? 'Onlayn' : 'Онлайн')
+                                : '@${user.username}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: _ChatPalette.muted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -380,8 +390,8 @@ class _ChatScreenState extends State<ChatScreen> {
               Padding(
                 padding: const EdgeInsets.only(right: 7),
                 child: _HeaderAction(
-                  icon: Icons.close_rounded,
-                  color: _ChatPalette.coral,
+                  icon: Icons.person_remove_rounded,
+                  color: _ChatPalette.surface,
                   busy: _socialActionBusy,
                   tooltip: _isAz ? 'Dostlardan sil' : 'Удалить из друзей',
                   onTap: _removeFriend,
@@ -391,7 +401,7 @@ class _ChatScreenState extends State<ChatScreen> {
               padding: const EdgeInsets.only(right: 12),
               child: _HeaderAction(
                 icon: Icons.block_rounded,
-                color: _ChatPalette.yellow,
+                color: _ChatPalette.surface,
                 busy: _socialActionBusy,
                 tooltip: _isAz ? 'Qara siyahı' : 'В чёрный список',
                 onTap: _blockUser,
@@ -425,44 +435,65 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildMessages() {
     if (_loading && _thread == null) {
       return const Center(
-        child: CircularProgressIndicator(color: _ChatPalette.ink),
+        child: CircularProgressIndicator(color: _ChatPalette.blue),
       );
     }
+
     final messages = _thread?.messages ?? const <DirectMessageItem>[];
     if (messages.isEmpty) {
       return Center(
         child: Container(
           margin: const EdgeInsets.all(28),
-          padding: const EdgeInsets.all(20),
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: _ChatPalette.sky,
+            color: _ChatPalette.surface,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: _ChatPalette.ink, width: 3),
-            boxShadow: const [
-              BoxShadow(
-                color: _ChatPalette.ink,
-                blurRadius: 0,
-                offset: Offset(0, 6),
-              ),
-            ],
+            border: Border.all(color: _ChatPalette.border),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: Stack(
             children: [
-              const Icon(
-                Icons.chat_bubble_outline_rounded,
-                size: 48,
-                color: _ChatPalette.ink,
+              Positioned.fill(
+                child: Image.asset(
+                  'assets/ui/long_5.webp',
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.high,
+                  errorBuilder: (_, __, ___) =>
+                      const ColoredBox(color: _ChatPalette.surface),
+                ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                _isAz
-                    ? 'Söhbətə ilk mesajla başla.'
-                    : 'Начни разговор с первого сообщения.',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: _ChatPalette.ink,
-                  fontWeight: FontWeight.w900,
+              const Positioned.fill(
+                child: ColoredBox(color: Color(0xA6121212)),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(22),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 58,
+                      height: 58,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: const Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        size: 30,
+                        color: _ChatPalette.blue,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _isAz
+                          ? 'Söhbətə ilk mesajla başla.'
+                          : 'Начни разговор с первого сообщения.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -482,24 +513,26 @@ class _ChatScreenState extends State<ChatScreen> {
           alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
           child: Container(
             constraints: BoxConstraints(
-              maxWidth: MediaQuery.sizeOf(context).width * 0.76,
+              maxWidth: MediaQuery.sizeOf(context).width * 0.78,
             ),
-            margin: const EdgeInsets.only(bottom: 10),
+            margin: const EdgeInsets.only(bottom: 9),
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
             decoration: BoxDecoration(
-              color: mine ? _ChatPalette.lime : _ChatPalette.cream,
+              color: mine ? _ChatPalette.blue : _ChatPalette.surface,
               borderRadius: BorderRadius.only(
                 topLeft: const Radius.circular(18),
                 topRight: const Radius.circular(18),
-                bottomLeft: Radius.circular(mine ? 18 : 5),
-                bottomRight: Radius.circular(mine ? 5 : 18),
+                bottomLeft: Radius.circular(mine ? 18 : 6),
+                bottomRight: Radius.circular(mine ? 6 : 18),
               ),
-              border: Border.all(color: _ChatPalette.ink, width: 2.5),
+              border: mine
+                  ? null
+                  : Border.all(color: _ChatPalette.border),
               boxShadow: const [
                 BoxShadow(
-                  color: _ChatPalette.ink,
-                  blurRadius: 0,
-                  offset: Offset(2, 3),
+                  color: Color(0x33000000),
+                  blurRadius: 12,
+                  offset: Offset(0, 5),
                 ),
               ],
             ),
@@ -511,20 +544,22 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: Text(
                     message.body,
                     style: const TextStyle(
-                      color: _ChatPalette.ink,
+                      color: Colors.white,
                       fontSize: 15,
                       height: 1.28,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   _formatTime(message.createdAt),
-                  style: const TextStyle(
-                    color: _ChatPalette.inkSoft,
+                  style: TextStyle(
+                    color: mine
+                        ? Colors.white.withValues(alpha: 0.72)
+                        : _ChatPalette.muted,
                     fontSize: 10,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -558,10 +593,12 @@ class _Composer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: const BoxDecoration(
-        color: Color(0xFFF4CF7A),
-        border: Border(top: BorderSide(color: _ChatPalette.ink, width: 3)),
+        color: _ChatPalette.background,
+        border: Border(
+          top: BorderSide(color: _ChatPalette.border),
+        ),
       ),
       child: SafeArea(
         top: false,
@@ -575,46 +612,40 @@ class _Composer extends StatelessWidget {
                 minLines: 1,
                 maxLines: 4,
                 textCapitalization: TextCapitalization.sentences,
-                cursorColor: _ChatPalette.ink,
+                cursorColor: _ChatPalette.blue,
                 style: const TextStyle(
-                  color: _ChatPalette.ink,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w600,
                 ),
                 onSubmitted: (_) => onSend(),
                 decoration: InputDecoration(
                   hintText: isAz ? 'Mesaj...' : 'Сообщение...',
                   hintStyle: const TextStyle(
-                    color: _ChatPalette.inkSoft,
+                    color: _ChatPalette.muted,
                     fontSize: 15,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                   filled: true,
-                  fillColor: _ChatPalette.cream,
+                  fillColor: _ChatPalette.surface,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 14,
-                    vertical: 12,
+                    vertical: 13,
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(18),
-                    borderSide: const BorderSide(
-                      color: _ChatPalette.ink,
-                      width: 2.5,
-                    ),
+                    borderRadius: BorderRadius.circular(17),
+                    borderSide: const BorderSide(color: _ChatPalette.border),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(17),
                     borderSide: const BorderSide(
-                      color: _ChatPalette.ink,
-                      width: 3,
+                      color: _ChatPalette.blue,
+                      width: 1.5,
                     ),
                   ),
                   disabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(18),
-                    borderSide: const BorderSide(
-                      color: _ChatPalette.ink,
-                      width: 2.5,
-                    ),
+                    borderRadius: BorderRadius.circular(17),
+                    borderSide: const BorderSide(color: _ChatPalette.border),
                   ),
                 ),
               ),
@@ -622,34 +653,37 @@ class _Composer extends StatelessWidget {
             const SizedBox(width: 9),
             GestureDetector(
               onTap: sending ? null : onSend,
-              child: Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: _ChatPalette.coral,
-                  borderRadius: BorderRadius.circular(17),
-                  border: Border.all(color: _ChatPalette.ink, width: 2.8),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: _ChatPalette.ink,
-                      blurRadius: 0,
-                      offset: Offset(2, 3),
-                    ),
-                  ],
-                ),
-                child: sending
-                    ? const Padding(
-                        padding: EdgeInsets.all(14),
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: _ChatPalette.ink,
-                        ),
-                      )
-                    : const Icon(
-                        Icons.send_rounded,
-                        size: 25,
-                        color: _ChatPalette.ink,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 140),
+                opacity: sending ? 0.65 : 1,
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: _ChatPalette.blue,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x44000000),
+                        blurRadius: 12,
+                        offset: Offset(0, 5),
                       ),
+                    ],
+                  ),
+                  child: sending
+                      ? const Padding(
+                          padding: EdgeInsets.all(14),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.3,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.send_rounded,
+                          size: 24,
+                          color: Colors.white,
+                        ),
+                ),
               ),
             ),
           ],
@@ -669,7 +703,7 @@ class _Avatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final letterColor = GenderStyle.colorFor(
       user.gender,
-      fallback: _ChatPalette.ink,
+      fallback: Colors.white,
     );
     final letter = user.displayName.trim().isEmpty
         ? '?'
@@ -678,10 +712,9 @@ class _Avatar extends StatelessWidget {
       width: size,
       height: size,
       padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: _ChatPalette.yellow,
+      decoration: const BoxDecoration(
+        color: _ChatPalette.blue,
         shape: BoxShape.circle,
-        border: Border.all(color: _ChatPalette.ink, width: 2.4),
       ),
       child: ClipOval(
         child: user.avatarUrl != null
@@ -706,7 +739,7 @@ class _AvatarLetter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: _ChatPalette.cream,
+      color: _ChatPalette.surface,
       child: Center(
         child: Text(
           letter,
@@ -734,18 +767,11 @@ class _TopButton extends StatelessWidget {
         width: 43,
         height: 43,
         decoration: BoxDecoration(
-          color: _ChatPalette.cream,
+          color: _ChatPalette.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _ChatPalette.ink, width: 2.6),
-          boxShadow: const [
-            BoxShadow(
-              color: _ChatPalette.ink,
-              blurRadius: 0,
-              offset: Offset(2, 3),
-            ),
-          ],
+          border: Border.all(color: _ChatPalette.border),
         ),
-        child: Icon(icon, color: _ChatPalette.ink, size: 21),
+        child: Icon(icon, color: Colors.white, size: 20),
       ),
     );
   }
@@ -778,24 +804,17 @@ class _HeaderAction extends StatelessWidget {
           decoration: BoxDecoration(
             color: color,
             borderRadius: BorderRadius.circular(13),
-            border: Border.all(color: _ChatPalette.ink, width: 2.5),
-            boxShadow: const [
-              BoxShadow(
-                color: _ChatPalette.ink,
-                blurRadius: 0,
-                offset: Offset(2, 3),
-              ),
-            ],
+            border: Border.all(color: _ChatPalette.border),
           ),
           child: busy
               ? const Padding(
                   padding: EdgeInsets.all(10),
                   child: CircularProgressIndicator(
-                    strokeWidth: 2.3,
-                    color: _ChatPalette.ink,
+                    strokeWidth: 2.2,
+                    color: Colors.white,
                   ),
                 )
-              : Icon(icon, color: _ChatPalette.ink, size: 21),
+              : Icon(icon, color: Colors.white, size: 20),
         ),
       ),
     );
@@ -818,18 +837,20 @@ class _DialogButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 46,
+        height: 45,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: _ChatPalette.ink, width: 2.4),
+          borderRadius: BorderRadius.circular(14),
+          border: color == _ChatPalette.surfaceRaised
+              ? Border.all(color: _ChatPalette.border)
+              : null,
         ),
         child: Text(
           label,
           style: const TextStyle(
-            color: _ChatPalette.ink,
-            fontWeight: FontWeight.w900,
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ),
@@ -848,28 +869,29 @@ class _ErrorBox extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: _ChatPalette.coral,
+        color: const Color(0xFF3A2024),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _ChatPalette.ink, width: 2.4),
+        border: Border.all(color: const Color(0xFF66333B)),
       ),
       child: Text(
         text,
         textAlign: TextAlign.center,
         style: const TextStyle(
-          color: _ChatPalette.ink,
-          fontWeight: FontWeight.w800,
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
   }
 }
 
-class _ChatPalette {
-  static const ink = Color(0xFF111111);
-  static const inkSoft = Color(0xFF5B4A3B);
-  static const cream = Color(0xFFFFF3D6);
-  static const lime = Color(0xFF79FA00);
-  static const yellow = Color(0xFFFFD65C);
-  static const coral = Color(0xFFFF8175);
-  static const sky = Color(0xFF79CDF1);
+abstract final class _ChatPalette {
+  static const background = Color(0xFF121212);
+  static const surface = Color(0xFF262628);
+  static const surfaceRaised = Color(0xFF303033);
+  static const border = Color(0xFF3A3A3E);
+  static const blue = Color(0xFF106CFF);
+  static const muted = Color(0xFFA7A7AD);
+  static const red = Color(0xFFE6535F);
+  static const orange = Color(0xFFD98B32);
 }

@@ -189,7 +189,7 @@ class _MainShellScreenState extends State<MainShellScreen>
       StatisticsScreen(key: ValueKey(_statisticsRefreshToken)),
       const InventoryScreen(),
       const IconTheme(
-        data: IconThemeData(color: Color(0xFF111111)),
+        data: IconThemeData(color: Colors.white),
         child: SizedBox.shrink(),
       ),
       ProfileScreen(
@@ -199,7 +199,7 @@ class _MainShellScreenState extends State<MainShellScreen>
       ),
     ];
     screens[3] = IconTheme(
-      data: const IconThemeData(color: Color(0xFF111111)),
+      data: const IconThemeData(color: Colors.white),
       child: SocialScreen(
         currentUser: _user,
         onBadgeChanged: _handleSocialBadgeChanged,
@@ -420,8 +420,7 @@ class _LanguagePickerSheet extends StatelessWidget {
 }
 
 class _SocialManageButton extends StatelessWidget {
-  static const _ink = Color(0xFF17120D);
-  static const _lime = Color(0xFF79FA00);
+  static const _blue = Color(0xFF106CFF);
 
   final String label;
   final VoidCallback onTap;
@@ -431,31 +430,35 @@ class _SocialManageButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
         height: 52,
-        padding: const EdgeInsets.symmetric(horizontal: 15),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: _lime,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _ink, width: 3),
+          color: _blue,
+          borderRadius: BorderRadius.circular(17),
           boxShadow: const [
             BoxShadow(
-              color: _ink,
-              blurRadius: 0,
-              offset: Offset(4, 5),
+              color: Color(0x55000000),
+              blurRadius: 18,
+              offset: Offset(0, 8),
             ),
           ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.manage_accounts_rounded, color: _ink),
+            const Icon(
+              Icons.manage_accounts_rounded,
+              color: Colors.white,
+              size: 22,
+            ),
             const SizedBox(width: 7),
             Text(
               label,
               style: const TextStyle(
-                color: _ink,
+                color: Colors.white,
                 fontWeight: FontWeight.w900,
               ),
             ),

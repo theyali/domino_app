@@ -79,6 +79,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
   Offset? _pendingMoveSourceGlobalCenter;
   int? _animatedMoveNumber;
   Offset? _animationSourceGlobalCenter;
+  DateTime? _protectLocalMoveAnimationUntil;
 
   Offset? _pendingBoneyardSourceGlobalCenter;
   Offset? _pendingBoneyardTargetGlobalCenter;
@@ -93,6 +94,8 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
 
   static const bool _soundEnabled = true;
   static const Duration _turnTickInterval = Duration(milliseconds: 200);
+  static const Duration _localMoveAnimationProtection =
+      Duration(milliseconds: 900);
 
   @override
   void initState() {
@@ -339,15 +342,29 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
         .map((domino) => domino.moveNumber)
         .whereType<int>()
         .toSet();
-
-    ServerDomino? newest;
+    final newMoves = <ServerDomino>[];
 
     for (final domino in next.table) {
       final moveNumber = domino.moveNumber;
       if (moveNumber == null || previousMoveNumbers.contains(moveNumber)) {
         continue;
       }
+      newMoves.add(domino);
+    }
 
+    final pendingDominoId = _pendingDominoId;
+    if (pendingDominoId != null) {
+      for (final domino in newMoves) {
+        if (domino.id == pendingDominoId &&
+            domino.playedByPlayerId == next.myPlayerId) {
+          return domino;
+        }
+      }
+    }
+
+    ServerDomino? newest;
+    for (final domino in newMoves) {
+      final moveNumber = domino.moveNumber!;
       if (newest == null || moveNumber > (newest.moveNumber ?? -1)) {
         newest = domino;
       }
@@ -399,6 +416,13 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
       }
     }
 
+    final protectionUntil = _protectLocalMoveAnimationUntil;
+    final shouldKeepLocalAnimation = newMove != null &&
+        newMove.playedByPlayerId != state.myPlayerId &&
+        _animatedMoveNumber != null &&
+        protectionUntil != null &&
+        DateTime.now().isBefore(protectionUntil);
+
     final drawSource =
         _pendingBoneyardSourceGlobalCenter ?? _globalCenterForKey(_boneyardKey);
     final drawTarget = _pendingBoneyardTargetGlobalCenter ??
@@ -417,6 +441,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
       if (isNewRound) {
         _animatedMoveNumber = null;
         _animationSourceGlobalCenter = null;
+        _protectLocalMoveAnimationUntil = null;
         _selectedDominoId = null;
         _boneyardDrawFlight = null;
         _hiddenDrawnDominoId = null;
@@ -424,9 +449,16 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
 
       if (newMove != null &&
           newMove.moveNumber != null &&
-          moveSource != null) {
+          moveSource != null &&
+          !shouldKeepLocalAnimation) {
         _animatedMoveNumber = newMove.moveNumber;
         _animationSourceGlobalCenter = moveSource;
+
+        if (newMove.playedByPlayerId == state.myPlayerId) {
+          _protectLocalMoveAnimationUntil = DateTime.now().add(
+            _localMoveAnimationProtection,
+          );
+        }
       }
 
       if (newDraw != null && drawSource != null && drawTarget != null) {

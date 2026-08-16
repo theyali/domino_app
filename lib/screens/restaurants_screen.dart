@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../config/api_config.dart';
 import '../localization/app_localizations.dart';
-import '../localization/statistics_strings.dart';
 import '../models/restaurant.dart';
 import '../services/api_service.dart';
 import '../theme/play_palette.dart';
@@ -104,7 +104,6 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
     final visibleRestaurants = _restaurants
         .where((restaurant) => restaurant.active)
         .toList(growable: false);
-    final navigationStrings = StatisticsStrings.of(context);
     final isAz = context.appLanguage.code == 'az';
     final onlinePlayers = visibleRestaurants.fold<int>(
       0,
@@ -133,15 +132,26 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
                   children: [
                     const SizedBox(width: 50, height: 48),
                     Expanded(
-                      child: Text(
-                        navigationStrings.play,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 25,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.5,
-                        ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SvgPicture.asset(
+                            'assets/ui/logo.svg',
+                            width: 29,
+                            height: 29,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Domino',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.65,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     _HeaderButton(

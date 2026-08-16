@@ -309,7 +309,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 children: [
                                   const Icon(
                                     Icons.info_outline_rounded,
-                                    color: _AuthPalette.blue,
+                                    color: Colors.white,
                                     size: 18,
                                   ),
                                   const SizedBox(width: 8),
@@ -706,7 +706,7 @@ class _SiteAuthField extends StatelessWidget {
         prefixIconConstraints: const BoxConstraints(minWidth: 52),
         prefix: Padding(
           padding: const EdgeInsets.only(right: 9),
-          child: Icon(icon, color: _AuthPalette.blue, size: 21),
+          child: Icon(icon, color: Colors.white, size: 21),
         ),
         suffixIcon: suffix,
         contentPadding: const EdgeInsets.symmetric(

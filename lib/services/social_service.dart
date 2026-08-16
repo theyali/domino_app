@@ -157,6 +157,22 @@ class SocialService {
     _decode(response);
   }
 
+  Future<void> declineFriendRequest(int friendshipId) async {
+    final response = await http.post(
+      ApiConfig.uri('/api/social/friends/$friendshipId/decline/'),
+      headers: await _authJsonHeaders(),
+    );
+    _decode(response);
+  }
+
+  Future<void> cancelFriendRequest(int friendshipId) async {
+    final response = await http.post(
+      ApiConfig.uri('/api/social/friends/$friendshipId/cancel/'),
+      headers: await _authJsonHeaders(),
+    );
+    _decode(response);
+  }
+
   Future<void> removeFriendship(int friendshipId) async {
     final response = await http.post(
       ApiConfig.uri('/api/social/friends/$friendshipId/remove/'),

@@ -146,6 +146,7 @@ class RoomInvitationItem {
 class SocialOverview {
   final List<SocialUser> friends;
   final List<FriendRequestItem> incomingRequests;
+  final List<FriendRequestItem> outgoingRequests;
   final List<SocialUser> recentPlayers;
   final List<ChatPreview> conversations;
   final List<RoomInvitationItem> invitations;
@@ -153,6 +154,7 @@ class SocialOverview {
   const SocialOverview({
     required this.friends,
     required this.incomingRequests,
+    required this.outgoingRequests,
     required this.recentPlayers,
     required this.conversations,
     required this.invitations,
@@ -163,6 +165,10 @@ class SocialOverview {
       friends: _parseList(json['friends'], SocialUser.fromJson),
       incomingRequests: _parseList(
         json['incoming_requests'],
+        FriendRequestItem.fromJson,
+      ),
+      outgoingRequests: _parseList(
+        json['outgoing_requests'],
         FriendRequestItem.fromJson,
       ),
       recentPlayers: _parseList(json['recent_players'], SocialUser.fromJson),

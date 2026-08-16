@@ -70,6 +70,7 @@ class ApiService {
     required int maxPlayers,
     required String gameMode,
     required int targetScore,
+    int botCount = 0,
     String password = '',
     String name = '',
   }) async {
@@ -80,6 +81,7 @@ class ApiService {
         'max_players': maxPlayers,
         'game_mode': gameMode,
         'target_score': targetScore,
+        'bot_count': botCount,
         'password': password,
         'name': name.trim(),
       }),

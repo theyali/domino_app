@@ -169,6 +169,7 @@ class _RestaurantRoomScreenState extends State<RestaurantRoomScreen> {
         maxPlayers: request.maxPlayers,
         gameMode: request.gameMode,
         targetScore: request.targetScore,
+        botCount: request.botCount,
         password: request.password,
         name: request.roomName,
       );

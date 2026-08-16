@@ -312,9 +312,11 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
         _socketStatus == SocketConnectionStatus.connected;
     final allPlayersOnline = allPlayersReady &&
         activePlayers.every(
-          (player) => player.id == widget.localPlayer.id
-              ? player.isOnline && localRealtimeConnected
-              : player.isOnline,
+          (player) => player.isBot
+              ? true
+              : player.id == widget.localPlayer.id
+                  ? player.isOnline && localRealtimeConnected
+                  : player.isOnline,
         );
     final canStart = allPlayersReady &&
         allPlayersOnline &&
@@ -848,8 +850,11 @@ class _LobbySeat extends StatelessWidget {
                       ? context.tr('waiting_players')
                       : [
                           if (player!.isOwner) context.tr('owner'),
+                          if (player!.isBot)
+                            (context.appLanguage.code == 'az' ? 'Bot' : 'Бот'),
                           if (isMe) context.tr('you'),
-                          if (!player!.isOwner && !isMe) '#${seatIndex + 1}',
+                          if (!player!.isOwner && !player!.isBot && !isMe)
+                            '#${seatIndex + 1}',
                         ].join(' • '),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -896,6 +901,23 @@ class _LobbyAvatar extends StatelessWidget {
           Icons.person_add_alt_1_rounded,
           color: _LobbyPalette.ink,
           size: 26,
+        ),
+      );
+    }
+
+    if (current.isBot) {
+      return Container(
+        width: 54,
+        height: 54,
+        decoration: BoxDecoration(
+          color: _LobbyPalette.mint,
+          shape: BoxShape.circle,
+          border: Border.all(color: _LobbyPalette.ink, width: 2.8),
+        ),
+        child: const Icon(
+          Icons.smart_toy_rounded,
+          color: _LobbyPalette.ink,
+          size: 29,
         ),
       );
     }

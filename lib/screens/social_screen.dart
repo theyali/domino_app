@@ -327,6 +327,7 @@ class _SocialScreenState extends State<SocialScreen> {
         const SocialOverview(
           friends: [],
           incomingRequests: [],
+          outgoingRequests: [],
           recentPlayers: [],
           conversations: [],
           invitations: [],
@@ -391,10 +392,36 @@ class _SocialScreenState extends State<SocialScreen> {
                     busy: _busyActions.contains('friend-remove-${request.id}'),
                     onTap: () => _runAction(
                       'friend-remove-${request.id}',
-                      () => _service.removeFriendship(request.id),
+                      () => _service.declineFriendRequest(request.id),
                     ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+          const SizedBox(height: 10),
+        ],
+        if (overview.outgoingRequests.isNotEmpty) ...[
+          _SectionHeader(
+            icon: Icons.outgoing_mail_rounded,
+            title: _isAz ? 'Göndərilən sorğular' : 'Отправленные заявки',
+            count: overview.outgoingRequests.length,
+            color: _SocialPalette.yellow,
+          ),
+          const SizedBox(height: 10),
+          for (final request in overview.outgoingRequests) ...[
+            _PersonCard(
+              user: request.user,
+              accent: _SocialPalette.yellow,
+              trailing: _MiniAction(
+                icon: Icons.person_remove_alt_1_rounded,
+                color: _SocialPalette.coral,
+                busy: _busyActions.contains('friend-cancel-${request.id}'),
+                onTap: () => _runAction(
+                  'friend-cancel-${request.id}',
+                  () => _service.cancelFriendRequest(request.id),
+                ),
               ),
             ),
             const SizedBox(height: 10),
@@ -465,7 +492,9 @@ class _SocialScreenState extends State<SocialScreen> {
           for (final user in overview.recentPlayers) ...[
             _RecentPlayerCard(
               user: user,
-              busy: _busyActions.contains('friend-send-${user.id}'),
+              busy: _busyActions.contains('friend-send-${user.id}') ||
+                  (user.friendshipId != null &&
+                      _busyActions.contains('friend-cancel-${user.friendshipId}')),
               onMessage: () => _openChat(user),
               onAddFriend: user.friendshipStatus == 'none'
                   ? () => _runAction(
@@ -477,6 +506,12 @@ class _SocialScreenState extends State<SocialScreen> {
                   ? () => _runAction(
                         'friend-accept-${user.friendshipId}',
                         () => _service.acceptFriendRequest(user.friendshipId!),
+                      )
+                  : null,
+              onCancel: user.requestOutgoing && user.friendshipId != null
+                  ? () => _runAction(
+                        'friend-cancel-${user.friendshipId}',
+                        () => _service.cancelFriendRequest(user.friendshipId!),
                       )
                   : null,
             ),
@@ -630,6 +665,7 @@ class _RecentPlayerCard extends StatelessWidget {
   final VoidCallback onMessage;
   final VoidCallback? onAddFriend;
   final VoidCallback? onAccept;
+  final VoidCallback? onCancel;
 
   const _RecentPlayerCard({
     required this.user,
@@ -637,6 +673,7 @@ class _RecentPlayerCard extends StatelessWidget {
     required this.onMessage,
     required this.onAddFriend,
     required this.onAccept,
+    required this.onCancel,
   });
 
   @override
@@ -655,6 +692,13 @@ class _RecentPlayerCard extends StatelessWidget {
           const SizedBox(width: 7),
           if (user.isFriend)
             const _StatusChip(icon: Icons.people_alt_rounded, label: '✓')
+          else if (user.requestOutgoing && onCancel != null)
+            _MiniAction(
+              icon: Icons.person_remove_alt_1_rounded,
+              color: _SocialPalette.coral,
+              busy: busy,
+              onTap: onCancel,
+            )
           else if (user.requestOutgoing)
             const _StatusChip(icon: Icons.schedule_rounded, label: '…')
           else if (onAccept != null)

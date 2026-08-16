@@ -445,12 +445,16 @@ class _SocialManageScreenState extends State<SocialManageScreen> {
           ),
         ),
       );
-    } else if (user.requestOutgoing) {
+    } else if (user.requestOutgoing && user.friendshipId != null) {
       widgets.add(
-        const _ActionIcon(
-          icon: Icons.schedule_rounded,
-          color: _Palette.yellow,
-          onTap: null,
+        _ActionIcon(
+          icon: Icons.person_remove_alt_1_rounded,
+          color: _Palette.coral,
+          busy: _busy.contains('cancel-${user.friendshipId}'),
+          onTap: () => _run(
+            'cancel-${user.friendshipId}',
+            () => _service.cancelFriendRequest(user.friendshipId!),
+          ),
         ),
       );
     } else {

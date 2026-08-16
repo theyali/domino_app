@@ -11,6 +11,7 @@ class GameRoom {
   final String gameModeLabel;
   final int targetScore;
   final int currentPlayers;
+  final int botCount;
   final bool isLocked;
   final bool isFull;
   final String status;
@@ -28,6 +29,7 @@ class GameRoom {
     required this.gameModeLabel,
     required this.targetScore,
     required this.currentPlayers,
+    required this.botCount,
     required this.isLocked,
     required this.isFull,
     required this.status,
@@ -51,6 +53,7 @@ class GameRoom {
           (mode == 'phone' ? 'Телефон' : '101'),
       targetScore: json['target_score'] as int? ?? (mode == 'phone' ? 72 : 101),
       currentPlayers: json['current_players'] as int? ?? playersJson.length,
+      botCount: json['bot_count'] as int? ?? 0,
       isLocked: json['is_locked'] as bool? ?? false,
       isFull: json['is_full'] as bool? ?? false,
       status: json['status'] as String? ?? 'waiting',

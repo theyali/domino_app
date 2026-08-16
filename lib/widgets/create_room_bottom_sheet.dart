@@ -7,6 +7,7 @@ class CreateRoomRequest {
   final int maxPlayers;
   final String gameMode;
   final int targetScore;
+  final int botCount;
   final String password;
 
   const CreateRoomRequest({
@@ -14,6 +15,7 @@ class CreateRoomRequest {
     required this.maxPlayers,
     required this.gameMode,
     required this.targetScore,
+    required this.botCount,
     required this.password,
   });
 }
@@ -34,6 +36,7 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
 
   String _gameMode = '101';
   int _maxPlayers = 2;
+  int _botCount = 0;
   int _targetScore = 101;
   bool _obscurePassword = true;
 
@@ -53,6 +56,7 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
       _gameMode = mode;
       if (mode == '101') {
         _maxPlayers = 2;
+        if (_botCount > 1) _botCount = 1;
         _targetScore = 101;
       } else {
         if (_targetScore == 101) {
@@ -60,6 +64,14 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
           _targetScoreController.text = '72';
         }
       }
+    });
+  }
+
+  void _selectPlayerCount(int value) {
+    setState(() {
+      _maxPlayers = value;
+      final maxBots = _maxPlayers - 1;
+      if (_botCount > maxBots) _botCount = maxBots;
     });
   }
 
@@ -100,6 +112,7 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
         maxPlayers: _maxPlayers,
         gameMode: _gameMode,
         targetScore: targetScore,
+        botCount: _botCount,
         password: _passwordController.text,
       ),
     );
@@ -251,11 +264,39 @@ class _CreateRoomBottomSheetState extends State<CreateRoomBottomSheet> {
                         child: _PlayerCountButton(
                           count: count,
                           selected: _maxPlayers == count,
-                          onTap: () => setState(() => _maxPlayers = count),
+                          onTap: () => _selectPlayerCount(count),
                         ),
                       ),
                     ],
                   ],
+                ),
+                const SizedBox(height: 22),
+                _LabelRow(
+                  icon: Icons.smart_toy_rounded,
+                  color: _CreateRoomPalette.mint,
+                  label: _isAz ? 'Bot sayı' : 'Количество ботов',
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    for (var count = 0; count < _maxPlayers; count++) ...[
+                      if (count > 0) const SizedBox(width: 10),
+                      Expanded(
+                        child: _PlayerCountButton(
+                          count: count,
+                          selected: _botCount == count,
+                          onTap: () => setState(() => _botCount = count),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 10),
+                _RuleDescription(
+                  color: _CreateRoomPalette.mint,
+                  text: _isAz
+                      ? '0 — yalnız real oyunçular. Botlar masadakı yerləri dərhal tutur; qalan yerlərə real insanlar qoşula bilər.'
+                      : '0 — только реальные игроки. Боты сразу занимают выбранные места, а на оставшиеся могут зайти реальные люди.',
                 ),
                 if (_isPhone) ...[
                   const SizedBox(height: 22),

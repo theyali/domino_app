@@ -20,6 +20,11 @@ class RestaurantTile extends StatefulWidget {
 class _RestaurantTileState extends State<RestaurantTile> {
   bool _pressed = false;
 
+  int get _blockIndex {
+    final mixed = widget.restaurant.id * 1103515245 + 12345;
+    return (mixed.abs() % 4) + 1;
+  }
+
   @override
   Widget build(BuildContext context) {
     final restaurant = widget.restaurant;
@@ -53,47 +58,33 @@ class _RestaurantTileState extends State<RestaurantTile> {
             child: Column(
               children: [
                 Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    color: PlayPalette.blue,
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          top: -42,
-                          right: -34,
-                          child: Container(
-                            width: 122,
-                            height: 122,
-                            decoration: const BoxDecoration(
-                              color: Color(0x12FFFFFF),
-                              shape: BoxShape.circle,
-                            ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _RestaurantBlockBackground(blockIndex: _blockIndex),
+                      Positioned(
+                        left: 13,
+                        top: 13,
+                        child: _RestaurantLogo(restaurant: restaurant),
+                      ),
+                      Positioned(
+                        right: 13,
+                        top: 13,
+                        child: Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(11),
+                          ),
+                          child: const Icon(
+                            Icons.arrow_forward_rounded,
+                            color: PlayPalette.blue,
+                            size: 21,
                           ),
                         ),
-                        Positioned(
-                          left: 13,
-                          top: 13,
-                          child: _RestaurantLogo(restaurant: restaurant),
-                        ),
-                        Positioned(
-                          right: 13,
-                          top: 13,
-                          child: Container(
-                            width: 34,
-                            height: 34,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(11),
-                            ),
-                            child: const Icon(
-                              Icons.arrow_forward_rounded,
-                              color: PlayPalette.blue,
-                              size: 21,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
                 Container(
@@ -119,7 +110,7 @@ class _RestaurantTileState extends State<RestaurantTile> {
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 9,
+                          horizontal: 10,
                           vertical: 7,
                         ),
                         decoration: BoxDecoration(
@@ -137,22 +128,13 @@ class _RestaurantTileState extends State<RestaurantTile> {
                                 shape: BoxShape.circle,
                               ),
                             ),
-                            const SizedBox(width: 5),
+                            const SizedBox(width: 6),
                             Text(
                               '${restaurant.players}',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            const Text(
-                              'online',
-                              style: TextStyle(
-                                color: Color(0xFFB8B8BD),
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ],
@@ -165,6 +147,34 @@ class _RestaurantTileState extends State<RestaurantTile> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _RestaurantBlockBackground extends StatelessWidget {
+  final int blockIndex;
+
+  const _RestaurantBlockBackground({required this.blockIndex});
+
+  @override
+  Widget build(BuildContext context) {
+    final webpPath = 'assets/ui/block_$blockIndex.webp';
+    final pngPath = 'assets/ui/block_$blockIndex.png';
+
+    return ColoredBox(
+      color: PlayPalette.blue,
+      child: Image.asset(
+        webpPath,
+        fit: BoxFit.cover,
+        filterQuality: FilterQuality.high,
+        errorBuilder: (context, error, stackTrace) {
+          return Image.asset(
+            pngPath,
+            fit: BoxFit.cover,
+            filterQuality: FilterQuality.high,
+          );
+        },
       ),
     );
   }

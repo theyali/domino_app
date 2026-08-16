@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../localization/app_language.dart';
 import '../localization/app_localizations.dart';
@@ -155,6 +156,9 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget build(BuildContext context) {
     final language = context.appLanguage;
     final isAz = language.code == 'az';
+    final blockAsset = _isRegister
+        ? 'assets/ui/block_2.webp'
+        : 'assets/ui/block_1.webp';
 
     return CartoonPageBackground(
       child: Scaffold(
@@ -172,228 +176,160 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
               Center(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(18, 82, 18, 28),
+                  padding: const EdgeInsets.fromLTRB(18, 76, 18, 28),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 430),
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      alignment: Alignment.topCenter,
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.only(top: 44),
-                          padding: const EdgeInsets.fromLTRB(18, 64, 18, 22),
-                          decoration: BoxDecoration(
-                            color: _AuthPalette.yellow,
-                            borderRadius: BorderRadius.circular(32),
-                            border: Border.all(
-                              color: _AuthPalette.ink,
-                              width: 3.2,
+                    child: _AuthPanel(
+                      assetPath: blockAsset,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const _DominoBrand(),
+                          const SizedBox(height: 10),
+                          Text(
+                            context.tr(
+                              _isRegister
+                                  ? 'register_subtitle'
+                                  : 'login_subtitle',
                             ),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: _AuthPalette.ink,
-                                blurRadius: 0,
-                                offset: Offset(7, 9),
-                              ),
-                            ],
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: _AuthPalette.muted,
+                              fontSize: 13,
+                              height: 1.35,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                context.tr('app_name'),
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: _AuthPalette.ink,
-                                  fontSize: 31,
-                                  height: 1,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: -0.7,
-                                ),
-                              ),
-                              const SizedBox(height: 9),
-                              Text(
-                                context.tr(
-                                  _isRegister
-                                      ? 'register_subtitle'
-                                      : 'login_subtitle',
-                                ),
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: _AuthPalette.inkSoft,
-                                  fontSize: 13,
-                                  height: 1.35,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              _AuthModeSwitcher(
-                                isRegister: _isRegister,
-                                enabled: !_isSubmitting,
-                                loginLabel: context.tr('login'),
-                                registerLabel: context.tr('register'),
-                                onChanged: _changeMode,
-                              ),
-                              const SizedBox(height: 18),
-                              _CartoonAuthField(
-                                controller: _usernameController,
-                                enabled: !_isSubmitting,
-                                hintText: context.tr('username'),
-                                icon: Icons.person_outline_rounded,
-                                accent: _AuthPalette.skyBlue,
-                                textInputAction: TextInputAction.next,
-                              ),
-                              if (_isRegister) ...[
-                                const SizedBox(height: 12),
-                                _CartoonAuthField(
-                                  controller: _emailController,
-                                  enabled: !_isSubmitting,
-                                  hintText: context.tr('email'),
-                                  icon: Icons.mail_outline_rounded,
-                                  accent: _AuthPalette.coral,
-                                  keyboardType: TextInputType.emailAddress,
-                                  textInputAction: TextInputAction.next,
-                                  autocorrect: false,
-                                ),
-                                const SizedBox(height: 12),
-                                _GenderSelector(
-                                  selected: _selectedGender,
-                                  enabled: !_isSubmitting,
-                                  isAzerbaijani: isAz,
-                                  onSelected: _selectGender,
-                                ),
-                              ],
-                              const SizedBox(height: 12),
-                              _CartoonAuthField(
-                                controller: _passwordController,
-                                enabled: !_isSubmitting,
-                                hintText: context.tr('password'),
-                                icon: Icons.lock_outline_rounded,
-                                accent: _AuthPalette.mint,
-                                obscureText: _obscurePassword,
-                                textInputAction: _isRegister
-                                    ? TextInputAction.next
-                                    : TextInputAction.done,
-                                onSubmitted: (_) {
-                                  if (!_isRegister) _submit();
-                                },
-                                suffix: IconButton(
-                                  onPressed: _isSubmitting
-                                      ? null
-                                      : () {
-                                          setState(() {
-                                            _obscurePassword =
-                                                !_obscurePassword;
-                                          });
-                                        },
-                                  icon: Icon(
-                                    _obscurePassword
-                                        ? Icons.visibility_rounded
-                                        : Icons.visibility_off_rounded,
-                                    color: _AuthPalette.ink,
-                                  ),
-                                ),
-                              ),
-                              if (_isRegister) ...[
-                                const SizedBox(height: 12),
-                                _CartoonAuthField(
-                                  controller: _passwordConfirmController,
-                                  enabled: !_isSubmitting,
-                                  hintText: context.tr('confirm_password'),
-                                  icon: Icons.lock_reset_rounded,
-                                  accent: _AuthPalette.cream,
-                                  obscureText: _obscurePassword,
-                                  textInputAction: TextInputAction.done,
-                                  onSubmitted: (_) => _submit(),
-                                ),
-                              ],
-                              if (_errorMessage != null) ...[
-                                const SizedBox(height: 13),
-                                _AuthErrorCard(message: _errorMessage!),
-                              ],
-                              const SizedBox(height: 18),
-                              _CartoonSubmitButton(
-                                isLoading: _isSubmitting,
-                                label: context.tr(
-                                  _isRegister ? 'create_account' : 'login',
-                                ),
-                                icon: _isRegister
-                                    ? Icons.person_add_alt_1_rounded
-                                    : Icons.login_rounded,
-                                onTap: _isSubmitting ? null : _submit,
-                              ),
-                              if (_isRegister) ...[
-                                const SizedBox(height: 12),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 9,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _AuthPalette.cream,
-                                    borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(
-                                      color: _AuthPalette.ink,
-                                      width: 2.1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.info_outline_rounded,
-                                        color: _AuthPalette.ink,
-                                        size: 18,
-                                      ),
-                                      const SizedBox(width: 7),
-                                      Expanded(
-                                        child: Text(
-                                          context.tr('password_min_8'),
-                                          style: const TextStyle(
-                                            color: _AuthPalette.inkSoft,
-                                            fontSize: 11,
-                                            height: 1.3,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ],
+                          const SizedBox(height: 20),
+                          _AuthModeSwitcher(
+                            isRegister: _isRegister,
+                            enabled: !_isSubmitting,
+                            loginLabel: context.tr('login'),
+                            registerLabel: context.tr('register'),
+                            onChanged: _changeMode,
                           ),
-                        ),
-                        Positioned(
-                          top: 0,
-                          child: Transform.rotate(
-                            angle: -0.04,
-                            child: Container(
-                              width: 92,
-                              height: 92,
+                          const SizedBox(height: 16),
+                          _SiteAuthField(
+                            controller: _usernameController,
+                            enabled: !_isSubmitting,
+                            hintText: context.tr('username'),
+                            icon: Icons.person_outline_rounded,
+                            textInputAction: TextInputAction.next,
+                          ),
+                          if (_isRegister) ...[
+                            const SizedBox(height: 11),
+                            _SiteAuthField(
+                              controller: _emailController,
+                              enabled: !_isSubmitting,
+                              hintText: context.tr('email'),
+                              icon: Icons.mail_outline_rounded,
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              autocorrect: false,
+                            ),
+                            const SizedBox(height: 11),
+                            _GenderSelector(
+                              selected: _selectedGender,
+                              enabled: !_isSubmitting,
+                              isAzerbaijani: isAz,
+                              onSelected: _selectGender,
+                            ),
+                          ],
+                          const SizedBox(height: 11),
+                          _SiteAuthField(
+                            controller: _passwordController,
+                            enabled: !_isSubmitting,
+                            hintText: context.tr('password'),
+                            icon: Icons.lock_outline_rounded,
+                            obscureText: _obscurePassword,
+                            textInputAction: _isRegister
+                                ? TextInputAction.next
+                                : TextInputAction.done,
+                            onSubmitted: (_) {
+                              if (!_isRegister) _submit();
+                            },
+                            suffix: IconButton(
+                              onPressed: _isSubmitting
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        _obscurePassword = !_obscurePassword;
+                                      });
+                                    },
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_rounded
+                                    : Icons.visibility_off_rounded,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          if (_isRegister) ...[
+                            const SizedBox(height: 11),
+                            _SiteAuthField(
+                              controller: _passwordConfirmController,
+                              enabled: !_isSubmitting,
+                              hintText: context.tr('confirm_password'),
+                              icon: Icons.lock_reset_rounded,
+                              obscureText: _obscurePassword,
+                              textInputAction: TextInputAction.done,
+                              onSubmitted: (_) => _submit(),
+                            ),
+                          ],
+                          if (_errorMessage != null) ...[
+                            const SizedBox(height: 12),
+                            _AuthErrorCard(message: _errorMessage!),
+                          ],
+                          const SizedBox(height: 17),
+                          _SubmitButton(
+                            isLoading: _isSubmitting,
+                            label: context.tr(
+                              _isRegister ? 'create_account' : 'login',
+                            ),
+                            icon: _isRegister
+                                ? Icons.person_add_alt_1_rounded
+                                : Icons.login_rounded,
+                            onTap: _isSubmitting ? null : _submit,
+                          ),
+                          if (_isRegister) ...[
+                            const SizedBox(height: 11),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
                               decoration: BoxDecoration(
-                                color: _AuthPalette.lime,
-                                borderRadius: BorderRadius.circular(28),
+                                color: _AuthPalette.surface,
+                                borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
-                                  color: _AuthPalette.ink,
-                                  width: 3.2,
+                                  color: _AuthPalette.border,
                                 ),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: _AuthPalette.ink,
-                                    blurRadius: 0,
-                                    offset: Offset(5, 6),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.info_outline_rounded,
+                                    color: _AuthPalette.blue,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      context.tr('password_min_8'),
+                                      style: const TextStyle(
+                                        color: _AuthPalette.muted,
+                                        fontSize: 11,
+                                        height: 1.3,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
-                              child: const Icon(
-                                Icons.casino_rounded,
-                                color: _AuthPalette.ink,
-                                size: 51,
-                              ),
                             ),
-                          ),
-                        ),
-                      ],
+                          ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -402,6 +338,82 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _AuthPanel extends StatelessWidget {
+  final String assetPath;
+  final Widget child;
+
+  const _AuthPanel({required this.assetPath, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: _AuthPalette.surface,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: _AuthPalette.border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x55000000),
+            blurRadius: 24,
+            offset: Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              assetPath,
+              fit: BoxFit.cover,
+              filterQuality: FilterQuality.high,
+              errorBuilder: (_, __, ___) =>
+                  const ColoredBox(color: _AuthPalette.surface),
+            ),
+          ),
+          const Positioned.fill(
+            child: ColoredBox(color: Color(0xB3121212)),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 22, 18, 20),
+            child: child,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DominoBrand extends StatelessWidget {
+  const _DominoBrand();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SvgPicture.asset(
+          'assets/ui/logo.svg',
+          width: 38,
+          height: 38,
+        ),
+        const SizedBox(width: 10),
+        const Text(
+          'Domino',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 30,
+            height: 1,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.9,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -426,21 +438,19 @@ class _AuthModeSwitcher extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: _AuthModeButton(
+          child: _ModeButton(
             selected: !isRegister,
             enabled: enabled,
-            accent: _AuthPalette.skyBlue,
             icon: Icons.login_rounded,
             label: loginLabel,
             onTap: () => onChanged(false),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 9),
         Expanded(
-          child: _AuthModeButton(
+          child: _ModeButton(
             selected: isRegister,
             enabled: enabled,
-            accent: _AuthPalette.coral,
             icon: Icons.person_add_alt_1_rounded,
             label: registerLabel,
             onTap: () => onChanged(true),
@@ -451,18 +461,16 @@ class _AuthModeSwitcher extends StatelessWidget {
   }
 }
 
-class _AuthModeButton extends StatelessWidget {
+class _ModeButton extends StatelessWidget {
   final bool selected;
   final bool enabled;
-  final Color accent;
   final IconData icon;
   final String label;
   final VoidCallback onTap;
 
-  const _AuthModeButton({
+  const _ModeButton({
     required this.selected,
     required this.enabled,
-    required this.accent,
     required this.icon,
     required this.label,
     required this.onTap,
@@ -477,34 +485,27 @@ class _AuthModeButton extends StatelessWidget {
         onTap: enabled ? onTap : null,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          height: 58,
+          height: 52,
           decoration: BoxDecoration(
-            color: selected ? accent : _AuthPalette.cream,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: _AuthPalette.ink, width: 2.7),
-            boxShadow: selected
-                ? const [
-                    BoxShadow(
-                      color: _AuthPalette.ink,
-                      blurRadius: 0,
-                      offset: Offset(4, 5),
-                    ),
-                  ]
-                : null,
+            color: selected ? _AuthPalette.blue : _AuthPalette.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: selected ? _AuthPalette.blue : _AuthPalette.border,
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: _AuthPalette.ink, size: 21),
+              Icon(icon, color: Colors.white, size: 20),
               const SizedBox(width: 7),
               Flexible(
                 child: Text(
                   label,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: _AuthPalette.ink,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
@@ -512,8 +513,8 @@ class _AuthModeButton extends StatelessWidget {
                 const SizedBox(width: 5),
                 const Icon(
                   Icons.check_circle_rounded,
-                  color: _AuthPalette.ink,
-                  size: 18,
+                  color: Colors.white,
+                  size: 17,
                 ),
               ],
             ],
@@ -542,16 +543,9 @@ class _GenderSelector extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: _AuthPalette.cream,
-        borderRadius: BorderRadius.circular(19),
-        border: Border.all(color: _AuthPalette.ink, width: 2.8),
-        boxShadow: const [
-          BoxShadow(
-            color: _AuthPalette.ink,
-            blurRadius: 0,
-            offset: Offset(4, 5),
-          ),
-        ],
+        color: _AuthPalette.surface,
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: _AuthPalette.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -561,9 +555,9 @@ class _GenderSelector extends StatelessWidget {
             child: Text(
               isAzerbaijani ? 'Cins' : 'Пол',
               style: const TextStyle(
-                color: _AuthPalette.inkSoft,
+                color: _AuthPalette.muted,
                 fontSize: 12,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -581,7 +575,7 @@ class _GenderSelector extends StatelessWidget {
                   ),
                 ),
                 if (gender != UserGender.values.last)
-                  const SizedBox(width: 9),
+                  const SizedBox(width: 8),
               ],
             ],
           ),
@@ -616,20 +610,13 @@ class _GenderChoiceButton extends StatelessWidget {
         onTap: enabled ? onTap : null,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          height: 48,
+          height: 46,
           decoration: BoxDecoration(
-            color: selected ? accent : Colors.white,
+            color: selected ? _AuthPalette.blue : _AuthPalette.surfaceRaised,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: _AuthPalette.ink, width: 2.3),
-            boxShadow: selected
-                ? const [
-                    BoxShadow(
-                      color: _AuthPalette.ink,
-                      blurRadius: 0,
-                      offset: Offset(2, 3),
-                    ),
-                  ]
-                : null,
+            border: Border.all(
+              color: selected ? _AuthPalette.blue : _AuthPalette.border,
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -639,7 +626,7 @@ class _GenderChoiceButton extends StatelessWidget {
                     ? Icons.male_rounded
                     : Icons.female_rounded,
                 color: selected ? Colors.white : accent,
-                size: 22,
+                size: 21,
               ),
               const SizedBox(width: 5),
               Flexible(
@@ -648,8 +635,8 @@ class _GenderChoiceButton extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: selected ? Colors.white : accent,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
@@ -661,12 +648,11 @@ class _GenderChoiceButton extends StatelessWidget {
   }
 }
 
-class _CartoonAuthField extends StatelessWidget {
+class _SiteAuthField extends StatelessWidget {
   final TextEditingController controller;
   final bool enabled;
   final String hintText;
   final IconData icon;
-  final Color accent;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final bool autocorrect;
@@ -674,12 +660,11 @@ class _CartoonAuthField extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
   final Widget? suffix;
 
-  const _CartoonAuthField({
+  const _SiteAuthField({
     required this.controller,
     required this.enabled,
     required this.hintText,
     required this.icon,
-    required this.accent,
     this.keyboardType,
     this.textInputAction,
     this.autocorrect = true,
@@ -690,92 +675,62 @@ class _CartoonAuthField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.all(Radius.circular(19)),
-        boxShadow: [
-          BoxShadow(
-            color: _AuthPalette.ink,
-            blurRadius: 0,
-            offset: Offset(4, 5),
-          ),
-        ],
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: _AuthPalette.border),
+    );
+
+    return TextField(
+      controller: controller,
+      enabled: enabled,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      autocorrect: autocorrect,
+      obscureText: obscureText,
+      onSubmitted: onSubmitted,
+      cursorColor: _AuthPalette.blue,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 15.5,
+        fontWeight: FontWeight.w700,
       ),
-      child: TextField(
-        controller: controller,
-        enabled: enabled,
-        keyboardType: keyboardType,
-        textInputAction: textInputAction,
-        autocorrect: autocorrect,
-        obscureText: obscureText,
-        onSubmitted: onSubmitted,
-        cursorColor: _AuthPalette.ink,
-        style: const TextStyle(
-          color: _AuthPalette.ink,
-          fontSize: 16,
-          fontWeight: FontWeight.w800,
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: _AuthPalette.surface,
+        hintText: hintText,
+        hintStyle: const TextStyle(
+          color: _AuthPalette.muted,
+          fontWeight: FontWeight.w600,
         ),
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: _AuthPalette.cream,
-          hintText: hintText,
-          hintStyle: const TextStyle(
-            color: _AuthPalette.inkSoft,
-            fontWeight: FontWeight.w700,
-          ),
-          prefixIconConstraints: const BoxConstraints(minWidth: 64),
-          prefixIcon: Padding(
-            padding: const EdgeInsets.fromLTRB(7, 6, 8, 6),
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: accent,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: _AuthPalette.ink, width: 2.5),
-              ),
-              child: Icon(icon, color: _AuthPalette.ink, size: 24),
-            ),
-          ),
-          suffixIcon: suffix,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 19,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(19),
-            borderSide: const BorderSide(
-              color: _AuthPalette.ink,
-              width: 2.8,
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(19),
-            borderSide: const BorderSide(
-              color: _AuthPalette.ink,
-              width: 3.4,
-            ),
-          ),
-          disabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(19),
-            borderSide: BorderSide(
-              color: _AuthPalette.ink.withValues(alpha: 0.5),
-              width: 2.8,
-            ),
-          ),
+        prefixIcon: const SizedBox(width: 52),
+        prefixIconConstraints: const BoxConstraints(minWidth: 52),
+        prefix: Padding(
+          padding: const EdgeInsets.only(right: 9),
+          child: Icon(icon, color: _AuthPalette.blue, size: 21),
         ),
+        suffixIcon: suffix,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 16,
+        ),
+        border: border,
+        enabledBorder: border,
+        focusedBorder: border.copyWith(
+          borderSide: const BorderSide(color: _AuthPalette.blue, width: 1.5),
+        ),
+        disabledBorder: border,
       ),
     );
   }
 }
 
-class _CartoonSubmitButton extends StatelessWidget {
+class _SubmitButton extends StatelessWidget {
   final bool isLoading;
   final String label;
   final IconData icon;
   final VoidCallback? onTap;
 
-  const _CartoonSubmitButton({
+  const _SubmitButton({
     required this.isLoading,
     required this.label,
     required this.icon,
@@ -790,39 +745,38 @@ class _CartoonSubmitButton extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: Container(
-          height: 60,
+          height: 54,
           decoration: BoxDecoration(
-            color: _AuthPalette.lime,
-            borderRadius: BorderRadius.circular(19),
-            border: Border.all(color: _AuthPalette.ink, width: 3),
+            color: _AuthPalette.blue,
+            borderRadius: BorderRadius.circular(17),
             boxShadow: const [
               BoxShadow(
-                color: _AuthPalette.ink,
-                blurRadius: 0,
-                offset: Offset(5, 6),
+                color: Color(0x44000000),
+                blurRadius: 14,
+                offset: Offset(0, 7),
               ),
             ],
           ),
           child: Center(
             child: isLoading
                 ? const SizedBox(
-                    width: 24,
-                    height: 24,
+                    width: 22,
+                    height: 22,
                     child: CircularProgressIndicator(
-                      strokeWidth: 3,
-                      color: _AuthPalette.ink,
+                      strokeWidth: 2.5,
+                      color: Colors.white,
                     ),
                   )
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(icon, color: _AuthPalette.ink, size: 24),
-                      const SizedBox(width: 9),
+                      Icon(icon, color: Colors.white, size: 22),
+                      const SizedBox(width: 8),
                       Text(
                         label,
                         style: const TextStyle(
-                          color: _AuthPalette.ink,
-                          fontSize: 17,
+                          color: Colors.white,
+                          fontSize: 16,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -845,29 +799,22 @@ class _AuthErrorCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       decoration: BoxDecoration(
-        color: _AuthPalette.coral,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: _AuthPalette.ink, width: 2.4),
-        boxShadow: const [
-          BoxShadow(
-            color: _AuthPalette.ink,
-            blurRadius: 0,
-            offset: Offset(3, 4),
-          ),
-        ],
+        color: const Color(0xFF3A2024),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF66333B)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded, color: _AuthPalette.ink),
+          const Icon(Icons.error_outline_rounded, color: Color(0xFFFF7E70)),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
               style: const TextStyle(
-                color: _AuthPalette.ink,
+                color: Colors.white,
                 fontSize: 12,
                 height: 1.3,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -892,24 +839,24 @@ class _AuthLanguageButton extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        width: 52,
-        height: 52,
+        width: 48,
+        height: 48,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: _AuthPalette.cream,
-          shape: BoxShape.circle,
-          border: Border.all(color: _AuthPalette.ink, width: 3),
+          color: _AuthPalette.surface,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: _AuthPalette.border),
           boxShadow: const [
             BoxShadow(
-              color: _AuthPalette.ink,
-              blurRadius: 0,
-              offset: Offset(4, 5),
+              color: Color(0x44000000),
+              blurRadius: 12,
+              offset: Offset(0, 5),
             ),
           ],
         ),
         child: Text(
           language.flag,
-          style: const TextStyle(fontSize: 27, height: 1),
+          style: const TextStyle(fontSize: 24, height: 1),
         ),
       ),
     );
@@ -929,14 +876,14 @@ class _AuthLanguagePickerSheet extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
         decoration: BoxDecoration(
-          color: _AuthPalette.yellow,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: _AuthPalette.ink, width: 3),
+          color: _AuthPalette.surface,
+          borderRadius: BorderRadius.circular(26),
+          border: Border.all(color: _AuthPalette.border),
           boxShadow: const [
             BoxShadow(
-              color: _AuthPalette.ink,
-              blurRadius: 0,
-              offset: Offset(0, 6),
+              color: Color(0x66000000),
+              blurRadius: 24,
+              offset: Offset(0, 10),
             ),
           ],
         ),
@@ -944,10 +891,10 @@ class _AuthLanguagePickerSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 46,
-              height: 5,
+              width: 42,
+              height: 4,
               decoration: BoxDecoration(
-                color: _AuthPalette.ink,
+                color: _AuthPalette.muted,
                 borderRadius: BorderRadius.circular(99),
               ),
             ),
@@ -955,8 +902,8 @@ class _AuthLanguagePickerSheet extends StatelessWidget {
             Text(
               current == AppLanguage.az ? 'Dili seç' : 'Выбери язык',
               style: const TextStyle(
-                color: _AuthPalette.ink,
-                fontSize: 22,
+                color: Colors.white,
+                fontSize: 21,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -976,40 +923,34 @@ class _AuthLanguagePickerSheet extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: language == current
-                        ? _AuthPalette.lime
-                        : _AuthPalette.cream,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: _AuthPalette.ink, width: 3),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: _AuthPalette.ink,
-                        blurRadius: 0,
-                        offset: Offset(3, 4),
-                      ),
-                    ],
+                        ? _AuthPalette.blue
+                        : _AuthPalette.surfaceRaised,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: language == current
+                          ? _AuthPalette.blue
+                          : _AuthPalette.border,
+                    ),
                   ),
                   child: Row(
                     children: [
-                      Text(
-                        language.flag,
-                        style: const TextStyle(fontSize: 27),
-                      ),
+                      Text(language.flag, style: const TextStyle(fontSize: 27)),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           language.label,
                           style: const TextStyle(
-                            color: _AuthPalette.ink,
+                            color: Colors.white,
                             fontSize: 16,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                       ),
                       if (language == current)
                         const Icon(
                           Icons.check_circle_rounded,
-                          color: _AuthPalette.ink,
-                          size: 25,
+                          color: Colors.white,
+                          size: 24,
                         ),
                     ],
                   ),
@@ -1026,12 +967,10 @@ class _AuthLanguagePickerSheet extends StatelessWidget {
 }
 
 abstract final class _AuthPalette {
-  static const ink = Color(0xFF17120D);
-  static const inkSoft = Color(0xFF66564A);
-  static const cream = Color(0xFFFFF3D7);
-  static const yellow = Color(0xFFFFD85A);
-  static const lime = Color(0xFF79FA00);
-  static const skyBlue = Color(0xFF74C9F1);
-  static const coral = Color(0xFFFF7D72);
-  static const mint = Color(0xFF88DB78);
+  static const background = Color(0xFF121212);
+  static const surface = Color(0xFF262628);
+  static const surfaceRaised = Color(0xFF303033);
+  static const border = Color(0xFF3A3A3E);
+  static const blue = Color(0xFF106CFF);
+  static const muted = Color(0xFFA7A7AD);
 }

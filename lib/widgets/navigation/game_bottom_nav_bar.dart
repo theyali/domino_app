@@ -32,16 +32,15 @@ class GameBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       decoration: const BoxDecoration(
         color: PlayPalette.navy,
-        border: Border(
-          top: BorderSide(color: PlayPalette.blue, width: 1.2),
-        ),
+        borderRadius: BorderRadius.all(Radius.circular(24)),
         boxShadow: [
           BoxShadow(
             color: Color(0x66000000),
             blurRadius: 20,
-            offset: Offset(0, -6),
+            offset: Offset(0, -2),
           ),
         ],
       ),

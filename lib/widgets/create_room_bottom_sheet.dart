@@ -383,7 +383,7 @@ class _LabelRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(11),
             border: Border.all(color: _CreateRoomPalette.border),
           ),
-          child: Icon(icon, color: PlayPalette.blue, size: 19),
+          child: Icon(icon, color: Colors.white, size: 19),
         ),
         const SizedBox(width: 9),
         Expanded(
@@ -506,18 +506,69 @@ class _RuleButton extends StatelessWidget {
                 ],
               ],
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 4),
             Text(
               subtitle,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: selected
-                    ? const Color(0xD9FFFFFF)
-                    : PlayPalette.muted,
+                color: selected ? const Color(0xE6FFFFFF) : PlayPalette.muted,
                 fontSize: 10.5,
                 fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChoiceButton extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ChoiceButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOut,
+        height: 56,
+        decoration: BoxDecoration(
+          color: selected ? PlayPalette.blue : PlayPalette.navy,
+          borderRadius: BorderRadius.circular(17),
+          border: Border.all(
+            color: selected ? PlayPalette.blue : _CreateRoomPalette.border,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (selected) ...[
+              const Icon(
+                Icons.check_circle_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 19,
+                fontWeight: FontWeight.w900,
               ),
             ),
           ],
@@ -538,16 +589,10 @@ class _SiteIconBox extends StatelessWidget {
     return Container(
       width: size,
       height: size,
+      alignment: Alignment.center,
       decoration: BoxDecoration(
         color: PlayPalette.blue,
-        borderRadius: BorderRadius.circular(17),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x44000000),
-            blurRadius: 16,
-            offset: Offset(0, 7),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Icon(icon, color: Colors.white, size: 28),
     );
@@ -597,7 +642,7 @@ class _SiteTextField extends StatelessWidget {
       cursorColor: PlayPalette.blue,
       style: const TextStyle(
         color: Colors.white,
-        fontSize: 15.5,
+        fontSize: 16,
         fontWeight: FontWeight.w700,
       ),
       decoration: InputDecoration(
@@ -610,17 +655,17 @@ class _SiteTextField extends StatelessWidget {
         filled: true,
         fillColor: PlayPalette.navy,
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 17),
-        prefixIconConstraints: const BoxConstraints(minWidth: 58, minHeight: 56),
+        prefixIconConstraints: const BoxConstraints(minWidth: 62, minHeight: 58),
         prefixIcon: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 7, 7, 7),
+          padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
           child: Container(
-            width: 40,
-            height: 40,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              color: PlayPalette.blue,
-              borderRadius: BorderRadius.circular(12),
+              color: _CreateRoomPalette.surfaceRaised,
+              borderRadius: BorderRadius.circular(13),
             ),
-            child: Icon(icon, color: Colors.white, size: 21),
+            child: Icon(icon, color: Colors.white, size: 22),
           ),
         ),
         suffixIcon: suffix,
@@ -628,59 +673,6 @@ class _SiteTextField extends StatelessWidget {
         enabledBorder: border,
         focusedBorder: border.copyWith(
           borderSide: const BorderSide(color: PlayPalette.blue, width: 1.5),
-        ),
-      ),
-    );
-  }
-}
-
-class _ChoiceButton extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _ChoiceButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
-        curve: Curves.easeOut,
-        height: 56,
-        decoration: BoxDecoration(
-          color: selected ? PlayPalette.blue : PlayPalette.navy,
-          borderRadius: BorderRadius.circular(17),
-          border: Border.all(
-            color: selected ? PlayPalette.blue : _CreateRoomPalette.border,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (selected) ...[
-              const Icon(
-                Icons.check_circle_rounded,
-                color: Colors.white,
-                size: 19,
-              ),
-              const SizedBox(width: 6),
-            ],
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 19,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -715,12 +707,8 @@ class _CreateButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.add_circle_rounded,
-              color: Colors.white,
-              size: 24,
-            ),
-            const SizedBox(width: 9),
+            const Icon(Icons.add_circle_rounded, color: Colors.white, size: 24),
+            const SizedBox(width: 8),
             Flexible(
               child: Text(
                 label,
@@ -728,7 +716,7 @@ class _CreateButton extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 16.5,
+                  fontSize: 16,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -742,6 +730,7 @@ class _CreateButton extends StatelessWidget {
 
 class _CreateRoomPalette {
   static const Color background = Color(0xFF121212);
-  static const Color border = Color(0xFF353538);
-  static const Color handle = Color(0xFF55555A);
+  static const Color surfaceRaised = Color(0xFF323234);
+  static const Color border = Color(0xFF3A3A3E);
+  static const Color handle = Color(0xFF66666D);
 }

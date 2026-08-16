@@ -19,19 +19,11 @@ class RestaurantTile extends StatefulWidget {
 }
 
 class _RestaurantTileState extends State<RestaurantTile> {
-  static const _gradients = <List<Color>>[
-    [Color(0xFF46C9FF), Color(0xFF287DFF)],
-    [Color(0xFF60D8FF), Color(0xFF2D9BFF)],
-    [Color(0xFF55BFFF), Color(0xFF536BFF)],
-    [Color(0xFF45D5EA), Color(0xFF2388EA)],
-  ];
-
   bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
     final restaurant = widget.restaurant;
-    final colors = _gradients[(restaurant.id - 1) % _gradients.length];
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -47,26 +39,17 @@ class _RestaurantTileState extends State<RestaurantTile> {
         curve: Curves.easeOutCubic,
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: colors,
-            ),
+            color: PlayPalette.blue,
             borderRadius: BorderRadius.circular(25),
             border: Border.all(
-              color: const Color(0x669CE8FF),
-              width: 1.4,
+              color: const Color(0x33FFFFFF),
+              width: 1.2,
             ),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x3D000000),
+                color: Color(0x52000000),
                 blurRadius: 18,
                 offset: Offset(0, 9),
-              ),
-              BoxShadow(
-                color: Color(0x2229A6FF),
-                blurRadius: 18,
-                offset: Offset(0, 3),
               ),
             ],
           ),
@@ -81,19 +64,7 @@ class _RestaurantTileState extends State<RestaurantTile> {
                     width: 115,
                     height: 115,
                     decoration: const BoxDecoration(
-                      color: Color(0x22FFFFFF),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: -45,
-                  left: -38,
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: const BoxDecoration(
-                      color: Color(0x14264E9A),
+                      color: Color(0x12FFFFFF),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -112,7 +83,7 @@ class _RestaurantTileState extends State<RestaurantTile> {
                             width: 31,
                             height: 31,
                             decoration: BoxDecoration(
-                              color: const Color(0xEEFFFFFF),
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(11),
                             ),
                             child: const Icon(
@@ -174,7 +145,7 @@ class _RestaurantTileState extends State<RestaurantTile> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                color: Color(0xE6FFFFFF),
+                                color: Colors.white,
                                 fontSize: 10.2,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -209,12 +180,8 @@ class _RestaurantStatBadge extends StatelessWidget {
       height: 31,
       padding: const EdgeInsets.symmetric(horizontal: 7),
       decoration: BoxDecoration(
-        color: const Color(0xDFFFFFFF),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(11),
-        border: Border.all(
-          color: const Color(0x33FFFFFF),
-          width: 1,
-        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -257,7 +224,7 @@ class _RestaurantLogo extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x330A244A),
+            color: Color(0x33000000),
             blurRadius: 10,
             offset: Offset(0, 5),
           ),

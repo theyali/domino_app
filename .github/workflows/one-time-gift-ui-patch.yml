@@ -1,0 +1,250 @@
+name: One-time gift UI patch
+
+on:
+  push:
+    paths:
+      - .github/workflows/one-time-gift-ui-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch existing Flutter widgets
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace_once(text, old, new, label):
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected 1 match, found {count}")
+              return text.replace(old, new, 1)
+
+          sheet_path = Path("lib/widgets/multiplayer_gift_sheet.dart")
+          sheet = sheet_path.read_text()
+          sheet = replace_once(
+              sheet,
+              "    final stars = '★' * level;",
+              "    final stars = List<String>.filled(level, '★').join();",
+              "gift level stars",
+          )
+          sheet_path.write_text(sheet)
+
+          avatar_path = Path("lib/widgets/player_avatar.dart")
+          avatar = avatar_path.read_text()
+
+          avatar = replace_once(
+              avatar,
+              "                          padding: const EdgeInsets.all(3.5),",
+              "                          padding: const EdgeInsets.all(1.8),",
+              "avatar frame padding",
+          )
+
+          avatar = replace_once(
+              avatar,
+              '''                          child: Container(
+                            clipBehavior: Clip.antiAlias,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.cream,
+                              border: Border.all(
+                                color: AppColors.ink,
+                                width: 1.8,
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: _AvatarFace(
+                              avatarUrl: avatarUrl,
+                              letter: avatarLetter,
+                              compact: widget.compact,
+                              letterColor: nameColor,
+                            ),
+                          ),''',
+              '''                          child: ClipOval(
+                            child: SizedBox.expand(
+                              child: _AvatarFace(
+                                avatarUrl: avatarUrl,
+                                letter: avatarLetter,
+                                compact: widget.compact,
+                                letterColor: nameColor,
+                              ),
+                            ),
+                          ),''',
+              "avatar inner circle",
+          )
+
+          avatar = replace_once(
+              avatar,
+              '''    final activeGiftName = realtimeGift?.name ?? widget.activeGiftName;
+    final hasActiveGift =''',
+              '''    final activeGiftName = realtimeGift?.name ?? widget.activeGiftName;
+    final activeGiftLevel = realtimeGift?.level;
+    final hasActiveGift =''',
+              "active gift level",
+          )
+
+          avatar = replace_once(
+              avatar,
+              '''                              child: _ActiveGiftImage(
+                                imageUrl: activeGiftImageUrl,
+                                name: activeGiftName,
+                              ),''',
+              '''                              child: _ActiveGiftImage(
+                                imageUrl: activeGiftImageUrl,
+                                name: activeGiftName,
+                                level: activeGiftLevel,
+                              ),''',
+              "active gift level argument",
+          )
+
+          avatar = replace_once(
+              avatar,
+              '''class _ActiveGiftImage extends StatefulWidget {
+  final String? imageUrl;
+  final String? name;
+
+  const _ActiveGiftImage({
+    super.key,
+    required this.imageUrl,
+    required this.name,
+  });''',
+              '''class _ActiveGiftImage extends StatefulWidget {
+  final String? imageUrl;
+  final String? name;
+  final int? level;
+
+  const _ActiveGiftImage({
+    super.key,
+    required this.imageUrl,
+    required this.name,
+    required this.level,
+  });''',
+              "active gift widget fields",
+          )
+
+          avatar = replace_once(
+              avatar,
+              '''    final fallbackName =
+        context.appLanguage.code == 'az' ? 'Hədiyyə' : 'Подарок';
+
+    return Tooltip(
+      message:
+          widget.name?.trim().isNotEmpty == true ? widget.name! : fallbackName,''',
+              '''    final isAzerbaijani = context.appLanguage.code == 'az';
+    final fallbackName = isAzerbaijani ? 'Hədiyyə' : 'Подарок';
+    final giftName =
+        widget.name?.trim().isNotEmpty == true ? widget.name! : fallbackName;
+    final tooltipMessage = widget.level == null
+        ? giftName
+        : '$giftName · ${isAzerbaijani ? 'səviyyə' : 'уровень'} ${widget.level}';
+
+    return Tooltip(
+      message: tooltipMessage,''',
+              "active gift tooltip",
+          )
+
+          avatar = replace_once(
+              avatar,
+              '''        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: widget.imageUrl?.trim().isNotEmpty == true
+              ? Image.network(
+                  widget.imageUrl!,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(
+                      Icons.card_giftcard_rounded,
+                      color: AppColors.cartoonCoral,
+                      size: 20,
+                    );
+                  },
+                )
+              : const Icon(
+                  Icons.card_giftcard_rounded,
+                  color: AppColors.cartoonCoral,
+                  size: 20,
+                ),
+        ),''',
+              '''        child: SizedBox(
+          width: 30,
+          height: 30,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                left: 0,
+                bottom: 0,
+                width: 24,
+                height: 24,
+                child: widget.imageUrl?.trim().isNotEmpty == true
+                    ? Image.network(
+                        widget.imageUrl!,
+                        fit: BoxFit.contain,
+                        filterQuality: FilterQuality.high,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(
+                            Icons.card_giftcard_rounded,
+                            color: AppColors.cartoonCoral,
+                            size: 20,
+                          );
+                        },
+                      )
+                    : const Icon(
+                        Icons.card_giftcard_rounded,
+                        color: AppColors.cartoonCoral,
+                        size: 20,
+                      ),
+              ),
+              if (widget.level != null)
+                Positioned(
+                  right: -3,
+                  top: -3,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.cartoonYellow,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.ink, width: 1.2),
+                    ),
+                    child: Text(
+                      '★${widget.level}',
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 7,
+                        height: 1,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),''',
+              "active gift image badge",
+          )
+
+          avatar_path.write_text(avatar)
+
+          # This workflow is intentionally self-cleaning; only the real source
+          # changes remain in the repository after the one-time patch.
+          Path(".github/workflows/one-time-gift-ui-patch.yml").unlink()
+          PY
+
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Fill avatar frames and show gift levels"
+          git push

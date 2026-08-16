@@ -404,7 +404,7 @@ class _SocialScreenState extends State<SocialScreen> {
         ],
         if (overview.outgoingRequests.isNotEmpty) ...[
           _SectionHeader(
-            icon: Icons.outgoing_mail_rounded,
+            icon: Icons.send_rounded,
             title: _isAz ? 'Göndərilən sorğular' : 'Отправленные заявки',
             count: overview.outgoingRequests.length,
             color: _SocialPalette.yellow,

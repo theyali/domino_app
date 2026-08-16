@@ -268,8 +268,8 @@ class _MainShellScreenState extends State<MainShellScreen>
 }
 
 class _LanguageButton extends StatelessWidget {
-  static const _ink = Color(0xFF17120D);
-  static const _cream = Color(0xFFFFF3CC);
+  static const _surface = Color(0xFF262628);
+  static const _border = Color(0xFF38383C);
 
   final AppLanguage language;
   final VoidCallback onTap;
@@ -282,20 +282,21 @@ class _LanguageButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
         width: 46,
         height: 46,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: _cream,
-          shape: BoxShape.circle,
-          border: Border.all(color: _ink, width: 3),
+          color: _surface,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: _border, width: 1),
           boxShadow: const [
             BoxShadow(
-              color: _ink,
-              blurRadius: 0,
-              offset: Offset(3, 4),
+              color: Color(0x55000000),
+              blurRadius: 14,
+              offset: Offset(0, 6),
             ),
           ],
         ),
@@ -309,10 +310,11 @@ class _LanguageButton extends StatelessWidget {
 }
 
 class _LanguagePickerSheet extends StatelessWidget {
-  static const _ink = Color(0xFF17120D);
-  static const _cream = Color(0xFFFFF3CC);
-  static const _yellow = Color(0xFFFFD85A);
-  static const _lime = Color(0xFF79FA00);
+  static const _surface = Color(0xFF262628);
+  static const _surfaceRaised = Color(0xFF323234);
+  static const _border = Color(0xFF3A3A3E);
+  static const _blue = Color(0xFF106CFF);
+  static const _muted = Color(0xFFA7A7AD);
 
   final AppLanguage current;
 
@@ -326,14 +328,14 @@ class _LanguagePickerSheet extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
         decoration: BoxDecoration(
-          color: _yellow,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: _ink, width: 3),
+          color: _surface,
+          borderRadius: BorderRadius.circular(26),
+          border: Border.all(color: _border, width: 1),
           boxShadow: const [
             BoxShadow(
-              color: _ink,
-              blurRadius: 0,
-              offset: Offset(0, 6),
+              color: Color(0x66000000),
+              blurRadius: 24,
+              offset: Offset(0, 10),
             ),
           ],
         ),
@@ -341,10 +343,10 @@ class _LanguagePickerSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 46,
-              height: 5,
+              width: 42,
+              height: 4,
               decoration: BoxDecoration(
-                color: _ink,
+                color: _muted,
                 borderRadius: BorderRadius.circular(99),
               ),
             ),
@@ -352,54 +354,63 @@ class _LanguagePickerSheet extends StatelessWidget {
             Text(
               current == AppLanguage.az ? 'Dili seç' : 'Выбери язык',
               style: const TextStyle(
-                color: _ink,
-                fontSize: 22,
+                color: Colors.white,
+                fontSize: 21,
                 fontWeight: FontWeight.w900,
+                letterSpacing: -0.35,
               ),
             ),
             const SizedBox(height: 14),
             for (final language in AppLanguage.values) ...[
               GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: () {
                   SoundEffectsService.button(alternate: true);
                   Navigator.pop(context, language);
                 },
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 13,
+                  ),
                   decoration: BoxDecoration(
-                    color: language == current ? _lime : _cream,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: _ink, width: 3),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: _ink,
-                        blurRadius: 0,
-                        offset: Offset(3, 4),
-                      ),
-                    ],
+                    color: language == current ? _blue : _surfaceRaised,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: language == current ? _blue : _border,
+                      width: 1,
+                    ),
                   ),
                   child: Row(
                     children: [
-                      Text(language.flag, style: const TextStyle(fontSize: 27)),
+                      Text(
+                        language.flag,
+                        style: const TextStyle(fontSize: 27, height: 1),
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           language.label,
                           style: const TextStyle(
-                            color: _ink,
+                            color: Colors.white,
                             fontSize: 16,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                       ),
                       if (language == current)
-                        const Icon(Icons.check_circle_rounded, color: _ink, size: 25),
+                        const Icon(
+                          Icons.check_circle_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
                     ],
                   ),
                 ),
               ),
-              if (language != AppLanguage.values.last) const SizedBox(height: 10),
+              if (language != AppLanguage.values.last)
+                const SizedBox(height: 10),
             ],
           ],
         ),

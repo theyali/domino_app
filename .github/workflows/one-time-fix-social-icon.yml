@@ -1,0 +1,34 @@
+name: One-time social icon fix
+
+on:
+  push:
+    paths:
+      - .github/workflows/one-time-fix-social-icon.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fix unsupported social icon
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('lib/screens/social_screen.dart')
+          text = path.read_text()
+          old = 'Icons.outgoing_mail_rounded'
+          if text.count(old) != 1:
+              raise SystemExit(f'Expected one icon occurrence, got {text.count(old)}')
+          path.write_text(text.replace(old, 'Icons.send_rounded', 1))
+          PY
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/screens/social_screen.dart
+          git commit -m 'Fix outgoing friend request icon'
+          git push

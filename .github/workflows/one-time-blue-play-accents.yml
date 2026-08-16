@@ -21,6 +21,7 @@ jobs:
         run: |
           python3 <<'PY'
           from pathlib import Path
+          import re
 
           path = Path('lib/screens/restaurants_screen.dart')
           text = path.read_text()
@@ -29,22 +30,15 @@ jobs:
           if text.count(old_surface) < 3:
               raise SystemExit('Expected play surface colors were not found')
 
-          # В файле первые три surface-цвета — счётчик ресторанов,
+          # Первые три surface-цвета: счётчик ресторанов,
           # кнопка refresh и блок "Oyuna qoşul".
           for _ in range(3):
               text = text.replace(old_surface, 'color: PlayPalette.blue,', 1)
 
-          old_count_text = '''                                  style: const TextStyle(
-                                    color: PlayPalette.blue,
-                                    fontWeight: FontWeight.w900,
-                                  ),'''
-          new_count_text = '''                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w900,
-                                  ),'''
-          if old_count_text not in text:
+          pattern = r"(child: Text\(\n\s+'\$\{visibleRestaurants\.length\}',\n\s+style: const TextStyle\(\n\s+)color: PlayPalette\.blue,"
+          text, count = re.subn(pattern, r"\1color: Colors.white,", text, count=1)
+          if count != 1:
               raise SystemExit('Restaurant count text style was not found')
-          text = text.replace(old_count_text, new_count_text, 1)
 
           path.write_text(text)
           PY

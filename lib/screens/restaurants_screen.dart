@@ -417,7 +417,7 @@ class _PlayLobbyHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: const Icon(
-                  Icons.domino_mask_rounded,
+                  Icons.sports_esports_rounded,
                   color: PlayPalette.blue,
                   size: 27,
                 ),

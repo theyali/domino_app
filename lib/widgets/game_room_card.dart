@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../localization/app_localizations.dart';
 import '../models/game_room.dart';
+import '../theme/play_palette.dart';
 
 class GameRoomCard extends StatelessWidget {
   final GameRoom room;
@@ -13,15 +14,9 @@ class GameRoomCard extends StatelessWidget {
     this.onTap,
   });
 
-  Color get _cardColor {
-    const colors = [
-      Color(0xFF79CDF1),
-      Color(0xFFFFD65C),
-      Color(0xFF8CDD79),
-      Color(0xFFFF8A79),
-      Color(0xFFC7A7FF),
-    ];
-    return colors[room.id % colors.length];
+  int get _backgroundIndex {
+    final mixed = room.id * 1103515245 + 12345;
+    return (mixed.abs() % 5) + 1;
   }
 
   @override
@@ -33,134 +28,154 @@ class GameRoomCard extends StatelessWidget {
         : '101';
 
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: canJoin ? onTap : null,
-      child: Opacity(
-        opacity: canJoin ? 1 : 0.72,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 160),
+        opacity: canJoin ? 1 : 0.58,
         child: Container(
-          margin: const EdgeInsets.only(bottom: 14),
-          padding: const EdgeInsets.all(14),
+          margin: const EdgeInsets.only(bottom: 12),
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: _cardColor,
+            color: PlayPalette.blue,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: _RoomCardPalette.ink, width: 3),
             boxShadow: const [
               BoxShadow(
-                color: _RoomCardPalette.ink,
-                blurRadius: 0,
-                offset: Offset(0, 6),
+                color: Color(0x44000000),
+                blurRadius: 18,
+                offset: Offset(0, 8),
               ),
             ],
           ),
-          child: Row(
+          child: Stack(
             children: [
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(17),
-                  border: Border.all(color: _RoomCardPalette.ink, width: 2.8),
-                ),
-                child: Icon(
-                  room.isPhone
-                      ? Icons.add_circle_outline_rounded
-                      : room.isLocked
-                          ? Icons.lock_rounded
-                          : Icons.table_restaurant,
-                  color: _RoomCardPalette.ink,
-                  size: 29,
+              Positioned.fill(
+                child: Image.asset(
+                  'assets/ui/long_$_backgroundIndex.webp',
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.high,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const ColoredBox(color: PlayPalette.blue),
                 ),
               ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              const Positioned.fill(
+                child: ColoredBox(color: Color(0x1F000000)),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            room.displayName,
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(17),
+                      ),
+                      child: Icon(
+                        room.isPhone
+                            ? Icons.add_circle_outline_rounded
+                            : room.isLocked
+                                ? Icons.lock_rounded
+                                : Icons.table_restaurant_rounded,
+                        color: PlayPalette.blue,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  room.displayName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                              ),
+                              if (room.isLocked)
+                                Container(
+                                  width: 29,
+                                  height: 29,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: PlayPalette.navy,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                    Icons.lock_outline_rounded,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            context.tr(
+                              'creator',
+                              arguments: {'name': room.ownerName},
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              color: _RoomCardPalette.ink,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
+                              color: Color(0xD9FFFFFF),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                        ),
-                        if (room.isLocked)
-                          Container(
-                            padding: const EdgeInsets.all(5),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: _RoomCardPalette.ink,
-                                width: 2,
+                          const SizedBox(height: 9),
+                          Wrap(
+                            spacing: 7,
+                            runSpacing: 7,
+                            children: [
+                              _SmallChip(
+                                icon: Icons.rule_rounded,
+                                label: modeLabel,
                               ),
-                            ),
-                            child: const Icon(
-                              Icons.lock_outline_rounded,
-                              color: _RoomCardPalette.ink,
-                              size: 15,
-                            ),
+                              _SmallChip(
+                                icon: Icons.group_rounded,
+                                label:
+                                    '${room.currentPlayers} / ${room.maxPlayers}',
+                              ),
+                              _SmallChip(
+                                label: context.tr(room.isFull ? 'full' : 'join'),
+                                highlighted: canJoin,
+                              ),
+                            ],
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      context.tr(
-                        'creator',
-                        arguments: {'name': room.ownerName},
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _RoomCardPalette.inkSoft,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 9),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 7,
-                      children: [
-                        _SmallChip(
-                          icon: Icons.rule_rounded,
-                          label: modeLabel,
-                          color: room.isPhone
-                              ? const Color(0xFF79CDF1)
-                              : const Color(0xFFFFE8A3),
-                        ),
-                        _SmallChip(
-                          icon: Icons.group_rounded,
-                          label: '${room.currentPlayers} / ${room.maxPlayers}',
+                    if (canJoin) ...[
+                      const SizedBox(width: 10),
+                      Container(
+                        width: 40,
+                        height: 40,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
                           color: Colors.white,
+                          borderRadius: BorderRadius.circular(13),
                         ),
-                        _SmallChip(
-                          label: context.tr(room.isFull ? 'full' : 'join'),
-                          color: room.isFull
-                              ? const Color(0xFFFF8A79)
-                              : const Color(0xFF7CFC00),
+                        child: const Icon(
+                          Icons.arrow_forward_rounded,
+                          color: PlayPalette.blue,
+                          size: 23,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ],
                 ),
               ),
-              if (canJoin) ...[
-                const SizedBox(width: 10),
-                Image.asset(
-                  'assets/ui/right-arrow.png',
-                  width: 43,
-                  height: 43,
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.high,
-                ),
-              ],
             ],
           ),
         ),
@@ -172,12 +187,12 @@ class GameRoomCard extends StatelessWidget {
 class _SmallChip extends StatelessWidget {
   final IconData? icon;
   final String label;
-  final Color color;
+  final bool highlighted;
 
   const _SmallChip({
     this.icon,
     required this.label,
-    required this.color,
+    this.highlighted = false,
   });
 
   @override
@@ -185,22 +200,25 @@ class _SmallChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _RoomCardPalette.ink, width: 2.2),
+        color: highlighted ? PlayPalette.navy : Colors.white,
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 16, color: _RoomCardPalette.ink),
+            Icon(
+              icon,
+              size: 15,
+              color: highlighted ? Colors.white : PlayPalette.ink,
+            ),
             const SizedBox(width: 5),
           ],
           Text(
             label,
-            style: const TextStyle(
-              color: _RoomCardPalette.ink,
-              fontSize: 11,
+            style: TextStyle(
+              color: highlighted ? Colors.white : PlayPalette.ink,
+              fontSize: 10.5,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -208,9 +226,4 @@ class _SmallChip extends StatelessWidget {
       ),
     );
   }
-}
-
-class _RoomCardPalette {
-  static const Color ink = Color(0xFF111111);
-  static const Color inkSoft = Color(0xFF4A4037);
 }

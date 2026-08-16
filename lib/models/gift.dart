@@ -2,10 +2,12 @@ import '../config/api_config.dart';
 
 class Gift {
   final int id;
-  final int restaurantId;
+  final int? restaurantId;
   final String restaurantName;
+  final bool isGlobal;
   final String name;
   final String price;
+  final int level;
   final String? imageUrl;
   final bool isActive;
   final int giftableCount;
@@ -14,20 +16,27 @@ class Gift {
     required this.id,
     required this.restaurantId,
     required this.restaurantName,
+    required this.isGlobal,
     required this.name,
     required this.price,
+    required this.level,
     required this.imageUrl,
     required this.isActive,
     this.giftableCount = 0,
   });
 
   factory Gift.fromJson(Map<String, dynamic> json) {
+    final rawLevel = (json['level'] as num?)?.toInt() ?? 1;
+    final restaurantId = json['restaurant_id'] as int?;
+
     return Gift(
       id: json['id'] as int,
-      restaurantId: json['restaurant_id'] as int? ?? 0,
+      restaurantId: restaurantId,
       restaurantName: json['restaurant_name'] as String? ?? '',
+      isGlobal: json['is_global'] as bool? ?? restaurantId == null,
       name: json['name'] as String? ?? 'Подарок',
       price: json['price']?.toString() ?? '0.00',
+      level: rawLevel.clamp(1, 5).toInt(),
       imageUrl: ApiConfig.resolveUrl(json['image_url'] as String?),
       isActive: json['is_active'] as bool? ?? true,
       giftableCount: json['giftable_count'] as int? ?? 0,
@@ -35,12 +44,17 @@ class Gift {
   }
 
   factory Gift.fromRealtimeJson(Map<String, dynamic> json) {
+    final rawLevel = (json['level'] as num?)?.toInt() ?? 1;
+    final restaurantId = json['restaurant_id'] as int?;
+
     return Gift(
       id: json['id'] as int,
-      restaurantId: json['restaurant_id'] as int? ?? 0,
+      restaurantId: restaurantId,
       restaurantName: '',
+      isGlobal: json['is_global'] as bool? ?? restaurantId == null,
       name: json['name'] as String? ?? 'Подарок',
       price: '0.00',
+      level: rawLevel.clamp(1, 5).toInt(),
       imageUrl: ApiConfig.resolveUrl(json['image_url'] as String?),
       isActive: true,
     );
@@ -51,8 +65,10 @@ class Gift {
       id: id,
       restaurantId: restaurantId,
       restaurantName: restaurantName,
+      isGlobal: isGlobal,
       name: name,
       price: price,
+      level: level,
       imageUrl: imageUrl,
       isActive: isActive,
       giftableCount: giftableCount ?? this.giftableCount,

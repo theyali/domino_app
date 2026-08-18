@@ -855,9 +855,6 @@ class _SitePanel extends StatelessWidget {
                   const ColoredBox(color: _ProfilePalette.surface),
             ),
           ),
-          const Positioned.fill(
-            child: ColoredBox(color: Color(0xB8121212)),
-          ),
           Padding(padding: padding, child: child),
         ],
       ),

@@ -58,9 +58,6 @@ class GameRoomCard extends StatelessWidget {
                       const ColoredBox(color: PlayPalette.blue),
                 ),
               ),
-              const Positioned.fill(
-                child: ColoredBox(color: Color(0x1F000000)),
-              ),
               Padding(
                 padding: const EdgeInsets.all(14),
                 child: Row(

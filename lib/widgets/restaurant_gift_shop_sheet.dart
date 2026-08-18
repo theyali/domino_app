@@ -5,6 +5,7 @@ import '../models/gift.dart';
 import '../services/api_service.dart';
 import '../services/gift_service.dart';
 import '../theme/play_palette.dart';
+import 'site_image_panel.dart';
 
 class RestaurantGiftShopSheet extends StatefulWidget {
   final int restaurantId;
@@ -174,13 +175,12 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
                     onClose: () => Navigator.of(context).pop(),
                   ),
                   const SizedBox(height: 14),
-                  Container(
+                  SiteImagePanel(
+                    assetPath: 'assets/ui/long_5.webp',
+                    borderRadius: 20,
+                    overlayColor: const Color(0xC0121212),
+                    borderColor: _GiftShopPalette.border,
                     padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                    decoration: BoxDecoration(
-                      color: PlayPalette.navy,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: _GiftShopPalette.border),
-                    ),
                     child: Column(
                       children: [
                         Text(
@@ -200,10 +200,10 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
                             vertical: 7,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1D3C72),
+                            color: const Color(0x33106CFF),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color(0xFF28559C),
+                              color: const Color(0x77106CFF),
                             ),
                           ),
                           child: Text(
@@ -313,6 +313,7 @@ class _RestaurantGiftShopSheetState extends State<RestaurantGiftShopSheet> {
         final gift = _gifts[index];
         return _GiftShopCard(
           gift: gift,
+          index: index,
           isBuying: _buyingGiftId == gift.id,
           onBuy: () => _buy(gift),
         );
@@ -400,31 +401,27 @@ class _GiftShopHeader extends StatelessWidget {
 
 class _GiftShopCard extends StatelessWidget {
   final Gift gift;
+  final int index;
   final bool isBuying;
   final VoidCallback onBuy;
 
   const _GiftShopCard({
     required this.gift,
+    required this.index,
     required this.isBuying,
     required this.onBuy,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final assetIndex = (index % 4) + 1;
+
+    return SiteImagePanel(
+      assetPath: 'assets/ui/block_$assetIndex.webp',
+      borderRadius: 22,
+      overlayColor: const Color(0xA5121212),
+      borderColor: const Color(0x55106CFF),
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 11),
-      decoration: BoxDecoration(
-        color: PlayPalette.navy,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _GiftShopPalette.border),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x33000000),
-            blurRadius: 16,
-            offset: Offset(0, 7),
-          ),
-        ],
-      ),
       child: Column(
         children: [
           Expanded(
@@ -432,9 +429,9 @@ class _GiftShopCard extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF1B1B1D),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _GiftShopPalette.border),
+                border: Border.all(color: const Color(0x22000000)),
               ),
               child: Center(
                 child: gift.imageUrl?.trim().isNotEmpty == true
@@ -473,8 +470,9 @@ class _GiftShopCard extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF323234),
+              color: const Color(0xCC262628),
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0x22FFFFFF)),
             ),
             child: Text(
               context.tr(
@@ -508,6 +506,13 @@ class _GiftShopCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: PlayPalette.blue,
                   borderRadius: BorderRadius.circular(14),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x44106CFF),
+                      blurRadius: 12,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -559,14 +564,12 @@ class _GiftShopMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Container(
-        width: double.infinity,
+      child: SiteImagePanel(
+        assetPath: 'assets/ui/long_5.webp',
+        borderRadius: 22,
+        overlayColor: const Color(0xD0121212),
+        borderColor: _GiftShopPalette.border,
         padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: PlayPalette.navy,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: _GiftShopPalette.border),
-        ),
         child: Center(child: child),
       ),
     );

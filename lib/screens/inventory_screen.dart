@@ -471,10 +471,9 @@ class _GiftArtworkBox extends StatelessWidget {
       height: size,
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        // Изображения подарков всегда лежат на чистом белом фоне.
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0x22FFFFFF)),
+        border: Border.all(color: const Color(0x22000000)),
       ),
       child: imageUrl?.trim().isNotEmpty == true
           ? Image.network(
@@ -511,9 +510,12 @@ class _InventoryGiftDetails extends StatelessWidget {
   Widget build(BuildContext context) {
     final gift = item.gift;
     final redeemed = item.status == 'redeemed';
+    final status = context.tr(
+      redeemed ? 'gift_redeemed' : 'gift_available',
+    );
 
     return FractionallySizedBox(
-      heightFactor: 0.82,
+      heightFactor: 0.76,
       child: Container(
         decoration: const BoxDecoration(
           color: _InventoryPalette.background,
@@ -537,53 +539,111 @@ class _InventoryGiftDetails extends StatelessWidget {
                   borderRadius: BorderRadius.circular(99),
                 ),
               ),
+              const SizedBox(height: 12),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 30),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                   child: Column(
                     children: [
                       SiteImagePanel(
-                        assetPath: 'assets/ui/block_1.webp',
-                        overlayColor: const Color(0xA5121212),
-                        padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
+                        assetPath: 'assets/ui/long_2.webp',
+                        borderRadius: 26,
+                        overlayColor: const Color(0xB8121212),
+                        borderColor: const Color(0x66106CFF),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                         child: Column(
                           children: [
-                            _GiftArtworkBox(
-                              imageUrl: gift.imageUrl,
-                              size: 112,
+                            Row(
+                              children: [
+                                _GiftArtworkBox(
+                                  imageUrl: gift.imageUrl,
+                                  size: 78,
+                                ),
+                                const SizedBox(width: 13),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        gift.name,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 22,
+                                          height: 1.05,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: -0.4,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.restaurant_rounded,
+                                            color: _InventoryPalette.muted,
+                                            size: 15,
+                                          ),
+                                          const SizedBox(width: 5),
+                                          Expanded(
+                                            child: Text(
+                                              gift.restaurantName,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                color: _InventoryPalette.muted,
+                                                fontSize: 12.5,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 9),
+                                      Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 5,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: redeemed
+                                                ? _InventoryPalette.surfaceRaised
+                                                : _InventoryPalette.blue,
+                                            borderRadius: BorderRadius.circular(99),
+                                          ),
+                                          child: Text(
+                                            status,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 13),
-                            Text(
-                              gift.name,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-                            Text(
-                              gift.restaurantName,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: _InventoryPalette.muted,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 17),
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Opacity(
-                                opacity: redeemed ? 0.42 : 1,
+                            const SizedBox(height: 18),
+                            Opacity(
+                              opacity: redeemed ? 0.42 : 1,
+                              child: Container(
+                                width: 184,
+                                height: 184,
+                                padding: const EdgeInsets.all(9),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(22),
+                                  border: Border.all(
+                                    color: const Color(0x22000000),
+                                  ),
+                                ),
                                 child: QrImageView(
                                   data: item.qrCode,
-                                  size: 190,
                                   padding: EdgeInsets.zero,
                                   backgroundColor: Colors.white,
                                   eyeStyle: const QrEyeStyle(
@@ -597,87 +657,103 @@ class _InventoryGiftDetails extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 13),
+                            const SizedBox(height: 16),
                             Container(
+                              width: double.infinity,
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 7,
+                                horizontal: 12,
+                                vertical: 11,
                               ),
                               decoration: BoxDecoration(
-                                color: redeemed
-                                    ? _InventoryPalette.surfaceRaised
-                                    : _InventoryPalette.blue,
-                                borderRadius: BorderRadius.circular(99),
+                                color: const Color(0xD9262628),
+                                borderRadius: BorderRadius.circular(15),
+                                border: Border.all(
+                                  color: _InventoryPalette.border,
+                                ),
                               ),
-                              child: Text(
-                                context.tr(
-                                  redeemed
-                                      ? 'gift_redeemed'
-                                      : 'gift_available',
-                                ),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 34,
+                                    height: 34,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: _InventoryPalette.surfaceRaised,
+                                      borderRadius: BorderRadius.circular(11),
+                                    ),
+                                    child: const Icon(
+                                      Icons.person_rounded,
+                                      color: Colors.white,
+                                      size: 19,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      context.tr(
+                                        'gift_from',
+                                        arguments: {'name': item.senderLabel},
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                  if (item.giftedAt != null) ...[
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      _formatDate(item.giftedAt!),
+                                      style: const TextStyle(
+                                        color: _InventoryPalette.muted,
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 13),
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(14),
+                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                         decoration: BoxDecoration(
                           color: _InventoryPalette.surface,
-                          borderRadius: BorderRadius.circular(18),
+                          borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: _InventoryPalette.border),
                         ),
                         child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Icon(
-                              Icons.person_rounded,
-                              color: Colors.white,
+                              Icons.qr_code_2_rounded,
+                              color: _InventoryPalette.blue,
                               size: 22,
                             ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 context.tr(
-                                  'gift_from',
-                                  arguments: {'name': item.senderLabel},
+                                  redeemed
+                                      ? 'gift_redeemed_description'
+                                      : 'gift_qr_description',
                                 ),
                                 style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w800,
+                                  color: _InventoryPalette.muted,
+                                  fontSize: 12.5,
+                                  height: 1.4,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
-                            if (item.giftedAt != null)
-                              Text(
-                                _formatDate(item.giftedAt!),
-                                style: const TextStyle(
-                                  color: _InventoryPalette.muted,
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
                           ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        context.tr(
-                          redeemed
-                              ? 'gift_redeemed_description'
-                              : 'gift_qr_description',
-                        ),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: _InventoryPalette.muted,
-                          fontSize: 12.5,
-                          height: 1.45,
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],

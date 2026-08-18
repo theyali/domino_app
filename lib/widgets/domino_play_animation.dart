@@ -12,6 +12,7 @@ class DominoPlayAnimation extends StatefulWidget {
   final bool horizontal;
   final bool soundEnabled;
   final VoidCallback? onDoubleImpact;
+  final VoidCallback? onCompleted;
 
   const DominoPlayAnimation({
     super.key,
@@ -21,6 +22,7 @@ class DominoPlayAnimation extends StatefulWidget {
     required this.horizontal,
     required this.soundEnabled,
     this.onDoubleImpact,
+    this.onCompleted,
   });
 
   @override
@@ -31,6 +33,7 @@ class _DominoPlayAnimationState extends State<DominoPlayAnimation>
     with SingleTickerProviderStateMixin {
   static const String _normalImpactSound = 'sounds/domino_land.wav';
   static const String _doubleImpactSound = 'sounds/domino_double_slam.wav';
+  static const int _maxPrepareAttempts = 3;
 
   late final AnimationController _controller;
   late final AudioPlayer _audioPlayer;
@@ -39,6 +42,8 @@ class _DominoPlayAnimationState extends State<DominoPlayAnimation>
 
   bool _isReady = false;
   bool _impactTriggered = false;
+  bool _completionNotified = false;
+  int _prepareAttempts = 0;
 
   @override
   void initState() {
@@ -51,7 +56,9 @@ class _DominoPlayAnimationState extends State<DominoPlayAnimation>
       duration: Duration(
         milliseconds: widget.isDouble ? 900 : 650,
       ),
-    )..addListener(_handleAnimationTick);
+    )
+      ..addListener(_handleAnimationTick)
+      ..addStatusListener(_handleAnimationStatus);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _prepareAnimation();
@@ -59,13 +66,21 @@ class _DominoPlayAnimationState extends State<DominoPlayAnimation>
   }
 
   void _prepareAnimation() {
-    if (!mounted) {
+    if (!mounted || _completionNotified) {
       return;
     }
 
     final renderObject = context.findRenderObject();
 
     if (renderObject is! RenderBox || !renderObject.hasSize) {
+      if (_prepareAttempts < _maxPrepareAttempts) {
+        _prepareAttempts++;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _prepareAnimation();
+        });
+      } else {
+        _notifyCompleted();
+      }
       return;
     }
 
@@ -99,9 +114,20 @@ class _DominoPlayAnimationState extends State<DominoPlayAnimation>
 
     if (!_impactTriggered && _controller.value >= impactPoint) {
       _impactTriggered = true;
-
       _playImpactFeedback();
     }
+  }
+
+  void _handleAnimationStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed) {
+      _notifyCompleted();
+    }
+  }
+
+  void _notifyCompleted() {
+    if (_completionNotified) return;
+    _completionNotified = true;
+    widget.onCompleted?.call();
   }
 
   void _playImpactFeedback() {
@@ -137,6 +163,7 @@ class _DominoPlayAnimationState extends State<DominoPlayAnimation>
   void dispose() {
     _controller
       ..removeListener(_handleAnimationTick)
+      ..removeStatusListener(_handleAnimationStatus)
       ..dispose();
 
     unawaited(_audioPlayer.dispose());

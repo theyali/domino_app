@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 
-/// Универсальная карточка нового UI: фоновая иллюстрация block_/long_,
-/// затемняющий слой и контент поверх него.
+/// Универсальная карточка нового UI с фоновыми иллюстрациями block_/long_.
+/// Фон показывается в исходных цветах без затемняющего overlay.
 class SiteImagePanel extends StatelessWidget {
   final String assetPath;
   final Widget child;
   final EdgeInsetsGeometry padding;
   final double borderRadius;
+
+  // Оставлено для обратной совместимости со старыми вызовами.
+  // Для block_/long_ overlay больше не рисуется, чтобы не менять
+  // исходные цвета дизайн-ассетов.
   final Color overlayColor;
+
   final Color backgroundColor;
   final Color borderColor;
   final double borderWidth;
@@ -19,7 +24,7 @@ class SiteImagePanel extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(16),
     this.borderRadius = 24,
-    this.overlayColor = const Color(0x8F121212),
+    this.overlayColor = Colors.transparent,
     this.backgroundColor = const Color(0xFF262628),
     this.borderColor = const Color(0x2AFFFFFF),
     this.borderWidth = 1,
@@ -55,9 +60,6 @@ class SiteImagePanel extends StatelessWidget {
                 color: backgroundColor,
               ),
             ),
-          ),
-          Positioned.fill(
-            child: ColoredBox(color: overlayColor),
           ),
           Padding(
             padding: padding,

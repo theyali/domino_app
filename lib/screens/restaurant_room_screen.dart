@@ -528,9 +528,6 @@ class _RestaurantRoomHeader extends StatelessWidget {
                   const ColoredBox(color: PlayPalette.blue),
             ),
           ),
-          const Positioned.fill(
-            child: ColoredBox(color: Color(0x1A000000)),
-          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
             child: Column(
@@ -801,9 +798,6 @@ class _RoomListMessage extends StatelessWidget {
                   errorBuilder: (context, error, stackTrace) =>
                       const ColoredBox(color: PlayPalette.navy),
                 ),
-              ),
-              const Positioned.fill(
-                child: ColoredBox(color: Color(0xD6262628)),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),

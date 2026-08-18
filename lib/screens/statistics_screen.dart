@@ -7,9 +7,10 @@ import '../models/social.dart';
 import '../services/api_service.dart';
 import '../services/social_service.dart';
 import '../services/statistics_service.dart';
+import '../theme/play_palette.dart';
 import '../widgets/cartoon_page_background.dart';
-import '../widgets/game_avatar_frame.dart';
 import '../widgets/league_badge.dart';
+import '../widgets/site_image_panel.dart';
 
 class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({super.key});
@@ -50,9 +51,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       });
     } on ApiException catch (error) {
       if (!mounted) return;
-      setState(() {
-        _errorMessage = error.message;
-      });
+      setState(() => _errorMessage = error.message);
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -60,9 +59,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       });
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -104,7 +101,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
-        barrierColor: Colors.black54,
+        barrierColor: Colors.black.withValues(alpha: 0.72),
         builder: (context) => _LeaguePlayerActionSheet(
           player: player,
           user: user!,
@@ -113,7 +110,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       );
 
       if (!mounted || changed != true) return;
-      _showMessage(_isAz ? 'Dostluq məlumatı yeniləndi.' : 'Данные дружбы обновлены.');
+      _showMessage(
+        _isAz ? 'Dostluq məlumatı yeniləndi.' : 'Данные дружбы обновлены.',
+      );
     } on ApiException catch (error) {
       if (!mounted) return;
       _showMessage(error.message);
@@ -142,11 +141,23 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       body: CartoonPageBackground(
         child: SafeArea(
           bottom: false,
-          child: RefreshIndicator(
-            color: _StatsPalette.ink,
-            backgroundColor: Colors.white,
-            onRefresh: _load,
-            child: _buildBody(strings),
+          child: Column(
+            children: [
+              _StatisticsHeader(
+                title: strings.title,
+                subtitle: strings.leaderboard,
+                loading: _isLoading,
+                onRefresh: _isLoading ? null : _load,
+              ),
+              Expanded(
+                child: RefreshIndicator(
+                  color: PlayPalette.blue,
+                  backgroundColor: _StatsPalette.surface,
+                  onRefresh: _load,
+                  child: _buildBody(strings),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -160,10 +171,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         children: const [
-          SizedBox(height: 280),
+          SizedBox(height: 230),
           Center(
             child: CircularProgressIndicator(
-              color: _StatsPalette.ink,
+              color: PlayPalette.blue,
               strokeWidth: 3,
             ),
           ),
@@ -174,54 +185,35 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     if (_errorMessage != null && statistics == null) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 120, 20, 120),
+        padding: const EdgeInsets.fromLTRB(16, 72, 16, 130),
         children: [
-          Container(
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              color: _StatsPalette.yellow,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: _StatsPalette.ink, width: 3),
-              boxShadow: const [
-                BoxShadow(
-                  color: _StatsPalette.ink,
-                  blurRadius: 0,
-                  offset: Offset(0, 6),
-                ),
-              ],
-            ),
+          SiteImagePanel(
+            assetPath: 'assets/ui/long_5.webp',
+            overlayColor: const Color(0xD0121212),
+            borderColor: _StatsPalette.border,
+            padding: const EdgeInsets.fromLTRB(22, 28, 22, 28),
             child: Column(
               children: [
-                const Icon(
-                  Icons.leaderboard_rounded,
-                  size: 58,
-                  color: _StatsPalette.ink,
+                const _StateIcon(
+                  icon: Icons.cloud_off_rounded,
+                  color: _StatsPalette.coral,
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 18),
                 Text(
                   _errorMessage!,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    color: _StatsPalette.ink,
-                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    fontSize: 16,
+                    height: 1.35,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 18),
-                FilledButton.icon(
-                  onPressed: _load,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: _StatsPalette.ink,
-                    side: const BorderSide(
-                      color: _StatsPalette.ink,
-                      width: 3,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: Text(strings.loadFailed),
+                _PrimaryButton(
+                  label: _isAz ? 'Yenidən yoxla' : 'Повторить',
+                  icon: Icons.refresh_rounded,
+                  onTap: _load,
                 ),
               ],
             ),
@@ -231,103 +223,193 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     }
 
     if (statistics == null) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-      );
+      return ListView(physics: const AlwaysScrollableScrollPhysics());
     }
 
     final selectedStanding = _selectedStanding(statistics);
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 118),
       children: [
         _MyLeagueCard(statistics: statistics, strings: strings),
-        const SizedBox(height: 20),
-        _SectionTitle(text: strings.leaderboard),
+        const SizedBox(height: 24),
+        _SectionHeader(
+          title: strings.leaderboard,
+          count: selectedStanding?.players.length,
+        ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 68,
+          height: 66,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 2),
             itemCount: statistics.leagues.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 10),
+            separatorBuilder: (context, index) => const SizedBox(width: 9),
             itemBuilder: (context, index) {
               final league = statistics.leagues[index];
               final selected = league.number ==
                   (_selectedLeague ?? statistics.me.league);
+
               return _LeagueChip(
                 league: league,
                 selected: selected,
                 onTap: () {
-                  setState(() {
-                    _selectedLeague = league.number;
-                  });
+                  setState(() => _selectedLeague = league.number);
                 },
               );
             },
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 13),
         if (selectedStanding == null || selectedStanding.players.isEmpty)
           _EmptyLeague(strings: strings)
         else
           for (var index = 0;
               index < selectedStanding.players.length;
               index++)
-            Builder(
-              builder: (context) {
-                final player = selectedStanding.players[index];
-                final isMe = player.userId == statistics.me.userId;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 11),
-                  child: _LeaderboardPlayer(
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Builder(
+                builder: (context) {
+                  final player = selectedStanding.players[index];
+                  final isMe = player.userId == statistics.me.userId;
+
+                  return _LeaderboardPlayer(
                     player: player,
                     isMe: isMe,
                     strings: strings,
-                    colorIndex: index,
                     onTap: isMe ? null : () => _openPlayerMenu(player),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
       ],
     );
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  final String text;
+class _StatisticsHeader extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final bool loading;
+  final VoidCallback? onRefresh;
 
-  const _SectionTitle({required this.text});
+  const _StatisticsHeader({
+    required this.title,
+    required this.subtitle,
+    required this.loading,
+    required this.onRefresh,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: _StatsPalette.cream,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _StatsPalette.ink, width: 3),
-          boxShadow: const [
-            BoxShadow(
-              color: _StatsPalette.ink,
-              blurRadius: 0,
-              offset: Offset(3, 4),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.6,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: _StatsPalette.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Text(
-          text,
-          style: const TextStyle(
-            color: _StatsPalette.ink,
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
+          ),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onRefresh,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 150),
+              opacity: loading ? 0.55 : 1,
+              child: Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: _StatsPalette.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: _StatsPalette.border),
+                ),
+                child: loading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.3,
+                          color: PlayPalette.blue,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.refresh_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final int? count;
+
+  const _SectionHeader({required this.title, this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.35,
+            ),
           ),
         ),
-      ),
+        if (count != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: _StatsPalette.surface,
+              borderRadius: BorderRadius.circular(11),
+              border: Border.all(color: _StatsPalette.border),
+            ),
+            child: Text(
+              '$count',
+              style: const TextStyle(
+                color: _StatsPalette.muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -338,9 +420,9 @@ class _MyLeagueCard extends StatelessWidget {
 
   const _MyLeagueCard({required this.statistics, required this.strings});
 
-  LeagueStanding? _nextLeagueFor(LeaguePlayerStats me) {
+  LeagueStanding? _leagueByNumber(int number) {
     for (final league in statistics.leagues) {
-      if (league.number == me.league - 1) return league;
+      if (league.number == number) return league;
     }
     return null;
   }
@@ -348,45 +430,43 @@ class _MyLeagueCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final me = statistics.me;
-    final currentLeague = statistics.leagues.firstWhere(
-      (league) => league.number == me.league,
-      orElse: () => statistics.leagues.last,
-    );
-    final nextLeague = _nextLeagueFor(me);
+    final currentLeague = _leagueByNumber(me.league);
+    final nextLeague = _leagueByNumber(me.league - 1);
+    final currentMinPoints = currentLeague?.minPoints ?? 0;
+    final nextMinPoints = nextLeague?.minPoints;
 
-    final progress = nextLeague == null
+    final progress = nextMinPoints == null
         ? 1.0
-        : ((me.leaguePoints - currentLeague.minPoints) /
-                (nextLeague.minPoints - currentLeague.minPoints))
-            .clamp(0.0, 1.0)
-            .toDouble();
+        : nextMinPoints <= currentMinPoints
+            ? 0.0
+            : ((me.leaguePoints - currentMinPoints) /
+                    (nextMinPoints - currentMinPoints))
+                .clamp(0.0, 1.0)
+                .toDouble();
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: _StatsPalette.skyBlue,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: _StatsPalette.ink, width: 3),
-        boxShadow: const [
-          BoxShadow(
-            color: _StatsPalette.ink,
-            blurRadius: 0,
-            offset: Offset(0, 7),
-          ),
-        ],
-      ),
+    return SiteImagePanel(
+      assetPath: 'assets/ui/long_4.webp',
+      borderRadius: 28,
+      overlayColor: const Color(0xBC121212),
+      borderColor: const Color(0x66106CFF),
+      padding: const EdgeInsets.fromLTRB(17, 17, 17, 16),
       child: Column(
         children: [
           Row(
             children: [
               Container(
+                width: 82,
+                height: 82,
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: const Color(0xD9262628),
                   shape: BoxShape.circle,
-                  border: Border.all(color: _StatsPalette.ink, width: 3),
+                  border: Border.all(
+                    color: const Color(0x77106CFF),
+                    width: 1.4,
+                  ),
                 ),
-                child: LeagueBadge(league: me.league, size: 72),
+                child: LeagueBadge(league: me.league, size: 68),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -396,38 +476,37 @@ class _MyLeagueCard extends StatelessWidget {
                     Text(
                       strings.yourLeague,
                       style: const TextStyle(
-                        color: _StatsPalette.inkSoft,
-                        fontWeight: FontWeight.w800,
+                        color: _StatsPalette.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${strings.league} ${me.leagueRoman}',
                       style: const TextStyle(
-                        color: _StatsPalette.ink,
-                        fontSize: 26,
+                        color: Colors.white,
+                        fontSize: 27,
                         fontWeight: FontWeight.w900,
+                        letterSpacing: -0.6,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 7),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 4,
+                        horizontal: 10,
+                        vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: _StatsPalette.lime,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: _StatsPalette.ink,
-                          width: 2.4,
-                        ),
+                        color: const Color(0x22106CFF),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0x66106CFF)),
                       ),
                       child: Text(
                         '${me.leaguePoints} ${strings.points}',
                         style: const TextStyle(
-                          color: _StatsPalette.ink,
-                          fontSize: 15,
+                          color: Colors.white,
+                          fontSize: 13,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -437,43 +516,31 @@ class _MyLeagueCard extends StatelessWidget {
               ),
               if (me.rank != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                   decoration: BoxDecoration(
-                    color: _StatsPalette.yellow,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _StatsPalette.ink, width: 3),
+                    color: PlayPalette.blue,
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: Text(
                     '#${me.rank}',
                     style: const TextStyle(
-                      color: _StatsPalette.ink,
-                      fontSize: 22,
+                      color: Colors.white,
+                      fontSize: 19,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 16),
-          Container(
-            height: 16,
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(99),
-              border: Border.all(color: _StatsPalette.ink, width: 3),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(99),
+          const SizedBox(height: 17),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: SizedBox(
+              height: 8,
               child: LinearProgressIndicator(
                 value: progress,
-                backgroundColor: Colors.white,
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  _StatsPalette.lime,
-                ),
+                backgroundColor: const Color(0x33FFFFFF),
+                valueColor: const AlwaysStoppedAnimation<Color>(PlayPalette.blue),
               ),
             ),
           ),
@@ -488,9 +555,9 @@ class _MyLeagueCard extends StatelessWidget {
                       nextLeague.roman,
                     ),
               style: const TextStyle(
-                color: _StatsPalette.inkSoft,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w800,
+                color: _StatsPalette.muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -501,7 +568,7 @@ class _MyLeagueCard extends StatelessWidget {
                 child: _MiniStat(
                   value: '${me.gamesPlayed}',
                   label: strings.games,
-                  color: _StatsPalette.cream,
+                  accent: Colors.white,
                 ),
               ),
               const SizedBox(width: 7),
@@ -509,7 +576,7 @@ class _MyLeagueCard extends StatelessWidget {
                 child: _MiniStat(
                   value: '${me.wins}',
                   label: strings.wins,
-                  color: _StatsPalette.mint,
+                  accent: _StatsPalette.green,
                 ),
               ),
               const SizedBox(width: 7),
@@ -517,7 +584,7 @@ class _MyLeagueCard extends StatelessWidget {
                 child: _MiniStat(
                   value: '${me.losses}',
                   label: strings.losses,
-                  color: _StatsPalette.peach,
+                  accent: _StatsPalette.coral,
                 ),
               ),
               const SizedBox(width: 7),
@@ -525,27 +592,41 @@ class _MyLeagueCard extends StatelessWidget {
                 child: _MiniStat(
                   value: '${me.winRate.toStringAsFixed(0)}%',
                   label: strings.winRate,
-                  color: _StatsPalette.yellowSoft,
+                  accent: _StatsPalette.yellow,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
             decoration: BoxDecoration(
-              color: _StatsPalette.yellow,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _StatsPalette.ink, width: 2.5),
+              color: const Color(0x1FFFFFFF),
+              borderRadius: BorderRadius.circular(13),
+              border: Border.all(color: _StatsPalette.border),
             ),
-            child: Text(
-              strings.winReward(statistics.winPoints),
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: _StatsPalette.ink,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w900,
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.emoji_events_rounded,
+                  color: _StatsPalette.yellow,
+                  size: 18,
+                ),
+                const SizedBox(width: 7),
+                Flexible(
+                  child: Text(
+                    strings.winReward(statistics.winPoints),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -557,40 +638,42 @@ class _MyLeagueCard extends StatelessWidget {
 class _MiniStat extends StatelessWidget {
   final String value;
   final String label;
-  final Color color;
+  final Color accent;
 
   const _MiniStat({
     required this.value,
     required this.label,
-    required this.color,
+    required this.accent,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      constraints: const BoxConstraints(minHeight: 68),
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 9),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _StatsPalette.ink, width: 2.5),
+        color: const Color(0xCC262628),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _StatsPalette.border),
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             value,
-            style: const TextStyle(
-              color: _StatsPalette.ink,
+            style: TextStyle(
+              color: accent,
               fontSize: 16,
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 3),
           Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: _StatsPalette.inkSoft,
+              color: _StatsPalette.muted,
               fontSize: 9.5,
               fontWeight: FontWeight.w700,
             ),
@@ -615,35 +698,38 @@ class _LeagueChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.fromLTRB(9, 5, 13, 5),
+        duration: const Duration(milliseconds: 170),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.fromLTRB(8, 5, 12, 5),
         decoration: BoxDecoration(
-          color: selected ? _StatsPalette.yellow : _StatsPalette.cream,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _StatsPalette.ink, width: 3),
+          color: selected ? PlayPalette.blue : _StatsPalette.surface,
+          borderRadius: BorderRadius.circular(17),
+          border: Border.all(
+            color: selected ? PlayPalette.blue : _StatsPalette.border,
+          ),
           boxShadow: selected
               ? const [
                   BoxShadow(
-                    color: _StatsPalette.ink,
-                    blurRadius: 0,
-                    offset: Offset(3, 4),
+                    color: Color(0x44106CFF),
+                    blurRadius: 14,
+                    offset: Offset(0, 6),
                   ),
                 ]
               : null,
         ),
-        alignment: Alignment.center,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            LeagueBadge(league: league.number, size: 38),
+            LeagueBadge(league: league.number, size: 39),
             const SizedBox(width: 7),
             Text(
               '${league.roman} · ${league.players.length}',
-              style: const TextStyle(
-                color: _StatsPalette.ink,
-                fontSize: 15,
+              style: TextStyle(
+                color: selected ? Colors.white : _StatsPalette.textSoft,
+                fontSize: 14,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -658,86 +744,115 @@ class _LeaderboardPlayer extends StatelessWidget {
   final LeaguePlayerStats player;
   final bool isMe;
   final StatisticsStrings strings;
-  final int colorIndex;
   final VoidCallback? onTap;
 
   const _LeaderboardPlayer({
     required this.player,
     required this.isMe,
     required this.strings,
-    required this.colorIndex,
     required this.onTap,
   });
-
-  Color get _cardColor {
-    if (isMe) return _StatsPalette.yellow;
-
-    switch (colorIndex % 4) {
-      case 0:
-        return _StatsPalette.skyBlue;
-      case 1:
-        return _StatsPalette.mint;
-      case 2:
-        return _StatsPalette.peach;
-      default:
-        return _StatsPalette.cream;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
         decoration: BoxDecoration(
-          color: _cardColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: _StatsPalette.ink, width: 3),
+          color: isMe ? const Color(0x24106CFF) : _StatsPalette.surface,
+          borderRadius: BorderRadius.circular(19),
+          border: Border.all(
+            color: isMe ? const Color(0xAA106CFF) : _StatsPalette.border,
+            width: isMe ? 1.4 : 1,
+          ),
           boxShadow: const [
             BoxShadow(
-              color: _StatsPalette.ink,
-              blurRadius: 0,
-              offset: Offset(0, 4),
+              color: Color(0x31000000),
+              blurRadius: 14,
+              offset: Offset(0, 6),
             ),
           ],
         ),
         child: Row(
           children: [
-            SizedBox(
-              width: 36,
+            Container(
+              width: 38,
+              height: 38,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: player.rank == 1
+                    ? _StatsPalette.yellow
+                    : isMe
+                        ? PlayPalette.blue
+                        : _StatsPalette.surfaceRaised,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Text(
                 '#${player.rank ?? '-'}',
-                style: const TextStyle(
-                  color: _StatsPalette.ink,
-                  fontSize: 15,
+                style: TextStyle(
+                  color: player.rank == 1
+                      ? _StatsPalette.ink
+                      : Colors.white,
+                  fontSize: 13,
                   fontWeight: FontWeight.w900,
                 ),
               ),
             ),
+            const SizedBox(width: 10),
             _StatsAvatar(player: player),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    player.name.isEmpty ? player.username : player.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: _StatsPalette.ink,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          player.name.isEmpty ? player.username : player.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      if (isMe) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: PlayPalette.blue,
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          child: Text(
+                            context.appLanguage.code == 'az' ? 'SƏN' : 'ТЫ',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 3),
                   Text(
                     '${player.wins} ${strings.wins.toLowerCase()} · '
                     '${player.losses} ${strings.losses.toLowerCase()}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: _StatsPalette.inkSoft,
+                      color: _StatsPalette.muted,
                       fontSize: 10.5,
                       fontWeight: FontWeight.w700,
                     ),
@@ -747,28 +862,28 @@ class _LeaderboardPlayer extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              constraints: const BoxConstraints(minWidth: 62),
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: _StatsPalette.ink, width: 2.5),
+                color: _StatsPalette.surfaceRaised,
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(color: _StatsPalette.border),
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
                     '${player.leaguePoints}',
                     style: const TextStyle(
                       color: _StatsPalette.green,
-                      fontSize: 18,
+                      fontSize: 17,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                   Text(
                     strings.points,
                     style: const TextStyle(
-                      color: _StatsPalette.inkSoft,
-                      fontSize: 9,
+                      color: _StatsPalette.muted,
+                      fontSize: 8.5,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -776,15 +891,109 @@ class _LeaderboardPlayer extends StatelessWidget {
               ),
             ),
             if (!isMe) ...[
-              const SizedBox(width: 7),
+              const SizedBox(width: 5),
               const Icon(
                 Icons.more_horiz_rounded,
-                color: _StatsPalette.ink,
-                size: 22,
+                color: _StatsPalette.muted,
+                size: 21,
               ),
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _StatsAvatar extends StatelessWidget {
+  final LeaguePlayerStats player;
+
+  const _StatsAvatar({required this.player});
+
+  @override
+  Widget build(BuildContext context) {
+    final trimmedName = player.name.trim();
+    final letter = trimmedName.isNotEmpty
+        ? trimmedName[0].toUpperCase()
+        : player.username.isNotEmpty
+            ? player.username[0].toUpperCase()
+            : '?';
+
+    return Container(
+      width: 48,
+      height: 48,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: _StatsPalette.surfaceRaised,
+        border: Border.all(color: const Color(0x77106CFF), width: 1.4),
+      ),
+      child: ClipOval(
+        child: player.avatarUrl?.isNotEmpty == true
+            ? Image.network(
+                player.avatarUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    _AvatarLetter(letter: letter),
+              )
+            : _AvatarLetter(letter: letter),
+      ),
+    );
+  }
+}
+
+class _AvatarLetter extends StatelessWidget {
+  final String letter;
+
+  const _AvatarLetter({required this.letter});
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: _StatsPalette.surfaceRaised,
+      child: Center(
+        child: Text(
+          letter,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyLeague extends StatelessWidget {
+  final StatisticsStrings strings;
+
+  const _EmptyLeague({required this.strings});
+
+  @override
+  Widget build(BuildContext context) {
+    return SiteImagePanel(
+      assetPath: 'assets/ui/long_5.webp',
+      overlayColor: const Color(0xD0121212),
+      borderColor: _StatsPalette.border,
+      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+      child: Column(
+        children: [
+          const _StateIcon(
+            icon: Icons.emoji_events_rounded,
+            color: PlayPalette.blue,
+          ),
+          const SizedBox(height: 14),
+          Text(
+            strings.noPlayers,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -808,6 +1017,7 @@ class _LeaguePlayerActionSheet extends StatefulWidget {
 
 class _LeaguePlayerActionSheetState extends State<_LeaguePlayerActionSheet> {
   static const SocialService _service = SocialService();
+
   bool _busy = false;
   String? _error;
 
@@ -859,27 +1069,27 @@ class _LeaguePlayerActionSheetState extends State<_LeaguePlayerActionSheet> {
     final user = widget.user;
     if (user.isFriend) return Icons.people_alt_rounded;
     if (user.requestOutgoing) return Icons.schedule_rounded;
-    if (user.requestIncoming) return Icons.person_add_alt_1_rounded;
     return Icons.person_add_alt_1_rounded;
   }
 
   @override
   Widget build(BuildContext context) {
     final disabled = widget.user.isFriend || widget.user.requestOutgoing;
+
     return SafeArea(
       top: false,
       child: Container(
         margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
         decoration: BoxDecoration(
-          color: _StatsPalette.cream,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: _StatsPalette.ink, width: 3),
+          color: _StatsPalette.surface,
+          borderRadius: BorderRadius.circular(26),
+          border: Border.all(color: _StatsPalette.border),
           boxShadow: const [
             BoxShadow(
-              color: _StatsPalette.ink,
-              blurRadius: 0,
-              offset: Offset(0, 6),
+              color: Color(0x66000000),
+              blurRadius: 24,
+              offset: Offset(0, 10),
             ),
           ],
         ),
@@ -887,14 +1097,14 @@ class _LeaguePlayerActionSheetState extends State<_LeaguePlayerActionSheet> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 46,
-              height: 5,
+              width: 42,
+              height: 4,
               decoration: BoxDecoration(
-                color: _StatsPalette.inkSoft,
+                color: _StatsPalette.muted,
                 borderRadius: BorderRadius.circular(99),
               ),
             ),
-            const SizedBox(height: 15),
+            const SizedBox(height: 16),
             Row(
               children: [
                 _StatsAvatar(player: widget.player),
@@ -910,7 +1120,7 @@ class _LeaguePlayerActionSheetState extends State<_LeaguePlayerActionSheet> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: _StatsPalette.ink,
+                          color: Colors.white,
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
                         ),
@@ -918,9 +1128,9 @@ class _LeaguePlayerActionSheetState extends State<_LeaguePlayerActionSheet> {
                       Text(
                         '@${widget.player.username}',
                         style: const TextStyle(
-                          color: _StatsPalette.inkSoft,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
+                          color: _StatsPalette.muted,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
@@ -930,60 +1140,67 @@ class _LeaguePlayerActionSheetState extends State<_LeaguePlayerActionSheet> {
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
-              Text(
-                _error!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xFFB3261E),
-                  fontWeight: FontWeight.w800,
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(11),
+                decoration: BoxDecoration(
+                  color: const Color(0x22FF6475),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0x55FF6475)),
+                ),
+                child: Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: _StatsPalette.coral,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ],
             const SizedBox(height: 18),
             GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: disabled || _busy ? null : _runFriendAction,
-              child: Opacity(
-                opacity: disabled ? 0.72 : 1,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 150),
+                opacity: disabled ? 0.55 : 1,
                 child: Container(
                   width: double.infinity,
-                  height: 54,
+                  height: 52,
                   decoration: BoxDecoration(
-                    color: disabled ? _StatsPalette.yellowSoft : _StatsPalette.lime,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: _StatsPalette.ink, width: 3),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: _StatsPalette.ink,
-                        blurRadius: 0,
-                        offset: Offset(3, 4),
-                      ),
-                    ],
+                    color: disabled
+                        ? _StatsPalette.surfaceRaised
+                        : PlayPalette.blue,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: disabled
+                          ? _StatsPalette.border
+                          : PlayPalette.blue,
+                    ),
                   ),
                   child: _busy
                       ? const Center(
                           child: SizedBox(
-                            width: 22,
-                            height: 22,
+                            width: 21,
+                            height: 21,
                             child: CircularProgressIndicator(
-                              strokeWidth: 2.6,
-                              color: _StatsPalette.ink,
+                              strokeWidth: 2.5,
+                              color: Colors.white,
                             ),
                           ),
                         )
                       : Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              _actionIcon,
-                              color: _StatsPalette.ink,
-                              size: 24,
-                            ),
-                            const SizedBox(width: 9),
+                            Icon(_actionIcon, color: Colors.white, size: 22),
+                            const SizedBox(width: 8),
                             Text(
                               _actionLabel,
                               style: const TextStyle(
-                                color: _StatsPalette.ink,
-                                fontSize: 15,
+                                color: Colors.white,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
@@ -999,109 +1216,80 @@ class _LeaguePlayerActionSheetState extends State<_LeaguePlayerActionSheet> {
   }
 }
 
-class _StatsAvatar extends StatelessWidget {
-  final LeaguePlayerStats player;
+class _StateIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
 
-  const _StatsAvatar({required this.player});
-
-  @override
-  Widget build(BuildContext context) {
-    final letter = player.name.trim().isEmpty
-        ? (player.username.isEmpty ? '?' : player.username[0].toUpperCase())
-        : player.name.trim()[0].toUpperCase();
-
-    final avatar = player.avatarUrl?.isNotEmpty == true
-        ? Image.network(
-            player.avatarUrl!,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) =>
-                _AvatarLetter(letter: letter),
-          )
-        : _AvatarLetter(letter: letter);
-
-    return GameAvatarFrame(
-      size: 46,
-      innerPadding: 7,
-      child: avatar,
-    );
-  }
-}
-
-class _AvatarLetter extends StatelessWidget {
-  final String letter;
-
-  const _AvatarLetter({required this.letter});
+  const _StateIcon({required this.icon, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: _StatsPalette.cream,
+      width: 68,
+      height: 68,
       alignment: Alignment.center,
-      child: Text(
-        letter,
-        style: const TextStyle(
-          color: _StatsPalette.ink,
-          fontSize: 17,
-          fontWeight: FontWeight.w900,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        shape: BoxShape.circle,
+        border: Border.all(color: color.withValues(alpha: 0.42)),
+      ),
+      child: Icon(icon, color: color, size: 32),
+    );
+  }
+}
+
+class _PrimaryButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _PrimaryButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        height: 50,
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        decoration: BoxDecoration(
+          color: PlayPalette.blue,
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: 21),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _EmptyLeague extends StatelessWidget {
-  final StatisticsStrings strings;
-
-  const _EmptyLeague({required this.strings});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-      decoration: BoxDecoration(
-        color: _StatsPalette.cream,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _StatsPalette.ink, width: 3),
-        boxShadow: const [
-          BoxShadow(
-            color: _StatsPalette.ink,
-            blurRadius: 0,
-            offset: Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          const Icon(
-            Icons.emoji_events_rounded,
-            size: 50,
-            color: _StatsPalette.ink,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            strings.noPlayers,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _StatsPalette.ink,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _StatsPalette {
-  static const Color ink = Color(0xFF16110D);
-  static const Color inkSoft = Color(0xFF514B45);
-
-  static const Color cream = Color(0xFFFFF4D8);
-  static const Color yellow = Color(0xFFFFD85A);
-  static const Color yellowSoft = Color(0xFFFFE8A3);
-  static const Color skyBlue = Color(0xFF67C8EE);
-  static const Color mint = Color(0xFF89D875);
-  static const Color peach = Color(0xFFFF8A79);
-  static const Color lime = Color(0xFF7CFC00);
-  static const Color green = Color(0xFF4EA900);
+  static const Color ink = Color(0xFF121212);
+  static const Color surface = Color(0xFF262628);
+  static const Color surfaceRaised = Color(0xFF323234);
+  static const Color border = Color(0xFF3A3A3E);
+  static const Color muted = Color(0xFFA7A7AD);
+  static const Color textSoft = Color(0xFFE2E2E5);
+  static const Color green = Color(0xFF5FE2A0);
+  static const Color coral = Color(0xFFFF6475);
+  static const Color yellow = Color(0xFFFFD35A);
 }
